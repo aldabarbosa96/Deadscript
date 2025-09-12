@@ -1,0 +1,119 @@
+package ui;
+
+import utils.ANSI;
+
+public class PlayerHud {
+    private final int filaSuperior;
+    private final int colIzquierda;
+    private final int anchoHud;
+    private final int anchoBarra = 20;
+
+    public PlayerHud(int filaSuperior, int colIzquierda, int anchoHud) {
+        this.filaSuperior = Math.max(1, filaSuperior);
+        this.colIzquierda = Math.max(1, colIzquierda);
+        this.anchoHud = Math.max(10, anchoHud);
+    }
+
+    public void renderHud(int dia, String hora, String clima, int temperatura, String ubicacion, int salud, int maxSalud, int energia, int maxEnergia, int hambre, int maxHambre, int sed, int maxSed, int sueno, int maxSueno) {
+        // Línea 0: encabezado
+        ANSI.gotoRC(filaSuperior, colIzquierda);
+        ANSI.boldOn();
+        String encabezado = String.format("Día %d   Hora: %s   Clima: %s   Temp: %d°C   Zona: %s", dia, safe(hora), safe(clima), temperatura, safe(ubicacion));
+        System.out.print(recortar(encabezado, anchoHud));
+        ANSI.resetStyle();
+        ANSI.clearToLineEnd();
+
+        int row = filaSuperior + 2;
+
+        // Salud
+        ANSI.gotoRC(row, colIzquierda);
+        imprimirBarraColoreada(formatearBarra("- Salud  ", salud, maxSalud));
+        ANSI.clearToLineEnd();
+        row += 2;
+
+        // Energía
+        ANSI.gotoRC(row, colIzquierda);
+        imprimirBarraColoreada(formatearBarra("- Energía", energia, maxEnergia));
+        ANSI.clearToLineEnd();
+        row += 2;
+
+        // Hambre
+        ANSI.gotoRC(row, colIzquierda);
+        imprimirBarraColoreada(formatearBarra("- Hambre ", hambre, maxHambre));
+        ANSI.clearToLineEnd();
+        row += 2;
+
+        // Sed
+        ANSI.gotoRC(row, colIzquierda);
+        imprimirBarraColoreada(formatearBarra("- Sed    ", sed, maxSed));
+        ANSI.clearToLineEnd();
+        row += 2;
+
+        // Sueño
+        ANSI.gotoRC(row, colIzquierda);
+        imprimirBarraColoreada(formatearBarra("- Sueño  ", sueno, maxSueno));
+        ANSI.clearToLineEnd();
+    }
+
+    private String formatearBarra(String etiqueta, int valor, int max) {
+        int v = Math.max(0, Math.min(valor, Math.max(1, max)));
+        int m = Math.max(1, max);
+        int filled = (int) Math.round((v / (double) m) * anchoBarra);
+        int empty = Math.max(0, anchoBarra - filled);
+
+        String barra = "[" + "█".repeat(Math.max(0, filled)) + "-".repeat(empty) + "]";
+        return String.format("%s %s %d/%d", etiqueta, barra, v, m);
+    }
+
+    private void imprimirBarraColoreada(String barraConEtiqueta) {
+        int color = getColor(barraConEtiqueta);
+        int open = barraConEtiqueta.indexOf('[');
+        int close = barraConEtiqueta.indexOf(']', open + 1);
+        if (open >= 0 && close > open) {
+            String etiqueta = barraConEtiqueta.substring(0, open);
+            String barra = barraConEtiqueta.substring(open, close + 1);
+            String resto = barraConEtiqueta.substring(close + 1);
+
+            System.out.print(etiqueta);
+            ANSI.setFg(color);
+            System.out.print(barra);
+            ANSI.resetStyle();
+            System.out.print(resto);
+        } else {
+            // fallback sin colorear
+            System.out.print(barraConEtiqueta);
+        }
+    }
+
+    private static int getColor(String barraConEtiqueta) {
+        int idx = barraConEtiqueta.lastIndexOf(' ');
+        String stats = (idx >= 0) ? barraConEtiqueta.substring(idx + 1) : "";
+        int slash = stats.indexOf('/');
+        double pct = 1.0;
+        if (slash > 0) {
+            try {
+                int val = Integer.parseInt(stats.substring(0, slash));
+                int max = Integer.parseInt(stats.substring(slash + 1));
+                max = Math.max(1, max);
+                pct = val / (double) max;
+            } catch (Exception ignore) { /* si falla, dejamos pct=1.0 */ }
+        }
+
+        int color;
+        if (pct >= 0.66) color = 32;// verde
+        else if (pct >= 0.33) color = 33;// amarillo
+        else color = 31; // rojo
+        return color;
+    }
+
+    private static String safe(String s) {
+        return (s == null) ? "" : s;
+    }
+
+    private static String recortar(String s, int ancho) {
+        if (s == null) return "";
+        if (s.length() <= ancho) return s;
+        if (ancho <= 3) return s.substring(0, Math.max(0, ancho));
+        return s.substring(0, ancho - 3) + "...";
+    }
+}
