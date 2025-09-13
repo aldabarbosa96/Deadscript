@@ -6,7 +6,7 @@ public final class ANSI {
     private ANSI() {
     }
 
-    // control ANSI
+    // control ANSI on/off
     public static void setEnabled(boolean on) {
         enabled = on;
     }
@@ -15,7 +15,6 @@ public final class ANSI {
         return enabled;
     }
 
-    // control pantalla y cursor
     public static void clearScreenAndHome() {
         if (!enabled) return;
         System.out.print("\u001B[2J\u001B[H");
@@ -39,7 +38,6 @@ public final class ANSI {
         }
     }
 
-    // movimiento cursor
     public static void gotoRC(int row, int col) {
         if (!enabled) return;
         if (row < 1 || col < 1) {
@@ -48,7 +46,6 @@ public final class ANSI {
         System.out.print("\u001B[" + row + ";" + col + "H");
     }
 
-    // limpieza líneas
     public static void clearLine() {
         if (!enabled) return;
         System.out.print("\u001B[2K");
@@ -59,7 +56,6 @@ public final class ANSI {
         System.out.print("\u001B[K");
     }
 
-    // colores y estilos
     public static void resetStyle() {
         if (!enabled) return;
         System.out.print("\u001B[0m");
@@ -90,7 +86,6 @@ public final class ANSI {
         System.out.print(on ? "\u001B[?7h" : "\u001B[?7l");
     }
 
-    // NUEVO: región de scroll (DECSTBM). top/bottom inclusivos (1-based).
     public static void setScrollRegion(int top, int bottom) {
         if (!enabled) return;
         System.out.print("\u001B[" + top + ";" + bottom + "r");
@@ -101,7 +96,6 @@ public final class ANSI {
         System.out.print("\u001B[r");
     }
 
-    // NUEVO: flush explícito
     public static void flush() {
         System.out.flush();
     }

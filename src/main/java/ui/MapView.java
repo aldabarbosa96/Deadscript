@@ -53,7 +53,6 @@ public class MapView {
                 System.out.print(map.tiles[my][mx]);
             }
             ANSI.resetStyle();
-            // IMPORTANTE: NO llamar a clearToLineEnd() aquí
         }
 
         int sxPlayer = px - camX;

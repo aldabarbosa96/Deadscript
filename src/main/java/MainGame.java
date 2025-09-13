@@ -34,10 +34,9 @@ public class MainGame {
     private static int infeccionPct = 0;
     private static boolean escondido = true;
 
-    // Dimensiones fijas “seguras”
     private static final int MAP_TOP = 13;
     private static final int MAP_LEFT = 1;
-    private static final int VIEW_W = 119; // evita última columna
+    private static final int VIEW_W = 119;
     private static final int VIEW_H = 35;
 
     public static void main(String[] args) {
@@ -59,7 +58,7 @@ public class MainGame {
         hud = new PlayerHud(1, 1, 100);
         states = new PlayerStates(3, 48, 30);
 
-        gameMap = GameMap.demo(240, 160);
+        gameMap = GameMap.randomBalanced(240, 160);
         px = gameMap.w / 2;
         py = gameMap.h / 2;
 
@@ -69,10 +68,8 @@ public class MainGame {
 
         ANSI.clearScreenAndHome();
 
-        // Fijar región de scroll solo al bloque del mapa (evita que la terminal “empuje” el HUD)
         ANSI.setScrollRegion(MAP_TOP, MAP_TOP + viewH - 1);
 
-        // Materializar el área del mapa y primer frame
         mapView.prefill();
 
         String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
@@ -83,19 +80,13 @@ public class MainGame {
     }
 
     private static void gameLoop() {
-        while (true) { // Ctrl+C para salir
+        while (true) {
             String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
             hud.renderHud(1, hora, "Soleado", temperaturaC, ubicacion, salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno);
             states.renderStates(salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, sangrado, infeccionPct, escondido);
-
-            // El mapa se dibuja dentro de la región de scroll fijada
             mapView.render(gameMap, px, py);
             ANSI.flush();
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ignored) {
-            }
+            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
         }
     }
 
