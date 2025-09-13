@@ -3,6 +3,7 @@ import ui.map.MapView;
 import ui.player.PlayerHud;
 import ui.player.PlayerStates;
 import ui.log.MessageLog;
+import ui.menu.ActionBar;
 import ui.input.InputHandler;
 import utils.ANSI;
 import world.GameMap;
@@ -23,6 +24,7 @@ public class MainGame {
 
     private static EquipmentPanel equip;
     private static MessageLog msgLog;
+    private static ActionBar actionBar;
 
     private static final int HUD_LEFT = 1;
     private static final int GAP = 2;
@@ -40,7 +42,7 @@ public class MainGame {
     private static final int VIEW_W = 119;
     private static final int VIEW_H = 38;
 
-    private static final int LOG_ROWS = 8; // alto del log
+    private static final int LOG_ROWS = 8;
 
     private static String ubicacion = "Goodsummer";
     private static int temperaturaC = 18;
@@ -100,6 +102,9 @@ public class MainGame {
         msgLog.add(String.format("Día %d: %s", 1, infoDia));
         msgLog.add(String.format("Posición inicial: (%d,%d).", px, py));
 
+        int menuTop = logTop + LOG_ROWS + 1;
+        actionBar = new ActionBar(menuTop, MAP_LEFT, headerWidth);
+
         ANSI.clearScreenAndHome();
         ANSI.setScrollRegion(MAP_TOP, MAP_TOP + viewH - 1);
         mapView.prefill();
@@ -116,6 +121,26 @@ public class MainGame {
                     case DOWN -> dirty |= tryMove(0, 1);
                     case LEFT -> dirty |= tryMove(-1, 0);
                     case RIGHT -> dirty |= tryMove(1, 0);
+                    case INVENTORY -> {
+                        msgLog.add("Abres el inventario.");
+                        dirty = true;
+                    }
+                    case EQUIPMENT -> {
+                        msgLog.add("Abres el equipo.");
+                        dirty = true;
+                    }
+                    case STATS -> {
+                        msgLog.add("Abres el panel de estadísticas.");
+                        dirty = true;
+                    }
+                    case ACTION -> {
+                        msgLog.add("Acción principal.");
+                        dirty = true;
+                    }
+                    case OPTIONS -> {
+                        msgLog.add("Abres las opciones.");
+                        dirty = true;
+                    }
                     case REGENERATE -> {
                         regenerateMap();
                         msgLog.add("Nuevo mapa generado.");
@@ -146,10 +171,9 @@ public class MainGame {
         hud.renderHud(1, hora, "Soleado", temperaturaC, ubicacion, salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, px, py, rumboTexto(lastDx, lastDy));
         states.renderStates(salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, sangrado, infeccionPct, escondido);
         equip.render("Navaja", "-", "Gorra", "-", "-", "-", "-", "Mochila tela", 0, 0, 5, 20.0);
-
         mapView.render(gameMap, px, py);
         msgLog.render();
-
+        actionBar.render();
         ANSI.gotoRC(1, 1);
         ANSI.flush();
     }
@@ -168,7 +192,6 @@ public class MainGame {
         py = ny;
         lastDx = dx;
         lastDy = dy;
-
         return true;
     }
 
@@ -187,6 +210,9 @@ public class MainGame {
 
         int logTop = MAP_TOP + viewH + 1;
         msgLog.updateGeometry(logTop, MAP_LEFT, headerWidth, LOG_ROWS);
+
+        int menuTop = logTop + LOG_ROWS + 1;
+        actionBar.updateGeometry(menuTop, MAP_LEFT, headerWidth);
 
         ANSI.setScrollRegion(MAP_TOP, MAP_TOP + viewH - 1);
     }

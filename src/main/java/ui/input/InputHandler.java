@@ -12,7 +12,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class InputHandler implements AutoCloseable {
-    public enum Command {UP, DOWN, LEFT, RIGHT, REGENERATE, QUIT, NONE}
+
+    public enum Command {
+        UP, DOWN, LEFT, RIGHT, REGENERATE, INVENTORY, EQUIPMENT, STATS, ACTION, OPTIONS,QUIT, NONE
+    }
+
     private final BlockingQueue<Command> queue = new LinkedBlockingQueue<>();
     private final Thread readerThread;
     private volatile boolean running = true;
@@ -59,12 +63,22 @@ public class InputHandler implements AutoCloseable {
         KeyMap<Command> km = new KeyMap<>();
         String ESC = "\u001B";
 
+        // Flechas
         km.bind(Command.UP, ESC + "[A", ESC + "OA");
         km.bind(Command.DOWN, ESC + "[B", ESC + "OB");
         km.bind(Command.RIGHT, ESC + "[C", ESC + "OC");
         km.bind(Command.LEFT, ESC + "[D", ESC + "OD");
+
+        // Atajos juego
         km.bind(Command.REGENERATE, "r", "R");
         km.bind(Command.QUIT, "q", "Q");
+
+        // Menú acción/atajos
+        km.bind(Command.ACTION, " ");
+        km.bind(Command.INVENTORY, "i", "I");
+        km.bind(Command.EQUIPMENT, "e", "E");
+        km.bind(Command.STATS, "s", "S");
+        km.bind(Command.OPTIONS, "o", "O");
 
         return km;
     }
@@ -76,7 +90,6 @@ public class InputHandler implements AutoCloseable {
     public int terminalHeight() {
         return terminal.getHeight();
     }
-
 
     @Override
     public void close() {
