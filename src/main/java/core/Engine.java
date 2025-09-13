@@ -17,16 +17,16 @@ public class Engine {
 
     public Engine(InputHandler input) {
         this.input = input;
-        // init pantalla + UI + mapa + primer frame
         renderer.init(state);
         clock.start();
-        dirty = true;
+        clock.onRendered();
+        dirty = false;
     }
 
     public void run() {
         while (running) {
 
-            // 1) INPUT (solo traduce a acciones/sistemas)
+            // 1) INPUT
             InputHandler.Command cmd;
             while ((cmd = input.poll(0)) != InputHandler.Command.NONE) {
                 if (handle(cmd)) {

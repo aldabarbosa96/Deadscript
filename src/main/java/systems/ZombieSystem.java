@@ -1,6 +1,6 @@
 package systems;
 
-import game.Config;
+import game.Constants;
 import game.GameState;
 import render.Renderer;
 import world.Entity;
@@ -12,15 +12,12 @@ public final class ZombieSystem {
     private ZombieSystem() {
     }
 
-    /**
-     * Devuelve true si algo que afecta a pantalla cambió cerca de la cámara/FOV.
-     */
     public static boolean update(GameState s, Renderer r, double dt) {
         boolean touched = false;
 
         // Spawns
         s.spawnTimer += dt;
-        if (s.spawnTimer >= Config.SPAWN_EVERY_SEC) {
+        if (s.spawnTimer >= Constants.SPAWN_EVERY_SEC) {
             s.spawnTimer = 0.0;
             if (trySpawnGroup(s, r)) touched = true;
         }
@@ -28,8 +25,6 @@ public final class ZombieSystem {
         // Movimiento + golpes
         Map<Integer, Entity> leaders = new HashMap<>();
         for (Entity e : s.entities) if (e.leader) leaders.put(e.groupId, e);
-
-        int camX = r.cameraX(s), camY = r.cameraY(s);
 
         for (var e : s.entities) {
             int beforeX = e.x, beforeY = e.y;
@@ -81,8 +76,8 @@ public final class ZombieSystem {
             // ataque
             if (e.attackCooldown > 0) e.attackCooldown -= dt;
             if (e.x == s.px && e.y == s.py && e.attackCooldown <= 0) {
-                s.salud = Math.max(0, s.salud - Config.ZOMBIE_HIT_DAMAGE);
-                e.attackCooldown = Config.ZOMBIE_ATTACK_COOLDOWN_SEC;
+                s.salud = Math.max(0, s.salud - Constants.ZOMBIE_HIT_DAMAGE);
+                e.attackCooldown = Constants.ZOMBIE_ATTACK_COOLDOWN_SEC;
                 r.log("¡Un zombi te ha golpeado!");
                 touched = true;
             }
@@ -91,11 +86,11 @@ public final class ZombieSystem {
     }
 
     private static boolean trySpawnGroup(GameState s, Renderer r) {
-        if (s.entities.size() >= Config.MAX_ZOMBIES) return false;
+        if (s.entities.size() >= Constants.MAX_ZOMBIES) return false;
 
         int size = 1 + s.rng.nextInt(5); // 1..5
         double ang = s.rng.nextDouble() * Math.PI * 2.0;
-        int dist = Config.SPAWN_RADIUS_MIN + s.rng.nextInt(Math.max(1, Config.SPAWN_RADIUS_MAX - Config.SPAWN_RADIUS_MIN + 1));
+        int dist = Constants.SPAWN_RADIUS_MIN + s.rng.nextInt(Math.max(1, Constants.SPAWN_RADIUS_MAX - Constants.SPAWN_RADIUS_MIN + 1));
 
         int ax = s.px + (int) Math.round(Math.cos(ang) * dist);
         int ay = s.py + (int) Math.round(Math.sin(ang) * dist);
@@ -104,13 +99,13 @@ public final class ZombieSystem {
         int groupId = s.nextGroupId++;
         boolean anyNear = false;
 
-        for (int i = 0; i < size && s.entities.size() < Config.MAX_ZOMBIES; i++) {
+        for (int i = 0; i < size && s.entities.size() < Constants.MAX_ZOMBIES; i++) {
             int rx = ax + s.rng.nextInt(5) - 2;
             int ry = ay + s.rng.nextInt(5) - 2;
             if (rx < 0 || ry < 0 || rx >= s.map.w || ry >= s.map.h) continue;
             if (!s.map.walk[ry][rx]) continue;
 
-            double speed = Config.ZOMBIE_MIN_SPEED + s.rng.nextDouble() * Config.ZOMBIE_SPEED_RANGE;
+            double speed = Constants.ZOMBIE_MIN_SPEED + s.rng.nextDouble() * Constants.ZOMBIE_SPEED_RANGE;
 
             Entity z = new Entity(rx, ry, 'Z', speed);
             z.groupId = groupId;

@@ -3,10 +3,8 @@ package core;
 import java.util.function.DoubleConsumer;
 
 public class Clock {
-    // 60 Hz de sim; render mínimo cada 200ms y repintado 1/seg para reloj
     private static final double FIXED_DT = 1.0 / 60.0;
     private static final long   RENDER_MIN_INTERVAL_NS = 200_000_000L;
-
     private long  prevNs;
     private double lag;
     private long lastRenderNs;

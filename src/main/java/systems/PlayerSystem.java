@@ -1,7 +1,7 @@
 package systems;
 
 import game.GameState;
-import game.Config;
+import game.Constants;
 import render.Renderer;
 
 public final class PlayerSystem {
@@ -10,7 +10,7 @@ public final class PlayerSystem {
 
     public static boolean tryMoveThrottled(GameState s, int dx, int dy, Renderer r) {
         long now = System.nanoTime();
-        if (now - s.lastPlayerStepNs < Config.PLAYER_MOVE_COOLDOWN_NS) return false;
+        if (now - s.lastPlayerStepNs < Constants.PLAYER_MOVE_COOLDOWN_NS) return false;
         boolean moved = tryMove(s, dx, dy, r);
         if (moved) s.lastPlayerStepNs = now;
         return moved;

@@ -13,7 +13,6 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 public class Renderer {
-    // Layout/UI
     private static final int HUD_LEFT = 1;
     private static final int GAP = 2;
     private static final int STATES_LEFT = 48;
@@ -26,8 +25,6 @@ public class Renderer {
     private static final int VIEW_W = 119;
     private static final int VIEW_H = 38;
     private static final int LOG_ROWS = 8;
-
-    // Widgets
     private PlayerHud hud;
     private PlayerStates states;
     private EquipmentPanel equip;
@@ -88,14 +85,10 @@ public class Renderer {
     public void renderAll(GameState s) {
         String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         hud.renderHud(1, hora, "Soleado", s.temperaturaC, s.ubicacion, s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.px, s.py, rumboTexto(s.lastDx, s.lastDy));
-
         states.renderStates(s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.sangrado, s.infeccionPct, s.escondido);
-
         equip.render("Navaja", "-", "Gorra", "-", "-", "-", "-", "Mochila tela", 0, 0, 5, 20.0);
-
         mapView.render(s.map, s.px, s.py);
         renderEntities(s);
-
         msgLog.render();
         actionBar.render();
 
@@ -118,7 +111,6 @@ public class Renderer {
         }
     }
 
-    // Utilidades que necesitan los sistemas para decidir si ensucian pantalla
     public boolean wasVisibleLastRender(int x, int y) {
         return mapView.wasVisibleLastRender(x, y);
     }

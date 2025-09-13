@@ -31,6 +31,7 @@ public class GameState {
     public double spawnTimer = 0.0;
     public int nextGroupId = 1;
 
+
     public void resetMap() {
         map = GameMap.randomBalanced(240, 160);
         px = map.w / 2;
