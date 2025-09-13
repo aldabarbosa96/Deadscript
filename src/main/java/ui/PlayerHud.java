@@ -16,22 +16,19 @@ public class PlayerHud {
         this.anchoStats = Math.max(10, anchoStats);
     }
 
-    public void renderHud(int dia, String hora, String clima, int temperatura, String ubicacion, int salud, int maxSalud, int energia, int maxEnergia, int hambre, int maxHambre, int sed, int maxSed, int sueno, int maxSueno) {
+    public void renderHud(int dia, String hora, String clima, int temperatura, String ubicacion, int salud, int maxSalud, int energia, int maxEnergia, int hambre, int maxHambre, int sed, int maxSed, int sueno, int maxSueno, int px, int py, String rumbo) {
 
-        // Barra superior (fila 1)
         ANSI.gotoRC(filaSuperior, colIzquierda);
         ANSI.boldOn();
-        String encabezado = String.format("Día %d   Hora: %s   Clima: %s   Temp: %d°C   Zona: %s", dia, safe(hora), safe(clima), temperatura, safe(ubicacion));
+        String encabezado = String.format(" Día %d   Hora: %s   Clima: %s   Temp: %d°C   Zona: %s   Coordenadas: (%d,%d)   Dirección: %s", dia, safe(hora), safe(clima), temperatura, safe(ubicacion), px, py, safe(rumbo));
         System.out.print(recortar(encabezado, anchoHeader));
         ANSI.resetStyle();
         ANSI.clearToLineEnd();
 
-        // Título alineado con Estados/Equipo (fila 3)
-        int titleRow = filaSuperior + 2;        // 1 -> encabezado, 2 -> separador, 3 -> título
+        int titleRow = filaSuperior + 2;
         titleStats(titleRow, "ESTADÍSTICAS");
 
-        // Contenido con la misma separación que Estados (una línea en blanco)
-        int row = titleRow + 2;                 // fila 5
+        int row = titleRow + 2;
 
         ANSI.gotoRC(row, colIzquierda);
         imprimirBarraColoreada(recortar(formatearBarra("- Salud  ", salud, maxSalud), anchoStats));
@@ -57,7 +54,6 @@ public class PlayerHud {
         imprimirBarraColoreada(recortar(formatearBarra("- Sueño  ", sueno, maxSueno), anchoStats));
         ANSI.clearToLineEnd();
     }
-
 
     private void titleStats(int row, String t) {
         ANSI.gotoRC(row, colIzquierda);

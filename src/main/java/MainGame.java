@@ -53,7 +53,10 @@ public class MainGame {
     private static final int MAP_TOP = 16;
     private static final int MAP_LEFT = 1;
     private static final int VIEW_W = 119;
-    private static final int VIEW_H = 38; // ligeramente más alto
+    private static final int VIEW_H = 38;
+
+    private static int lastDx = 0;
+    private static int lastDy = 0;
 
     public static void main(String[] args) {
         try {
@@ -129,7 +132,7 @@ public class MainGame {
 
     private static void renderAll() {
         String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        hud.renderHud(1, hora, "Soleado", temperaturaC, ubicacion, salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno);
+        hud.renderHud(1, hora, "Soleado", temperaturaC, ubicacion, salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, px, py, rumboTexto(lastDx, lastDy));
         states.renderStates(salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, sangrado, infeccionPct, escondido);
         equip.render("Navaja", "-", "Gorra", "-", "-", "-", "-", "Mochila tela", 0, 0, 5, 20.0);
         mapView.render(gameMap, px, py);
@@ -144,6 +147,8 @@ public class MainGame {
         if (!gameMap.walk[ny][nx]) return false;
         px = nx;
         py = ny;
+        lastDx = dx;
+        lastDy = dy;
         return true;
     }
 
@@ -156,6 +161,18 @@ public class MainGame {
         int headerWidth = (EQUIP_LEFT + equipWidth) - HUD_LEFT;
         mapView = new MapView(MAP_TOP, MAP_LEFT, Math.min(headerWidth, gameMap.w), Math.min(VIEW_H, gameMap.h), 18, gameMap, 2.0);
         mapView.prefill();
+    }
+
+    private static String rumboTexto(int dx, int dy) {
+        if (dx == 0 && dy == 0) return "-";
+        if (dy < 0 && dx == 0) return "N";
+        if (dy < 0 && dx > 0) return "NE";
+        if (dy == 0 && dx > 0) return "E";
+        if (dy > 0 && dx > 0) return "SE";
+        if (dy > 0 && dx == 0) return "S";
+        if (dy > 0 && dx < 0) return "SO";
+        if (dy == 0 && dx < 0) return "O";
+        return "NO";
     }
 
     private static void shutdown() {
