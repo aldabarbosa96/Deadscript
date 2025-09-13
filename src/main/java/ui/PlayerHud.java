@@ -5,8 +5,8 @@ import utils.ANSI;
 public class PlayerHud {
     private final int filaSuperior;
     private final int colIzquierda;
-    private final int anchoHeader; // ancho para la cabecera
-    private final int anchoStats;  // ancho para las barras
+    private final int anchoHeader;
+    private final int anchoStats;
     private final int anchoBarra = 20;
 
     public PlayerHud(int filaSuperior, int colIzquierda, int anchoHeader, int anchoStats) {
@@ -18,7 +18,7 @@ public class PlayerHud {
 
     public void renderHud(int dia, String hora, String clima, int temperatura, String ubicacion, int salud, int maxSalud, int energia, int maxEnergia, int hambre, int maxHambre, int sed, int maxSed, int sueno, int maxSueno) {
 
-        // Cabecera
+        // Barra superior (fila 1)
         ANSI.gotoRC(filaSuperior, colIzquierda);
         ANSI.boldOn();
         String encabezado = String.format("Día %d   Hora: %s   Clima: %s   Temp: %d°C   Zona: %s", dia, safe(hora), safe(clima), temperatura, safe(ubicacion));
@@ -26,9 +26,13 @@ public class PlayerHud {
         ANSI.resetStyle();
         ANSI.clearToLineEnd();
 
-        int row = filaSuperior + 2;
+        // Título alineado con Estados/Equipo (fila 3)
+        int titleRow = filaSuperior + 2;        // 1 -> encabezado, 2 -> separador, 3 -> título
+        titleStats(titleRow, "ESTADÍSTICAS");
 
-        // Barras
+        // Contenido con la misma separación que Estados (una línea en blanco)
+        int row = titleRow + 2;                 // fila 5
+
         ANSI.gotoRC(row, colIzquierda);
         imprimirBarraColoreada(recortar(formatearBarra("- Salud  ", salud, maxSalud), anchoStats));
         ANSI.clearToLineEnd();
@@ -54,6 +58,21 @@ public class PlayerHud {
         ANSI.clearToLineEnd();
     }
 
+
+    private void titleStats(int row, String t) {
+        ANSI.gotoRC(row, colIzquierda);
+        String label = " " + (t == null ? "" : t.trim()) + " ";
+        if (label.length() >= anchoStats) {
+            System.out.print(label.substring(0, Math.max(0, anchoStats)));
+            return;
+        }
+        int leftDash = (anchoStats - label.length()) / 2;
+        int rightDash = anchoStats - label.length() - leftDash;
+        System.out.print("─".repeat(leftDash));
+        System.out.print(label);
+        System.out.print("─".repeat(rightDash));
+    }
+
     private String formatearBarra(String etiqueta, int valor, int max) {
         int v = Math.max(0, Math.min(valor, Math.max(1, max)));
         int m = Math.max(1, max);
@@ -70,7 +89,6 @@ public class PlayerHud {
             String etiqueta = barraConEtiqueta.substring(0, open);
             String barra = barraConEtiqueta.substring(open, close + 1);
             String resto = barraConEtiqueta.substring(close + 1);
-
             System.out.print(etiqueta);
             ANSI.setFg(getColor(barraConEtiqueta));
             System.out.print(barra);

@@ -1,7 +1,6 @@
 package ui;
 
 import utils.ANSI;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,52 +21,48 @@ public class PlayerStates {
         this.maxLines = Math.max(2, maxLines);
     }
 
-    public void renderStates(int salud, int maxSalud, int energia, int maxEnergia, int hambre, int maxHambre, int sed, int maxSed, int sueno, int maxSueno, boolean sangrado, int infeccionPct, boolean escondido) {
+    public void renderStates(int salud, int maxSalud, int energia, int maxEnergia,
+                             int hambre, int maxHambre, int sed, int maxSed,
+                             int sueno, int maxSueno, boolean sangrado, int infeccionPct, boolean escondido) {
         List<Badge> activos = new ArrayList<>();
 
-        // Salud
         double ps = ratio(salud, maxSalud);
         if (ps < 0.15) activos.add(new Badge("CRÍTICO", 31));
         else if (ps < 0.33) activos.add(new Badge("HERIDO GRAVE", 31));
         else if (ps < 0.66) activos.add(new Badge("HERIDO", 33));
 
-        // Energía
         double pe = ratio(energia, maxEnergia);
         if (pe <= 0.15) activos.add(new Badge("EXHAUSTO", 31));
         else if (pe <= 0.30) activos.add(new Badge("FATIGADO", 33));
 
-        // Hambre
         double ph = ratio(hambre, maxHambre);
         if (ph <= 0.33) activos.add(new Badge("HAMBRIENTO CRÍTICO", 31));
         else if (ph <= 0.50) activos.add(new Badge("MUY HAMBRIENTO", 33));
         else if (ph <= 0.66) activos.add(new Badge("HAMBRIENTO", 33));
 
-        // Sed
         double psed = ratio(sed, maxSed);
         if (psed <= 0.15) activos.add(new Badge("DESHIDRATADO", 31));
         else if (psed <= 0.50) activos.add(new Badge("MUY SEDIENTO", 33));
         else if (psed <= 0.66) activos.add(new Badge("SEDIENTO", 33));
 
-        // Sueño
         double psueno = ratio(sueno, maxSueno);
         if (psueno <= 0.15) activos.add(new Badge("EXTENUADO", 31));
         else if (psueno <= 0.50) activos.add(new Badge("MUY CANSADO", 33));
         else if (psueno <= 0.66) activos.add(new Badge("SOMNOLIENTO", 33));
 
-        // Sangrado
         if (sangrado) activos.add(new Badge("SANGRADO", 31));
 
-        // Infección
         int inf = Math.max(0, Math.min(100, infeccionPct));
         if (inf > 0) {
             int color = (inf >= 50) ? 35 : 33;
             activos.add(new Badge("INFECCIÓN " + inf + "%", color));
         }
 
-        // Escondido
         if (escondido) activos.add(new Badge("ESCONDIDO", 36));
 
-        int row = topRow;
+        title(topRow, "ESTADOS");
+
+        int row = topRow + 2;  // línea en blanco bajo el título
         int printedLines = 0;
         int i = 0;
 
@@ -79,7 +74,7 @@ public class PlayerStates {
 
             while (i < activos.size()) {
                 String visible = "[" + activos.get(i).text + "]";
-                int needed = visible.length() + (first ? 0 : 1); // +1 por espacio
+                int needed = visible.length() + (first ? 0 : 1);
                 if (used + needed > width) break;
 
                 if (!first) {
@@ -93,9 +88,7 @@ public class PlayerStates {
                 first = false;
             }
 
-            if (used < width) {
-                System.out.print(" ".repeat(width - used));
-            }
+            if (used < width) System.out.print(" ".repeat(width - used));
 
             ANSI.resetStyle();
             printedLines++;
@@ -103,9 +96,23 @@ public class PlayerStates {
         }
 
         for (int k = printedLines; k < maxLines; k++) {
-            ANSI.gotoRC(topRow + k, leftCol);
+            ANSI.gotoRC(topRow + 2 + k, leftCol); // respeta el hueco del título + línea en blanco
             System.out.print(" ".repeat(width));
         }
+    }
+
+    private void title(int row, String t) {
+        ANSI.gotoRC(row, leftCol);
+        String label = " " + (t == null ? "" : t.trim()) + " ";
+        if (label.length() >= width) {
+            System.out.print(label.substring(0, Math.max(0, width)));
+            return;
+        }
+        int leftDash = (width - label.length()) / 2;
+        int rightDash = width - label.length() - leftDash;
+        System.out.print("─".repeat(leftDash));
+        System.out.print(label);
+        System.out.print("─".repeat(rightDash));
     }
 
     private static double ratio(int value, int max) {
@@ -114,7 +121,6 @@ public class PlayerStates {
         return v / (double) m;
     }
 
-    // recibimos el texto visible con corchetes para poder medir bien width
     private static void printBadge(String visibleWithBrackets, int fgColor) {
         ANSI.setFg(fgColor);
         System.out.print(visibleWithBrackets);
@@ -122,12 +128,7 @@ public class PlayerStates {
     }
 
     private static class Badge {
-        final String text;
-        final int color;
-
-        Badge(String text, int color) {
-            this.text = text;
-            this.color = color;
-        }
+        final String text; final int color;
+        Badge(String text, int color) { this.text = text; this.color = color; }
     }
 }
