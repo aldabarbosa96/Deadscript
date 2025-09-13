@@ -24,20 +24,25 @@ public class MapView {
     }
 
     public void prefill() {
+        drawTitle(); // título + línea en blanco
+        int base = top + 2;
         for (int sy = 0; sy < viewH; sy++) {
-            ANSI.gotoRC(top + sy, left);
+            ANSI.gotoRC(base + sy, left);
             for (int sx = 0; sx < viewW; sx++) System.out.print(' ');
         }
     }
 
     public void render(GameMap map, int px, int py) {
+        drawTitle(); // repintamos el encabezado para mantenerlo limpio
+        int base = top + 2;
+
         computeFov(map, px, py);
 
         int camX = Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
         int camY = Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
 
         for (int sy = 0; sy < viewH; sy++) {
-            ANSI.gotoRC(top + sy, left);
+            ANSI.gotoRC(base + sy, left);
             int currentColor = -1;
 
             for (int sx = 0; sx < viewW; sx++) {
@@ -77,15 +82,30 @@ public class MapView {
             ANSI.resetStyle();
         }
 
-
         int sxPlayer = px - camX;
         int syPlayer = py - camY;
         if (sxPlayer >= 0 && sxPlayer < viewW && syPlayer >= 0 && syPlayer < viewH) {
-            ANSI.gotoRC(top + syPlayer, left + sxPlayer);
+            ANSI.gotoRC(base + syPlayer, left + sxPlayer);
             ANSI.setFg(36);
             System.out.print('@');
             ANSI.resetStyle();
         }
+    }
+
+    private void drawTitle() {
+        ANSI.gotoRC(top, left);
+        String label = " MAPA ";
+        if (label.length() >= viewW) {
+            System.out.print(label.substring(0, Math.max(0, viewW)));
+        } else {
+            int leftDash = (viewW - label.length()) / 2;
+            int rightDash = viewW - label.length() - leftDash;
+            System.out.print("─".repeat(leftDash));
+            System.out.print(label);
+            System.out.print("─".repeat(rightDash));
+        }
+        ANSI.gotoRC(top + 1, left);
+        ANSI.clearToLineEnd(); // línea en blanco bajo el título
     }
 
     private void computeFov(GameMap map, int px, int py) {
@@ -128,5 +148,4 @@ public class MapView {
             if (x < 0 || y < 0 || x >= map.w || y >= map.h) return false;
         }
     }
-
 }

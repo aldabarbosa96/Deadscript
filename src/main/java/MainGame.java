@@ -37,10 +37,10 @@ public class MainGame {
     private static final int EQUIP_LEFT = STATES_LEFT + STATES_WIDTH + GAP;
     private static final int EQUIP_ROWS = 12;
 
-    private static final int MAP_TOP = 16;
+    private static final int MAP_TOP = 16; // fila del TÍTULO del mapa
     private static final int MAP_LEFT = 1;
     private static final int VIEW_W = 119;
-    private static final int VIEW_H = 38;
+    private static final int VIEW_H = 38;  // alto SOLO del área de celdas (no incluye título ni línea en blanco)
 
     private static final int LOG_ROWS = 8;
 
@@ -96,7 +96,8 @@ public class MainGame {
         int viewH = Math.min(VIEW_H, gameMap.h);
         mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, gameMap, 2.0);
 
-        int logTop = MAP_TOP + viewH + 1;
+        // Título (1) + línea en blanco (1) + mapa (viewH) + separación (1)
+        int logTop = MAP_TOP + 2 + viewH + 1;
         msgLog = new MessageLog(logTop, MAP_LEFT, headerWidth, LOG_ROWS);
         String infoDia = String.format("%s, %d°C, Zona: %s", "Soleado", temperaturaC, (ubicacion + " (Bosque)"));
         msgLog.add(String.format("Día %d: %s", 1, infoDia));
@@ -106,7 +107,8 @@ public class MainGame {
         actionBar = new ActionBar(menuTop, MAP_LEFT, headerWidth);
 
         ANSI.clearScreenAndHome();
-        ANSI.setScrollRegion(MAP_TOP, MAP_TOP + viewH - 1);
+        // región de scroll SOLO para el área de celdas del mapa
+        ANSI.setScrollRegion(MAP_TOP + 2, MAP_TOP + 2 + viewH - 1);
         mapView.prefill();
         renderAll();
     }
@@ -208,13 +210,13 @@ public class MainGame {
         mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, gameMap, 2.0);
         mapView.prefill();
 
-        int logTop = MAP_TOP + viewH + 1;
+        int logTop = MAP_TOP + 2 + viewH + 1;
         msgLog.updateGeometry(logTop, MAP_LEFT, headerWidth, LOG_ROWS);
 
         int menuTop = logTop + LOG_ROWS + 1;
         actionBar.updateGeometry(menuTop, MAP_LEFT, headerWidth);
 
-        ANSI.setScrollRegion(MAP_TOP, MAP_TOP + viewH - 1);
+        ANSI.setScrollRegion(MAP_TOP + 2, MAP_TOP + 2 + viewH - 1);
     }
 
     private static String rumboTexto(int dx, int dy) {
