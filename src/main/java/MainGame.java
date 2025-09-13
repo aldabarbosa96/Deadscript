@@ -1,8 +1,8 @@
 import ui.player.EquipmentPanel;
-import ui.map.MapView;
+import ui.menu.MapView;
 import ui.player.PlayerHud;
 import ui.player.PlayerStates;
-import ui.log.MessageLog;
+import ui.menu.MessageLog;
 import ui.menu.ActionBar;
 import ui.input.InputHandler;
 import utils.ANSI;
@@ -138,7 +138,7 @@ public class MainGame {
                         dirty = true;
                     }
                     case OPTIONS -> {
-                        msgLog.add("Abres las opciones.");
+                        msgLog.add("Abres el menú de opciones.");
                         dirty = true;
                     }
                     case REGENERATE -> {

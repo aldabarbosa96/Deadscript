@@ -1,7 +1,9 @@
-package ui.log;
+package ui.menu;
 
 import utils.ANSI;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -11,8 +13,9 @@ public class MessageLog {
     private int top;
     private int left;
     private int width;
-    private int height; // altura total del bloque (incluye título + línea en blanco)
+    private int height;
 
+    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
     private final Deque<String> lines = new ArrayDeque<>();
 
     public MessageLog(int top, int left, int width, int height) {
@@ -31,15 +34,17 @@ public class MessageLog {
 
     public void add(String msg) {
         if (msg == null) return;
-        for (String l : wrap(msg, width)) {
+        String time = LocalTime.now().format(TS_FMT);
+        String firstPrefix = "[" + time + "] » ";
+        String contPrefix = " ".repeat(firstPrefix.length());
+
+        for (String l : wrapWithPrefixes(msg, width, firstPrefix, contPrefix)) {
             lines.addLast(l);
-            // Evita crecer sin límite (buffer razonable)
             if (lines.size() > 1000) lines.removeFirst();
         }
     }
 
     public void render() {
-        // Título centrado
         ANSI.gotoRC(top, left);
         String label = " LOG ";
         if (label.length() >= width) {
@@ -52,29 +57,22 @@ public class MessageLog {
             System.out.print("─".repeat(rightDash));
         }
 
-        // Una línea en blanco bajo el título
         ANSI.gotoRC(top + 1, left);
         ANSI.clearToLineEnd();
 
-        // Zona de contenido
         int contentRows = height - 2;
         int startRow = top + 2;
 
-        // Selecciona las últimas 'contentRows' líneas del buffer
         List<String> view = lastN(lines, contentRows);
 
-        // Pinta desde la línea superior del área
         int row = startRow;
         for (String s : view) {
             ANSI.gotoRC(row++, left);
             String out = s.length() > width ? s.substring(0, width) : s;
             System.out.print(out);
-            if (out.length() < width) {
-                System.out.print(" ".repeat(width - out.length()));
-            }
+            if (out.length() < width) System.out.print(" ".repeat(width - out.length()));
         }
 
-        // Limpia posibles filas sobrantes si el buffer es corto
         for (; row < startRow + contentRows; row++) {
             ANSI.gotoRC(row, left);
             ANSI.clearToLineEnd();
@@ -87,32 +85,24 @@ public class MessageLog {
         return all.subList(from, all.size());
     }
 
-    // Envoltura simple con bullet en la primera línea (“» ”) y sangría en continuaciones (“  ”).
-    private static List<String> wrap(String msg, int width) {
+    private static List<String> wrapWithPrefixes(String msg, int width, String firstPrefix, String contPrefix) {
         List<String> out = new ArrayList<>();
-        if (width <= 2) {
-            out.add(msg);
+        if (msg == null) return out;
+
+        int firstAvail = Math.max(0, width - firstPrefix.length());
+        int contAvail = Math.max(0, width - contPrefix.length());
+
+        if (firstAvail <= 0) {
+            out.add(firstPrefix.substring(0, Math.min(width, firstPrefix.length())));
             return out;
         }
 
         String[] words = msg.trim().split("\\s+");
-        String firstPrefix = "» ";
-        String contPrefix = "  ";
-        int firstAvail = Math.max(0, width - firstPrefix.length());
-        int contAvail = Math.max(0, width - contPrefix.length());
-
         StringBuilder line = new StringBuilder();
         boolean firstLine = true;
         int avail = firstAvail;
 
         for (String w : words) {
-            if (w.length() > avail && !line.isEmpty()) {
-                // cierra línea actual
-                out.add((firstLine ? firstPrefix : contPrefix) + line);
-                firstLine = false;
-                line.setLength(0);
-                avail = contAvail;
-            }
             if (!line.isEmpty()) {
                 if (line.length() + 1 + w.length() > avail) {
                     out.add((firstLine ? firstPrefix : contPrefix) + line);
@@ -124,27 +114,33 @@ public class MessageLog {
                 }
             }
             if (w.length() > avail) {
-                // palabra más larga que la línea -> trocea
                 int idx = 0;
                 while (idx < w.length()) {
                     int take = Math.min(avail, w.length() - idx);
-                    String chunk = w.substring(idx, idx + take);
-                    if (line.isEmpty()) line.append(chunk);
-                    else line.append(' ').append(chunk);
-                    out.add((firstLine ? firstPrefix : contPrefix) + line);
-                    firstLine = false;
-                    line.setLength(0);
+                    if (line.length() == 0) {
+                        line.append(w, idx, idx + take);
+                    } else if (line.length() + 1 + take <= avail) {
+                        line.append(' ').append(w, idx, idx + take);
+                    } else {
+                        out.add((firstLine ? firstPrefix : contPrefix) + line);
+                        firstLine = false;
+                        line.setLength(0);
+                        avail = contAvail;
+                        continue;
+                    }
+                    if (take == avail) {
+                        out.add((firstLine ? firstPrefix : contPrefix) + line);
+                        firstLine = false;
+                        line.setLength(0);
+                        avail = contAvail;
+                    }
                     idx += take;
-                    avail = contAvail;
                 }
             } else {
                 line.append(w);
             }
         }
-        if (!line.isEmpty()) {
-            out.add((firstLine ? firstPrefix : contPrefix) + line);
-        }
-        if (out.isEmpty()) out.add(firstPrefix);
+        if (!line.isEmpty()) out.add((firstLine ? firstPrefix : contPrefix) + line);
         return out;
     }
 }

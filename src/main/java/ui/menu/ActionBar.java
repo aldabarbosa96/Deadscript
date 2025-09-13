@@ -18,25 +18,43 @@ public class ActionBar {
     }
 
     public void render() {
+        int inner = Math.max(0, width - 2);
+
         ANSI.gotoRC(top, left);
-
-        String full = " Inventario [I]   Equipo [E]   Estadísticas [S]   Mover: [Flechas]   Acción: [Espacio]   Opciones [O]   Salir [Q]";
-
-        // Si no cabe, recortamos con "..."
-        if (full.length() > width) {
-            full = clipEndAscii(full, width);
+        if (width >= 2) {
+            System.out.print('┌');
+            System.out.print("─".repeat(inner));
+            System.out.print('┐');
+        } else {
+            System.out.print("─".repeat(width));
         }
+        ANSI.clearToLineEnd();
 
-        System.out.print(full);
-        if (full.length() < width) {
-            System.out.print(" ".repeat(width - full.length()));
+        String full = "  Inventario [I]   Equipo [E]   Estadísticas [S]   Mover: [Flechas]   Acción: [Espacio]   Opciones [O]   Salir [Q]";
+        if (full.length() > inner) full = clipEndAscii(full, inner);
+        ANSI.gotoRC(top + 1, left);
+        if (width >= 2) {
+            System.out.print('│');
+            System.out.print(full);
+            if (full.length() < inner) System.out.print(" ".repeat(inner - full.length()));
+            System.out.print('│');
+        } else {
+            System.out.print(clipEndAscii(full, width));
+        }
+        ANSI.clearToLineEnd();
+        ANSI.gotoRC(top + 2, left);
+        if (width >= 2) {
+            System.out.print('└');
+            System.out.print("─".repeat(inner));
+            System.out.print('┘');
+        } else {
+            System.out.print("─".repeat(width));
         }
         ANSI.clearToLineEnd();
     }
 
     private static String clipEndAscii(String s, int max) {
-        if (s == null) return "";
-        if (max <= 0) return "";
+        if (s == null || max <= 0) return "";
         if (s.length() <= max) return s;
         if (max <= 3) return ".".repeat(max);
         return s.substring(0, max - 3) + "...";
