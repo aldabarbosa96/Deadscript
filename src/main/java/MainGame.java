@@ -1,7 +1,8 @@
-import ui.EquipmentPanel;
-import ui.MapView;
-import ui.PlayerHud;
-import ui.PlayerStates;
+import ui.player.EquipmentPanel;
+import ui.map.MapView;
+import ui.player.PlayerHud;
+import ui.player.PlayerStates;
+import ui.log.MessageLog;
 import ui.input.InputHandler;
 import utils.ANSI;
 import world.GameMap;
@@ -21,6 +22,7 @@ public class MainGame {
     private static boolean dirty = true;
 
     private static EquipmentPanel equip;
+    private static MessageLog msgLog;
 
     private static final int HUD_LEFT = 1;
     private static final int GAP = 2;
@@ -33,7 +35,14 @@ public class MainGame {
     private static final int EQUIP_LEFT = STATES_LEFT + STATES_WIDTH + GAP;
     private static final int EQUIP_ROWS = 12;
 
-    private static String ubicacion = "Bosque";
+    private static final int MAP_TOP = 16;
+    private static final int MAP_LEFT = 1;
+    private static final int VIEW_W = 119;
+    private static final int VIEW_H = 38;
+
+    private static final int LOG_ROWS = 8; // alto del log
+
+    private static String ubicacion = "Goodsummer";
     private static int temperaturaC = 18;
 
     private static int salud = 65;
@@ -49,11 +58,6 @@ public class MainGame {
     private static boolean sangrado = false;
     private static int infeccionPct = 0;
     private static boolean escondido = true;
-
-    private static final int MAP_TOP = 16;
-    private static final int MAP_LEFT = 1;
-    private static final int VIEW_W = 119;
-    private static final int VIEW_H = 38;
 
     private static int lastDx = 0;
     private static int lastDy = 0;
@@ -90,6 +94,12 @@ public class MainGame {
         int viewH = Math.min(VIEW_H, gameMap.h);
         mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, gameMap, 2.0);
 
+        int logTop = MAP_TOP + viewH + 1;
+        msgLog = new MessageLog(logTop, MAP_LEFT, headerWidth, LOG_ROWS);
+        String infoDia = String.format("%s, %d°C, Zona: %s", "Soleado", temperaturaC, (ubicacion + " (Bosque)"));
+        msgLog.add(String.format("Día %d: %s", 1, infoDia));
+        msgLog.add(String.format("Posición inicial: (%d,%d).", px, py));
+
         ANSI.clearScreenAndHome();
         ANSI.setScrollRegion(MAP_TOP, MAP_TOP + viewH - 1);
         mapView.prefill();
@@ -108,6 +118,7 @@ public class MainGame {
                     case RIGHT -> dirty |= tryMove(1, 0);
                     case REGENERATE -> {
                         regenerateMap();
+                        msgLog.add("Nuevo mapa generado.");
                         dirty = true;
                     }
                     case QUIT -> running = false;
@@ -135,7 +146,9 @@ public class MainGame {
         hud.renderHud(1, hora, "Soleado", temperaturaC, ubicacion, salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, px, py, rumboTexto(lastDx, lastDy));
         states.renderStates(salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, sangrado, infeccionPct, escondido);
         equip.render("Navaja", "-", "Gorra", "-", "-", "-", "-", "Mochila tela", 0, 0, 5, 20.0);
+
         mapView.render(gameMap, px, py);
+        msgLog.render();
 
         ANSI.gotoRC(1, 1);
         ANSI.flush();
@@ -143,12 +156,19 @@ public class MainGame {
 
     private static boolean tryMove(int dx, int dy) {
         int nx = px + dx, ny = py + dy;
-        if (nx < 0 || ny < 0 || nx >= gameMap.w || ny >= gameMap.h) return false;
-        if (!gameMap.walk[ny][nx]) return false;
+        if (nx < 0 || ny < 0 || nx >= gameMap.w || ny >= gameMap.h) {
+            msgLog.add("No puedes salir del mapa.");
+            return false;
+        }
+        if (!gameMap.walk[ny][nx]) {
+            msgLog.add("Hay un obstáculo bloqueando el paso.");
+            return false;
+        }
         px = nx;
         py = ny;
         lastDx = dx;
         lastDy = dy;
+
         return true;
     }
 
@@ -159,19 +179,27 @@ public class MainGame {
 
         int equipWidth = Math.max(18, Math.min(VIEW_W, 140) - EQUIP_LEFT);
         int headerWidth = (EQUIP_LEFT + equipWidth) - HUD_LEFT;
-        mapView = new MapView(MAP_TOP, MAP_LEFT, Math.min(headerWidth, gameMap.w), Math.min(VIEW_H, gameMap.h), 18, gameMap, 2.0);
+
+        int viewW = Math.min(headerWidth, gameMap.w);
+        int viewH = Math.min(VIEW_H, gameMap.h);
+        mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, gameMap, 2.0);
         mapView.prefill();
+
+        int logTop = MAP_TOP + viewH + 1;
+        msgLog.updateGeometry(logTop, MAP_LEFT, headerWidth, LOG_ROWS);
+
+        ANSI.setScrollRegion(MAP_TOP, MAP_TOP + viewH - 1);
     }
 
     private static String rumboTexto(int dx, int dy) {
         if (dx == 0 && dy == 0) return "-";
-        if (dy < 0 && dx == 0) return "N";
+        if (dy < 0 && dx == 0) return "NORTE";
         if (dy < 0 && dx > 0) return "NE";
-        if (dy == 0 && dx > 0) return "E";
+        if (dy == 0 && dx > 0) return "ESTE";
         if (dy > 0 && dx > 0) return "SE";
-        if (dy > 0 && dx == 0) return "S";
-        if (dy > 0 && dx < 0) return "SO";
-        if (dy == 0 && dx < 0) return "O";
+        if (dy > 0 && dx == 0) return "SUR";
+        if (dy > 0) return "SO";
+        if (dy == 0) return "OESTE";
         return "NO";
     }
 

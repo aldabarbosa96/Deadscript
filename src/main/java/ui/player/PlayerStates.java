@@ -1,4 +1,4 @@
-package ui;
+package ui.player;
 
 import utils.ANSI;
 import java.util.ArrayList;

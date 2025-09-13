@@ -1,4 +1,4 @@
-package ui;
+package ui.map;
 
 import utils.ANSI;
 import world.GameMap;
