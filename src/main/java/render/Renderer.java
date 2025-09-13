@@ -12,19 +12,9 @@ import game.GameState;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
+import static game.Constants.*;
+
 public class Renderer {
-    private static final int HUD_LEFT = 1;
-    private static final int GAP = 2;
-    private static final int STATES_LEFT = 48;
-    private static final int STATES_WIDTH = 30;
-    private static final int STATS_WIDTH = STATES_LEFT - HUD_LEFT - GAP;
-    private static final int EQUIP_LEFT = STATES_LEFT + STATES_WIDTH + GAP;
-    private static final int EQUIP_ROWS = 12;
-    private static final int MAP_TOP = 16;
-    private static final int MAP_LEFT = 1;
-    private static final int VIEW_W = 119;
-    private static final int VIEW_H = 38;
-    private static final int LOG_ROWS = 8;
     private PlayerHud hud;
     private PlayerStates states;
     private EquipmentPanel equip;

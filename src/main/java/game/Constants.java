@@ -1,5 +1,7 @@
 package game;
 
+import java.time.format.DateTimeFormatter;
+
 public final class Constants {
     private Constants() {
     }
@@ -14,7 +16,26 @@ public final class Constants {
     public static final double ZOMBIE_MIN_SPEED = 0.45;
     public static final double ZOMBIE_SPEED_RANGE = 0.25;
 
-    // Combate simple
+    // Combate
     public static final int ZOMBIE_HIT_DAMAGE = 1;
     public static final double ZOMBIE_ATTACK_COOLDOWN_SEC = 1.0;
+
+    // Reloj
+    public static final double FIXED_DT = 1.0 / 60.0;
+    public static final long RENDER_MIN_INTERVAL_NS = 200_000_000L;
+    public static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    // Renderizado
+    public static final int HUD_LEFT = 1;
+    public static final int GAP = 2;
+    public static final int STATES_LEFT = 48;
+    public static final int STATES_WIDTH = 30;
+    public static final int STATS_WIDTH = STATES_LEFT - HUD_LEFT - GAP;
+    public static final int EQUIP_LEFT = STATES_LEFT + STATES_WIDTH + GAP;
+    public static final int EQUIP_ROWS = 12;
+    public static final int MAP_TOP = 16;
+    public static final int MAP_LEFT = 1;
+    public static final int VIEW_W = 119;
+    public static final int VIEW_H = 38;
+    public static final int LOG_ROWS = 8;
 }

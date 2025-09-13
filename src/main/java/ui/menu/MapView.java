@@ -3,6 +3,8 @@ package ui.menu;
 import utils.ANSI;
 import world.GameMap;
 
+import java.awt.*;
+
 public class MapView {
     private final int top, left, viewW, viewH;
     private final int fovRadius;
@@ -33,20 +35,25 @@ public class MapView {
     }
 
     public void render(GameMap map, int px, int py) {
-        drawTitle(); // repintamos el encabezado para mantenerlo limpio
+        // repinta encabezado y deja una línea en blanco
+        drawTitle();
         int base = top + 2;
 
+        // recalcula FOV para este frame
         computeFov(map, px, py);
 
+        // cámara centrada en el jugador dentro de los límites del mapa
         int camX = Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
         int camY = Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
 
         for (int sy = 0; sy < viewH; sy++) {
             ANSI.gotoRC(base + sy, left);
-            int currentColor = -1;
+            int currentColor = -1; // -1 = sin color, 0 = reset, ANSI básicos = su código, 100000+idx = 256-color
 
             for (int sx = 0; sx < viewW; sx++) {
                 int mx = camX + sx, my = camY + sy;
+
+                // fuera del mapa → espacio en blanco
                 if (mx < 0 || my < 0 || mx >= map.w || my >= map.h) {
                     if (currentColor != 0) {
                         ANSI.resetStyle();
@@ -56,22 +63,53 @@ public class MapView {
                     continue;
                 }
 
-                if (visible[my][mx]) {
+                char tile = map.tiles[my][mx];
+                boolean vis = visible[my][mx];
+
+                if (vis) {
+                    // visible este frame
                     map.explored[my][mx] = true;
-                    int color = 37;
+
+                    // color por tipo de tile (visible)
+                    int color;
+                    if (tile == '#') {
+                        // árbol/obstáculo visible → verde brillante (sin cambios)
+                        color = 92;
+                    } else {
+                        // suelo u otros → blanco/gris claro
+                        color = 37;
+                    }
+
                     if (color != currentColor) {
                         ANSI.setFg(color);
                         currentColor = color;
                     }
-                    System.out.print(map.tiles[my][mx]);
+                    System.out.print(tile);
+
                 } else if (map.explored[my][mx]) {
-                    int color = 90;
-                    if (color != currentColor) {
-                        ANSI.setFg(color);
-                        currentColor = color;
+                    // ya explorado pero fuera de FOV
+                    if (tile == '#') {
+                        // árbol/obstáculo explorado → verde MUCHO más oscuro (xterm-256: 22 = #005f00)
+                        int sentinel = 100000 + 22; // marca interna para no repetir escapes
+                        if (currentColor != sentinel) {
+                            if (utils.ANSI.isEnabled()) {
+                                System.out.print("\u001B[38;5;22m");
+                            }
+                            currentColor = sentinel;
+                        }
+                        System.out.print(tile);
+                    } else {
+                        // suelo explorado → gris oscuro
+                        int color = 90;
+                        if (color != currentColor) {
+                            ANSI.setFg(color);
+                            currentColor = color;
+                        }
+                        System.out.print(tile);
                     }
-                    System.out.print(map.tiles[my][mx]);
+
                 } else {
+                    // no visto nunca → vacío
                     if (currentColor != 0) {
                         ANSI.resetStyle();
                         currentColor = 0;
@@ -82,6 +120,7 @@ public class MapView {
             ANSI.resetStyle();
         }
 
+        // dibuja al jugador encima
         int sxPlayer = px - camX;
         int syPlayer = py - camY;
         if (sxPlayer >= 0 && sxPlayer < viewW && syPlayer >= 0 && syPlayer < viewH) {
@@ -91,6 +130,7 @@ public class MapView {
             ANSI.resetStyle();
         }
     }
+
 
     private void drawTitle() {
         ANSI.gotoRC(top, left);
@@ -164,9 +204,6 @@ public class MapView {
     public int getViewH() {
         return viewH;
     }
-
-    public int getFovRadius() { return fovRadius; }
-
 
     public boolean wasVisibleLastRender(int x, int y) {
         if (y < 0 || y >= visible.length) return false;

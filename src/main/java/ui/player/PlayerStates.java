@@ -1,6 +1,7 @@
 package ui.player;
 
 import utils.ANSI;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,9 +22,7 @@ public class PlayerStates {
         this.maxLines = Math.max(2, maxLines);
     }
 
-    public void renderStates(int salud, int maxSalud, int energia, int maxEnergia,
-                             int hambre, int maxHambre, int sed, int maxSed,
-                             int sueno, int maxSueno, boolean sangrado, int infeccionPct, boolean escondido) {
+    public void renderStates(int salud, int maxSalud, int energia, int maxEnergia, int hambre, int maxHambre, int sed, int maxSed, int sueno, int maxSueno, boolean sangrado, int infeccionPct, boolean escondido) {
         List<Badge> activos = new ArrayList<>();
 
         double ps = ratio(salud, maxSalud);
@@ -128,7 +127,12 @@ public class PlayerStates {
     }
 
     private static class Badge {
-        final String text; final int color;
-        Badge(String text, int color) { this.text = text; this.color = color; }
+        final String text;
+        final int color;
+
+        Badge(String text, int color) {
+            this.text = text;
+            this.color = color;
+        }
     }
 }

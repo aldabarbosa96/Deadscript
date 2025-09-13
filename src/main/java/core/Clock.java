@@ -2,10 +2,10 @@ package core;
 
 import java.util.function.DoubleConsumer;
 
+import static game.Constants.*;
+
 public class Clock {
-    private static final double FIXED_DT = 1.0 / 60.0;
-    private static final long   RENDER_MIN_INTERVAL_NS = 200_000_000L;
-    private long  prevNs;
+    private long prevNs;
     private double lag;
     private long lastRenderNs;
     private long lastRenderSec = -1;
@@ -35,8 +35,7 @@ public class Clock {
         long nowSec = System.currentTimeMillis() / 1000L;
 
         if (dirty && (nowNs - lastRenderNs) >= RENDER_MIN_INTERVAL_NS) return true;
-        if (nowSec != lastRenderSec) return true; // tick del reloj en HUD
-        return false;
+        return nowSec != lastRenderSec; // tick del reloj en HUD
     }
 
     public void onRendered() {

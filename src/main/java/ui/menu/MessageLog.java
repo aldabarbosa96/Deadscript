@@ -9,13 +9,13 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
+import static game.Constants.TS_FMT;
+
 public class MessageLog {
     private int top;
     private int left;
     private int width;
     private int height;
-
-    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
     private final Deque<String> lines = new ArrayDeque<>();
 
     public MessageLog(int top, int left, int width, int height) {

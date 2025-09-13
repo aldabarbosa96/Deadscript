@@ -6,11 +6,9 @@ public class Entity {
     public double speedTilesPerSec;
     public double moveRemainder;
     public double attackCooldown;
-
-    // Cohesión de grupo
     public int groupId;
     public boolean leader;
-    public int offX, offY; // offset deseado respecto al líder
+    public int offX, offY;
 
     public Entity(int x, int y, char glyph, double speed) {
         this.x = x;

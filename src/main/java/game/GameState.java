@@ -13,11 +13,11 @@ public class GameState {
     public int lastDx = 0, lastDy = 0;
     public String ubicacion = "Goodsummer";
     public int temperaturaC = 18;
-    public int salud = 65, maxSalud = 100;
-    public int energia = 82, maxEnergia = 100;
-    public int hambre = 36, maxHambre = 100;
-    public int sed = 10, maxSed = 100;
-    public int sueno = 75, maxSueno = 100;
+    public int salud = 100, maxSalud = 100;
+    public int energia = 100, maxEnergia = 100;
+    public int hambre = 100, maxHambre = 100;
+    public int sed = 100, maxSed = 100;
+    public int sueno = 100, maxSueno = 100;
     public boolean sangrado = false;
     public int infeccionPct = 0;
     public boolean escondido = true;
