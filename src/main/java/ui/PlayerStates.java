@@ -50,7 +50,7 @@ public class PlayerStates {
 
         // Sueño
         double psueno = ratio(sueno, maxSueno);
-        if (psueno <= 0.15) activos.add(new Badge("EXTASIADO", 31));
+        if (psueno <= 0.15) activos.add(new Badge("EXTENUADO", 31));
         else if (psueno <= 0.50) activos.add(new Badge("MUY CANSADO", 33));
         else if (psueno <= 0.66) activos.add(new Badge("SOMNOLIENTO", 33));
 
@@ -67,29 +67,50 @@ public class PlayerStates {
         // Escondido
         if (escondido) activos.add(new Badge("ESCONDIDO", 36));
 
-        // 4) Pintar badges en filas de hasta 3 por línea
+        // ---- Pintado con clamping de ancho ----
         int row = topRow;
         int printedLines = 0;
-        for (int i = 0; i < activos.size() && printedLines < maxLines; i += 3) {
-            ANSI.gotoRC(row++, leftCol);
-            for (int j = 0; j < 3 && i + j < activos.size(); j++) {
-                Badge b = activos.get(i + j);
-                printBadge(b.text, b.color);
-                System.out.print(" ");
+        int i = 0;
+
+        while (i < activos.size() && printedLines < maxLines) {
+            ANSI.gotoRC(row, leftCol);
+
+            int used = 0;
+            boolean first = true;
+
+            // Añadimos badges hasta que no quepa el siguiente
+            while (i < activos.size()) {
+                String visible = "[" + activos.get(i).text + "]";
+                int needed = visible.length() + (first ? 0 : 1); // +1 por espacio
+                if (used + needed > width) break;
+
+                if (!first) {
+                    System.out.print(" ");
+                    used += 1;
+                }
+                printBadge(visible, activos.get(i).color);
+                used += visible.length();
+
+                i++;
+                first = false;
+            }
+
+            // Relleno a la derecha hasta 'width' para limpiar dentro del bloque sin tocar Equipo
+            if (used < width) {
+                System.out.print(" ".repeat(width - used));
             }
 
             ANSI.resetStyle();
-            ANSI.clearToLineEnd();
             printedLines++;
+            row++;
         }
 
-        // 5) Limpiar líneas sobrantes
-        for (int i = printedLines; i < maxLines; i++) {
-            ANSI.gotoRC(topRow + i, leftCol);
-            ANSI.clearToLineEnd();
+        // Limpiar líneas sobrantes del bloque (exactamente 'width' columnas)
+        for (int k = printedLines; k < maxLines; k++) {
+            ANSI.gotoRC(topRow + k, leftCol);
+            System.out.print(" ".repeat(width));
         }
     }
-
 
     private static double ratio(int value, int max) {
         int m = Math.max(1, max);
@@ -97,9 +118,10 @@ public class PlayerStates {
         return v / (double) m;
     }
 
-    private static void printBadge(String text, int fgColor) {
+    // Nota: recibimos el texto visible con corchetes para poder medir bien 'width'
+    private static void printBadge(String visibleWithBrackets, int fgColor) {
         ANSI.setFg(fgColor);
-        System.out.print("[" + text + "]");
+        System.out.print(visibleWithBrackets);
         ANSI.resetStyle();
     }
 

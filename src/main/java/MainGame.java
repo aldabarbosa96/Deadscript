@@ -12,7 +12,6 @@ import java.time.format.DateTimeFormatter;
 public class MainGame {
     private static PlayerHud hud;
     private static PlayerStates states;
-
     private static MapView mapView;
     private static GameMap gameMap;
     private static int px, py;
@@ -22,11 +21,17 @@ public class MainGame {
     private static boolean dirty = true;
 
     private static EquipmentPanel equip;
-    private static final int HUD_WIDTH = 100;   // ancho de PlayerHud (ya usabas 100)
-    private static final int STATES_LEFT = 48;  // donde pintas PlayerStates
-    private static final int STATES_WIDTH = 30; // ancho de PlayerStates
-    private static final int EQUIP_LEFT = STATES_LEFT + STATES_WIDTH + 2; // a la derecha de estados
-    private static final int EQUIP_ROWS = 10;
+
+    private static final int HUD_LEFT = 1;
+    private static final int GAP = 2;
+
+    private static final int STATES_LEFT = 48;
+    private static final int STATES_WIDTH = 30;
+
+    private static final int STATS_WIDTH = STATES_LEFT - HUD_LEFT - GAP;
+
+    private static final int EQUIP_LEFT = STATES_LEFT + STATES_WIDTH + GAP;
+    private static final int EQUIP_ROWS = 12;
 
     private static String ubicacion = "Bosque";
     private static int temperaturaC = 18;
@@ -45,10 +50,10 @@ public class MainGame {
     private static int infeccionPct = 0;
     private static boolean escondido = true;
 
-    private static final int MAP_TOP = 13;
+    private static final int MAP_TOP = 16;
     private static final int MAP_LEFT = 1;
     private static final int VIEW_W = 119;
-    private static final int VIEW_H = 35;
+    private static final int VIEW_H = 38; // ligeramente más alto
 
     public static void main(String[] args) {
         try {
@@ -66,16 +71,19 @@ public class MainGame {
         ANSI.setWrap(false);
 
         input = new InputHandler();
-        hud = new PlayerHud(1, 1, 100);
-        states = new PlayerStates(3, 48, 30);
-        int equipWidth = Math.max(18, Math.min(VIEW_W, 140) - EQUIP_LEFT); // ajusta si tu terminal es más estrecha
+
+        int equipWidth = Math.max(18, Math.min(VIEW_W, 140) - EQUIP_LEFT);
+        int headerWidth = (EQUIP_LEFT + equipWidth) - HUD_LEFT;
+
+        hud = new PlayerHud(1, HUD_LEFT, headerWidth, STATS_WIDTH);
+        states = new PlayerStates(3, STATES_LEFT, STATES_WIDTH);
         equip = new EquipmentPanel(3, EQUIP_LEFT, equipWidth, EQUIP_ROWS);
 
         gameMap = GameMap.randomBalanced(240, 160);
         px = gameMap.w / 2;
         py = gameMap.h / 2;
 
-        int viewW = Math.min(VIEW_W, gameMap.w);
+        int viewW = Math.min(headerWidth, gameMap.w);       // mapa con el mismo ancho que el bloque superior
         int viewH = Math.min(VIEW_H, gameMap.h);
         mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, gameMap, 2.0);
 
@@ -87,7 +95,6 @@ public class MainGame {
 
     private static void gameLoop() {
         long lastHudSec = -1;
-
         while (running) {
             InputHandler.Command cmd;
             while ((cmd = input.poll(0)) != InputHandler.Command.NONE) {
@@ -144,7 +151,10 @@ public class MainGame {
         gameMap = GameMap.randomBalanced(240, 160);
         px = gameMap.w / 2;
         py = gameMap.h / 2;
-        mapView = new MapView(MAP_TOP, MAP_LEFT, Math.min(VIEW_W, gameMap.w), Math.min(VIEW_H, gameMap.h), 18, gameMap, 2.0);
+
+        int equipWidth = Math.max(18, Math.min(VIEW_W, 140) - EQUIP_LEFT);
+        int headerWidth = (EQUIP_LEFT + equipWidth) - HUD_LEFT;
+        mapView = new MapView(MAP_TOP, MAP_LEFT, Math.min(headerWidth, gameMap.w), Math.min(VIEW_H, gameMap.h), 18, gameMap, 2.0);
         mapView.prefill();
     }
 

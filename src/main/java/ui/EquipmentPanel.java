@@ -15,24 +15,22 @@ public class EquipmentPanel {
         this.maxRows = Math.max(6, maxRows);
     }
 
-    public void render(String arma, String offhand, String cabeza, String pecho, String manos,
-                       String piernas, String pies, String mochila, int municion, int municionMax,
-                       double peso, double capacidad) {
+    public void render(String arma, String offhand, String cabeza, String pecho, String manos, String piernas, String pies, String mochila, int municion, int municionMax, double peso, double capacidad) {
 
         int row = top;
         title(row++, " EQUIPO ");
         row = kv(row, "Cabeza", cabeza);
-        row = kv(row, "Pecho",  pecho);
-        row = kv(row, "Manos",  manos);
-        row = kv(row, "Piernas",piernas);
-        row = kv(row, "Pies",   pies);
-        row = kv(row, "Mochila",mochila);
-        row = kv(row, "Arma",   arma);
-        row = kv(row, "Off",    offhand);
+        row = kv(row, "Pecho", pecho);
+        row = kv(row, "Manos", manos);
+        row = kv(row, "Piernas", piernas);
+        row = kv(row, "Pies", pies);
+        row = kv(row, "Mochila", mochila);
+        row = kv(row, "Arma", arma);
+        row = kv(row, "Off", offhand);
         row = kv(row, "Munic.", municion + "/" + municionMax);
         row = bar(row, "Peso", peso, capacidad);
 
-        while (row < top + maxRows) { // limpia resto
+        while (row < top + maxRows) {
             ANSI.gotoRC(row++, left);
             ANSI.clearToLineEnd();
         }
@@ -57,20 +55,30 @@ public class EquipmentPanel {
 
     private int bar(int row, String name, double val, double max) {
         if (row >= top + maxRows) return row;
-        max = Math.max(0.0001, max);
-        double pct = Math.max(0, Math.min(1, val / max));
-        int barW = Math.max(6, width - 12);
-        int filled = (int)Math.round(barW * pct);
+
+        int ival = (int) Math.round(val);
+        int imax = (int) Math.round(Math.max(0.0001, max));
+
+        String numStr = ival + "/" + imax;
+        int digitsLen = numStr.length();
+
+        int fixed = 10 + 2 + digitsLen; // label(8) + " ["(2)  + "] "(2) + digits
+        int barW = Math.max(3, width - fixed);
+
+        double pct = Math.max(0, Math.min(1, (double) ival / Math.max(1, imax)));
+        int filled = (int) Math.round(barW * pct);
+
         ANSI.gotoRC(row, left);
         System.out.printf("%-8s [", name + ":");
         System.out.print("█".repeat(Math.max(0, filled)));
         System.out.print("-".repeat(Math.max(0, barW - filled)));
         System.out.print("] ");
-        System.out.printf("%d/%d", (int)Math.round(val), (int)Math.round(max));
+        System.out.print(numStr);
         ANSI.clearToLineEnd();
         return row + 1;
     }
 
-    private static String safe(String s) { return s == null ? "-" : s; }
+    private static String safe(String s) {
+        return s == null ? "-" : s;
+    }
 }
-

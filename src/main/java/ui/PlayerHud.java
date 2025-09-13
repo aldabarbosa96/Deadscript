@@ -5,53 +5,52 @@ import utils.ANSI;
 public class PlayerHud {
     private final int filaSuperior;
     private final int colIzquierda;
-    private final int anchoHud;
+    private final int anchoHeader; // ancho para la cabecera
+    private final int anchoStats;  // ancho para las barras
     private final int anchoBarra = 20;
 
-    public PlayerHud(int filaSuperior, int colIzquierda, int anchoHud) {
+    public PlayerHud(int filaSuperior, int colIzquierda, int anchoHeader, int anchoStats) {
         this.filaSuperior = Math.max(1, filaSuperior);
         this.colIzquierda = Math.max(1, colIzquierda);
-        this.anchoHud = Math.max(10, anchoHud);
+        this.anchoHeader = Math.max(10, anchoHeader);
+        this.anchoStats = Math.max(10, anchoStats);
     }
 
     public void renderHud(int dia, String hora, String clima, int temperatura, String ubicacion, int salud, int maxSalud, int energia, int maxEnergia, int hambre, int maxHambre, int sed, int maxSed, int sueno, int maxSueno) {
-        // Línea 0: encabezado
+
+        // Cabecera: usa anchoHeader (no se corta prematuramente)
         ANSI.gotoRC(filaSuperior, colIzquierda);
         ANSI.boldOn();
         String encabezado = String.format("Día %d   Hora: %s   Clima: %s   Temp: %d°C   Zona: %s", dia, safe(hora), safe(clima), temperatura, safe(ubicacion));
-        System.out.print(recortar(encabezado, anchoHud));
+        System.out.print(recortar(encabezado, anchoHeader));
         ANSI.resetStyle();
         ANSI.clearToLineEnd();
 
         int row = filaSuperior + 2;
 
-        // Salud
+        // Barras: usan anchoStats para no invadir Estados
         ANSI.gotoRC(row, colIzquierda);
-        imprimirBarraColoreada(formatearBarra("- Salud  ", salud, maxSalud));
+        imprimirBarraColoreada(recortar(formatearBarra("- Salud  ", salud, maxSalud), anchoStats));
         ANSI.clearToLineEnd();
         row += 2;
 
-        // Energía
         ANSI.gotoRC(row, colIzquierda);
-        imprimirBarraColoreada(formatearBarra("- Energía", energia, maxEnergia));
+        imprimirBarraColoreada(recortar(formatearBarra("- Energía", energia, maxEnergia), anchoStats));
         ANSI.clearToLineEnd();
         row += 2;
 
-        // Hambre
         ANSI.gotoRC(row, colIzquierda);
-        imprimirBarraColoreada(formatearBarra("- Hambre ", hambre, maxHambre));
+        imprimirBarraColoreada(recortar(formatearBarra("- Hambre ", hambre, maxHambre), anchoStats));
         ANSI.clearToLineEnd();
         row += 2;
 
-        // Sed
         ANSI.gotoRC(row, colIzquierda);
-        imprimirBarraColoreada(formatearBarra("- Sed    ", sed, maxSed));
+        imprimirBarraColoreada(recortar(formatearBarra("- Sed    ", sed, maxSed), anchoStats));
         ANSI.clearToLineEnd();
         row += 2;
 
-        // Sueño
         ANSI.gotoRC(row, colIzquierda);
-        imprimirBarraColoreada(formatearBarra("- Sueño  ", sueno, maxSueno));
+        imprimirBarraColoreada(recortar(formatearBarra("- Sueño  ", sueno, maxSueno), anchoStats));
         ANSI.clearToLineEnd();
     }
 
@@ -60,13 +59,11 @@ public class PlayerHud {
         int m = Math.max(1, max);
         int filled = (int) Math.round((v / (double) m) * anchoBarra);
         int empty = Math.max(0, anchoBarra - filled);
-
         String barra = "[" + "█".repeat(Math.max(0, filled)) + "-".repeat(empty) + "]";
         return String.format("%s %s %d/%d", etiqueta, barra, v, m);
     }
 
     private void imprimirBarraColoreada(String barraConEtiqueta) {
-        int color = getColor(barraConEtiqueta);
         int open = barraConEtiqueta.indexOf('[');
         int close = barraConEtiqueta.indexOf(']', open + 1);
         if (open >= 0 && close > open) {
@@ -75,12 +72,11 @@ public class PlayerHud {
             String resto = barraConEtiqueta.substring(close + 1);
 
             System.out.print(etiqueta);
-            ANSI.setFg(color);
+            ANSI.setFg(getColor(barraConEtiqueta));
             System.out.print(barra);
             ANSI.resetStyle();
             System.out.print(resto);
         } else {
-            // fallback sin colorear
             System.out.print(barraConEtiqueta);
         }
     }
@@ -96,14 +92,12 @@ public class PlayerHud {
                 int max = Integer.parseInt(stats.substring(slash + 1));
                 max = Math.max(1, max);
                 pct = val / (double) max;
-            } catch (Exception ignore) { /* si falla, dejamos pct=1.0 */ }
+            } catch (Exception ignore) {
+            }
         }
-
-        int color;
-        if (pct >= 0.66) color = 32;// verde
-        else if (pct >= 0.33) color = 33;// amarillo
-        else color = 31; // rojo
-        return color;
+        if (pct >= 0.66) return 32;
+        else if (pct >= 0.33) return 33;
+        else return 31;
     }
 
     private static String safe(String s) {
@@ -113,7 +107,6 @@ public class PlayerHud {
     private static String recortar(String s, int ancho) {
         if (s == null) return "";
         if (s.length() <= ancho) return s;
-        if (ancho <= 3) return s.substring(0, Math.max(0, ancho));
-        return s.substring(0, ancho - 3) + "...";
+        return s.substring(0, Math.max(0, ancho)); // truncado “duro” para no romper color
     }
 }
