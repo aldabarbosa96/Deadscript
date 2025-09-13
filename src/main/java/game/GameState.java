@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Random;
 
 public class GameState {
-    public GameMap map = GameMap.randomBalanced(240, 160);
+    public GameMap map = GameMap.randomBalanced(800, 600);
     public int px = map.w / 2, py = map.h / 2;
     public int lastDx = 0, lastDy = 0;
     public String ubicacion = "Goodsummer";

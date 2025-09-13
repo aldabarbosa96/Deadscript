@@ -5,6 +5,10 @@ import java.time.format.DateTimeFormatter;
 public final class Constants {
     private Constants() {
     }
+    // Mundo
+    public static final int WORLD_W = 1200;
+    public static final int WORLD_H = 800;
+
     // Player
     public static final long PLAYER_MOVE_COOLDOWN_NS = 180_000_000L; // ≈5.55 tiles/s
 

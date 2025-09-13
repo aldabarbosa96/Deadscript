@@ -3,8 +3,6 @@ package ui.menu;
 import utils.ANSI;
 import world.GameMap;
 
-import java.awt.*;
-
 public class MapView {
     private final int top, left, viewW, viewH;
     private final int fovRadius;
@@ -26,7 +24,7 @@ public class MapView {
     }
 
     public void prefill() {
-        drawTitle(); // título + línea en blanco
+        drawTitle();
         int base = top + 2;
         for (int sy = 0; sy < viewH; sy++) {
             ANSI.gotoRC(base + sy, left);
@@ -35,25 +33,21 @@ public class MapView {
     }
 
     public void render(GameMap map, int px, int py) {
-        // repinta encabezado y deja una línea en blanco
         drawTitle();
         int base = top + 2;
 
-        // recalcula FOV para este frame
         computeFov(map, px, py);
 
-        // cámara centrada en el jugador dentro de los límites del mapa
         int camX = Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
         int camY = Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
 
         for (int sy = 0; sy < viewH; sy++) {
             ANSI.gotoRC(base + sy, left);
-            int currentColor = -1; // -1 = sin color, 0 = reset, ANSI básicos = su código, 100000+idx = 256-color
+            int currentColor = -1; // -1=none, 0=reset, básicos=n, 256=100000+idx
 
             for (int sx = 0; sx < viewW; sx++) {
                 int mx = camX + sx, my = camY + sy;
 
-                // fuera del mapa → espacio en blanco
                 if (mx < 0 || my < 0 || mx >= map.w || my >= map.h) {
                     if (currentColor != 0) {
                         ANSI.resetStyle();
@@ -67,49 +61,39 @@ public class MapView {
                 boolean vis = visible[my][mx];
 
                 if (vis) {
-                    // visible este frame
                     map.explored[my][mx] = true;
-
-                    // color por tipo de tile (visible)
-                    int color;
-                    if (tile == '#') {
-                        // árbol/obstáculo visible → verde brillante (sin cambios)
-                        color = 92;
-                    } else {
-                        // suelo u otros → blanco/gris claro
-                        color = 37;
-                    }
-
-                    if (color != currentColor) {
-                        ANSI.setFg(color);
-                        currentColor = color;
+                    int next = switch (tile) {
+                        case '#' -> 92;                    // árbol vivo
+                        case '~' -> 100000 + 45;           // agua VIVA (azul brillante)
+                        case ':' -> 33;                    // pista
+                        case '^' -> 37;                    // roca
+                        case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94; // madera cálida
+                        case '+' -> 93;                    // puerta
+                        default -> 37;                     // suelo
+                    };
+                    if (next != currentColor) {
+                        applyColor(next);
+                        currentColor = next;
                     }
                     System.out.print(tile);
 
                 } else if (map.explored[my][mx]) {
-                    // ya explorado pero fuera de FOV
-                    if (tile == '#') {
-                        // árbol/obstáculo explorado → verde MUCHO más oscuro (xterm-256: 22 = #005f00)
-                        int sentinel = 100000 + 22; // marca interna para no repetir escapes
-                        if (currentColor != sentinel) {
-                            if (utils.ANSI.isEnabled()) {
-                                System.out.print("\u001B[38;5;22m");
-                            }
-                            currentColor = sentinel;
-                        }
-                        System.out.print(tile);
-                    } else {
-                        // suelo explorado → gris oscuro
-                        int color = 90;
-                        if (color != currentColor) {
-                            ANSI.setFg(color);
-                            currentColor = color;
-                        }
-                        System.out.print(tile);
+                    int next = switch (tile) {
+                        case '#' -> 100000 + 22;           // árbol MUY oscuro
+                        case '~' -> 100000 + 24;           // agua OSCURA
+                        case ':' -> 90;                    // pista apagada
+                        case '^' -> 90;                    // roca apagada
+                        case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58; // madera apagada
+                        case '+' -> 90;                    // puerta apagada
+                        default -> 90;                     // suelo atenuado
+                    };
+                    if (next != currentColor) {
+                        applyColor(next);
+                        currentColor = next;
                     }
+                    System.out.print(tile);
 
                 } else {
-                    // no visto nunca → vacío
                     if (currentColor != 0) {
                         ANSI.resetStyle();
                         currentColor = 0;
@@ -120,9 +104,7 @@ public class MapView {
             ANSI.resetStyle();
         }
 
-        // dibuja al jugador encima
-        int sxPlayer = px - camX;
-        int syPlayer = py - camY;
+        int sxPlayer = px - camX, syPlayer = py - camY;
         if (sxPlayer >= 0 && sxPlayer < viewW && syPlayer >= 0 && syPlayer < viewH) {
             ANSI.gotoRC(base + syPlayer, left + sxPlayer);
             ANSI.setFg(36);
@@ -130,7 +112,6 @@ public class MapView {
             ANSI.resetStyle();
         }
     }
-
 
     private void drawTitle() {
         ANSI.gotoRC(top, left);
@@ -145,12 +126,11 @@ public class MapView {
             System.out.print("─".repeat(rightDash));
         }
         ANSI.gotoRC(top + 1, left);
-        ANSI.clearToLineEnd(); // línea en blanco bajo el título
+        ANSI.clearToLineEnd();
     }
 
     private void computeFov(GameMap map, int px, int py) {
         for (int y = 0; y < map.h; y++) java.util.Arrays.fill(visible[y], false);
-
         int r = fovRadius;
         int y0 = Math.max(0, py - r), y1 = Math.min(map.h - 1, py + r);
         int x0 = Math.max(0, px - r), x1 = Math.min(map.w - 1, px + r);
@@ -174,7 +154,6 @@ public class MapView {
         while (true) {
             if (x == x1 && y == y1) return true;
             if (!(x == x0 && y == y0) && !map.transp[y][x]) return false;
-
             e2 = 2 * err;
             if (e2 >= dy) {
                 err += dy;
@@ -184,7 +163,6 @@ public class MapView {
                 err += dx;
                 y += sy;
             }
-
             if (x < 0 || y < 0 || x >= map.w || y >= map.h) return false;
         }
     }
@@ -209,5 +187,17 @@ public class MapView {
         if (y < 0 || y >= visible.length) return false;
         if (x < 0 || x >= visible[0].length) return false;
         return visible[y][x];
+    }
+
+    // ---- helpers de color (evitan repetir escapes) ----
+    private static void applyColor(int sentinel) {
+        if (sentinel >= 100000) {
+            int idx = sentinel - 100000;
+            if (ANSI.isEnabled()) System.out.print("\u001B[38;5;" + idx + "m");
+        } else if (sentinel == 0) {
+            ANSI.resetStyle();
+        } else {
+            ANSI.setFg(sentinel);
+        }
     }
 }
