@@ -17,7 +17,6 @@
     <build>
         <plugins>
 
-            <!-- 1) Fat JAR ejecutable: target/Deadscript-1.0-SNAPSHOT-shaded.jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -26,21 +25,39 @@
                     <execution>
                         <id>shade</id>
                         <phase>package</phase>
-                        <goals><goal>shade</goal></goals>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
                         <configuration>
-                            <!-- Adjunta un artefacto adicional con classifier "shaded" -->
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>shaded</shadedClassifierName>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <!-- Mantén el Main-Class -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>MainGame</mainClass>
                                 </transformer>
+                                <!-- NUEVO: fusiona META-INF/services para ServiceLoader -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>
+                            <!-- Opcional: evita firmas duplicadas de dependencias -->
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
+
 
             <plugin>
                 <groupId>com.akathist.maven.plugins.launch4j</groupId>
@@ -50,7 +67,9 @@
                     <execution>
                         <id>l4j</id>
                         <phase>package</phase>
-                        <goals><goal>launch4j</goal></goals>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
                     </execution>
                 </executions>
                 <configuration>
@@ -91,4 +110,22 @@
 
         </plugins>
     </build>
+    <dependencies>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal</artifactId>
+            <version>3.26.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jna</artifactId>
+            <version>3.26.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-reader</artifactId>
+            <version>3.26.1</version>
+        </dependency>
+    </dependencies>
+
 </project>

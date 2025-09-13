@@ -1,21 +1,24 @@
 import ui.MapView;
 import ui.PlayerHud;
 import ui.PlayerStates;
+import ui.input.InputHandler;
 import utils.ANSI;
 import world.GameMap;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Scanner;
 
 public class MainGame {
     private static PlayerHud hud;
     private static PlayerStates states;
-    private static Scanner sc;
 
     private static MapView mapView;
     private static GameMap gameMap;
     private static int px, py;
+
+    private static InputHandler input;
+    private static boolean running = true;
+    private static boolean dirty = true;
 
     private static String ubicacion = "Bosque";
     private static int temperaturaC = 18;
@@ -54,7 +57,7 @@ public class MainGame {
         ANSI.setCursorVisible(false);
         ANSI.setWrap(false);
 
-        sc = new Scanner(System.in);
+        input = new InputHandler();
         hud = new PlayerHud(1, 1, 100);
         states = new PlayerStates(3, 48, 30);
 
@@ -67,27 +70,71 @@ public class MainGame {
         mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, gameMap, 2.0);
 
         ANSI.clearScreenAndHome();
-
         ANSI.setScrollRegion(MAP_TOP, MAP_TOP + viewH - 1);
-
         mapView.prefill();
+        renderAll();
+    }
 
+    private static void gameLoop() {
+        long lastHudSec = -1;
+
+        while (running) {
+            InputHandler.Command cmd;
+            while ((cmd = input.poll(0)) != InputHandler.Command.NONE) {
+                switch (cmd) {
+                    case UP -> dirty |= tryMove(0, -1);
+                    case DOWN -> dirty |= tryMove(0, 1);
+                    case LEFT -> dirty |= tryMove(-1, 0);
+                    case RIGHT -> dirty |= tryMove(1, 0);
+                    case REGENERATE -> {
+                        regenerateMap();
+                        dirty = true;
+                    }
+                    case QUIT -> running = false;
+                    default -> {
+                    }
+                }
+            }
+
+            long nowSec = System.currentTimeMillis() / 1000L;
+            if (dirty || nowSec != lastHudSec) {
+                lastHudSec = nowSec;
+                renderAll();
+                dirty = false;
+            }
+
+            try {
+                Thread.sleep(8);
+            } catch (InterruptedException ignored) {
+            }
+        }
+    }
+
+    private static void renderAll() {
         String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         hud.renderHud(1, hora, "Soleado", temperaturaC, ubicacion, salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno);
         states.renderStates(salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, sangrado, infeccionPct, escondido);
         mapView.render(gameMap, px, py);
+
+        ANSI.gotoRC(1, 1);
         ANSI.flush();
     }
 
-    private static void gameLoop() {
-        while (true) {
-            String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            hud.renderHud(1, hora, "Soleado", temperaturaC, ubicacion, salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno);
-            states.renderStates(salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, sangrado, infeccionPct, escondido);
-            mapView.render(gameMap, px, py);
-            ANSI.flush();
-            try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
-        }
+    private static boolean tryMove(int dx, int dy) {
+        int nx = px + dx, ny = py + dy;
+        if (nx < 0 || ny < 0 || nx >= gameMap.w || ny >= gameMap.h) return false;
+        if (!gameMap.walk[ny][nx]) return false;
+        px = nx;
+        py = ny;
+        return true;
+    }
+
+    private static void regenerateMap() {
+        gameMap = GameMap.randomBalanced(240, 160);
+        px = gameMap.w / 2;
+        py = gameMap.h / 2;
+        mapView = new MapView(MAP_TOP, MAP_LEFT, Math.min(VIEW_W, gameMap.w), Math.min(VIEW_H, gameMap.h), 18, gameMap, 2.0);
+        mapView.prefill();
     }
 
     private static void shutdown() {
@@ -95,6 +142,9 @@ public class MainGame {
         ANSI.setWrap(true);
         ANSI.setCursorVisible(true);
         ANSI.useAltScreen(false);
-        if (sc != null) sc.close();
+        if (input != null) try {
+            input.close();
+        } catch (Exception ignored) {
+        }
     }
 }
