@@ -67,7 +67,6 @@ public class PlayerStates {
         // Escondido
         if (escondido) activos.add(new Badge("ESCONDIDO", 36));
 
-        // ---- Pintado con clamping de ancho ----
         int row = topRow;
         int printedLines = 0;
         int i = 0;
@@ -78,7 +77,6 @@ public class PlayerStates {
             int used = 0;
             boolean first = true;
 
-            // Añadimos badges hasta que no quepa el siguiente
             while (i < activos.size()) {
                 String visible = "[" + activos.get(i).text + "]";
                 int needed = visible.length() + (first ? 0 : 1); // +1 por espacio
@@ -95,7 +93,6 @@ public class PlayerStates {
                 first = false;
             }
 
-            // Relleno a la derecha hasta 'width' para limpiar dentro del bloque sin tocar Equipo
             if (used < width) {
                 System.out.print(" ".repeat(width - used));
             }
@@ -105,7 +102,6 @@ public class PlayerStates {
             row++;
         }
 
-        // Limpiar líneas sobrantes del bloque (exactamente 'width' columnas)
         for (int k = printedLines; k < maxLines; k++) {
             ANSI.gotoRC(topRow + k, leftCol);
             System.out.print(" ".repeat(width));
@@ -118,7 +114,7 @@ public class PlayerStates {
         return v / (double) m;
     }
 
-    // Nota: recibimos el texto visible con corchetes para poder medir bien 'width'
+    // recibimos el texto visible con corchetes para poder medir bien width
     private static void printBadge(String visibleWithBrackets, int fgColor) {
         ANSI.setFg(fgColor);
         System.out.print(visibleWithBrackets);

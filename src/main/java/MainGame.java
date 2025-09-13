@@ -83,7 +83,7 @@ public class MainGame {
         px = gameMap.w / 2;
         py = gameMap.h / 2;
 
-        int viewW = Math.min(headerWidth, gameMap.w);       // mapa con el mismo ancho que el bloque superior
+        int viewW = Math.min(headerWidth, gameMap.w);
         int viewH = Math.min(VIEW_H, gameMap.h);
         mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, gameMap, 2.0);
 

@@ -13,11 +13,9 @@ import java.util.concurrent.TimeUnit;
 
 public class InputHandler implements AutoCloseable {
     public enum Command {UP, DOWN, LEFT, RIGHT, REGENERATE, QUIT, NONE}
-
     private final BlockingQueue<Command> queue = new LinkedBlockingQueue<>();
     private final Thread readerThread;
     private volatile boolean running = true;
-
     private final Terminal terminal;
     private final BindingReader reader;
     private final KeyMap<Command> keyMap;
@@ -27,7 +25,7 @@ public class InputHandler implements AutoCloseable {
         try {
             terminal = TerminalBuilder.builder().system(true).jna(true).jansi(true).build();
 
-            prevAttrs = terminal.enterRawMode(); // sin eco y no canónico
+            prevAttrs = terminal.enterRawMode();
             reader = new BindingReader(terminal.reader());
             keyMap = buildKeyMap();
 
@@ -51,7 +49,7 @@ public class InputHandler implements AutoCloseable {
 
     private void loop() {
         while (running) {
-            Command c = reader.readBinding(keyMap); // bloquea hasta tecla válida
+            Command c = reader.readBinding(keyMap);
             if (!running) break;
             if (c != null) queue.offer(c);
         }
@@ -61,15 +59,13 @@ public class InputHandler implements AutoCloseable {
         KeyMap<Command> km = new KeyMap<>();
         String ESC = "\u001B";
 
-        // Flechas (dos variantes comunes)
         km.bind(Command.UP, ESC + "[A", ESC + "OA");
         km.bind(Command.DOWN, ESC + "[B", ESC + "OB");
         km.bind(Command.RIGHT, ESC + "[C", ESC + "OC");
         km.bind(Command.LEFT, ESC + "[D", ESC + "OD");
-
-        // Atajos útiles
         km.bind(Command.REGENERATE, "r", "R");
         km.bind(Command.QUIT, "q", "Q");
+
         return km;
     }
 

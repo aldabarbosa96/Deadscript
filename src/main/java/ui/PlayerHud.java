@@ -18,7 +18,7 @@ public class PlayerHud {
 
     public void renderHud(int dia, String hora, String clima, int temperatura, String ubicacion, int salud, int maxSalud, int energia, int maxEnergia, int hambre, int maxHambre, int sed, int maxSed, int sueno, int maxSueno) {
 
-        // Cabecera: usa anchoHeader (no se corta prematuramente)
+        // Cabecera
         ANSI.gotoRC(filaSuperior, colIzquierda);
         ANSI.boldOn();
         String encabezado = String.format("Día %d   Hora: %s   Clima: %s   Temp: %d°C   Zona: %s", dia, safe(hora), safe(clima), temperatura, safe(ubicacion));
@@ -28,7 +28,7 @@ public class PlayerHud {
 
         int row = filaSuperior + 2;
 
-        // Barras: usan anchoStats para no invadir Estados
+        // Barras
         ANSI.gotoRC(row, colIzquierda);
         imprimirBarraColoreada(recortar(formatearBarra("- Salud  ", salud, maxSalud), anchoStats));
         ANSI.clearToLineEnd();
@@ -107,6 +107,6 @@ public class PlayerHud {
     private static String recortar(String s, int ancho) {
         if (s == null) return "";
         if (s.length() <= ancho) return s;
-        return s.substring(0, Math.max(0, ancho)); // truncado “duro” para no romper color
+        return s.substring(0, Math.max(0, ancho));
     }
 }

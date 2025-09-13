@@ -62,7 +62,7 @@ public class EquipmentPanel {
         String numStr = ival + "/" + imax;
         int digitsLen = numStr.length();
 
-        int fixed = 10 + 2 + digitsLen; // label(8) + " ["(2)  + "] "(2) + digits
+        int fixed = 10 + 2 + digitsLen;
         int barW = Math.max(3, width - fixed);
 
         double pct = Math.max(0, Math.min(1, (double) ival / Math.max(1, imax)));

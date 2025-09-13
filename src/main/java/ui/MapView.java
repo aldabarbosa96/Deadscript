@@ -10,10 +10,10 @@ public class MapView {
     private final double cellAspect;
 
     public MapView(int top, int left, int viewW, int viewH, int fovRadius, GameMap map, double cellAspect) {
-        this.top  = Math.max(1, top);
+        this.top = Math.max(1, top);
         this.left = Math.max(1, left);
         this.viewW = Math.max(10, viewW);
-        this.viewH = Math.max(5,  viewH);
+        this.viewH = Math.max(5, viewH);
         this.fovRadius = Math.max(1, fovRadius);
         this.cellAspect = cellAspect <= 0 ? 2.0 : cellAspect;
         this.visible = new boolean[map.h][map.w];
@@ -44,12 +44,18 @@ public class MapView {
                 int mx = camX + sx, my = camY + sy;
 
                 if (mx < 0 || my < 0 || mx >= map.w || my >= map.h) {
-                    if (currentColor != 0) { ANSI.resetStyle(); currentColor = 0; }
+                    if (currentColor != 0) {
+                        ANSI.resetStyle();
+                        currentColor = 0;
+                    }
                     System.out.print(' ');
                     continue;
                 }
                 int color = visible[my][mx] ? 37 : 90;
-                if (color != currentColor) { ANSI.setFg(color); currentColor = color; }
+                if (color != currentColor) {
+                    ANSI.setFg(color);
+                    currentColor = color;
+                }
                 System.out.print(map.tiles[my][mx]);
             }
             ANSI.resetStyle();
@@ -77,7 +83,7 @@ public class MapView {
             for (int x = x0; x <= x1; x++) {
                 int dx = x - px, dy = y - py;
                 double dyAdj = dy * cellAspect;
-                if (dx*dx + dyAdj*dyAdj <= r2 && los(map, px, py, x, y)) {
+                if (dx * dx + dyAdj * dyAdj <= r2 && los(map, px, py, x, y)) {
                     visible[y][x] = true;
                 }
             }
@@ -89,12 +95,21 @@ public class MapView {
         int dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
         int err = dx + dy, e2, x = x0, y = y0;
         while (true) {
-            if (!(x == x0 && y == y0) && !map.transp[y][x]) return false;
             if (x == x1 && y == y1) return true;
+            if (!(x == x0 && y == y0) && !map.transp[y][x]) return false;
+
             e2 = 2 * err;
-            if (e2 >= dy) { err += dy; x += sx; }
-            if (e2 <= dx) { err += dx; y += sy; }
+            if (e2 >= dy) {
+                err += dy;
+                x += sx;
+            }
+            if (e2 <= dx) {
+                err += dx;
+                y += sy;
+            }
+
             if (x < 0 || y < 0 || x >= map.w || y >= map.h) return false;
         }
     }
+
 }
