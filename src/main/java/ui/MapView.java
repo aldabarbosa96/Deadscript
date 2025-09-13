@@ -38,11 +38,10 @@ public class MapView {
 
         for (int sy = 0; sy < viewH; sy++) {
             ANSI.gotoRC(top + sy, left);
-
             int currentColor = -1;
+
             for (int sx = 0; sx < viewW; sx++) {
                 int mx = camX + sx, my = camY + sy;
-
                 if (mx < 0 || my < 0 || mx >= map.w || my >= map.h) {
                     if (currentColor != 0) {
                         ANSI.resetStyle();
@@ -51,15 +50,33 @@ public class MapView {
                     System.out.print(' ');
                     continue;
                 }
-                int color = visible[my][mx] ? 37 : 90;
-                if (color != currentColor) {
-                    ANSI.setFg(color);
-                    currentColor = color;
+
+                if (visible[my][mx]) {
+                    map.explored[my][mx] = true;
+                    int color = 37;
+                    if (color != currentColor) {
+                        ANSI.setFg(color);
+                        currentColor = color;
+                    }
+                    System.out.print(map.tiles[my][mx]);
+                } else if (map.explored[my][mx]) {
+                    int color = 90;
+                    if (color != currentColor) {
+                        ANSI.setFg(color);
+                        currentColor = color;
+                    }
+                    System.out.print(map.tiles[my][mx]);
+                } else {
+                    if (currentColor != 0) {
+                        ANSI.resetStyle();
+                        currentColor = 0;
+                    }
+                    System.out.print(' ');
                 }
-                System.out.print(map.tiles[my][mx]);
             }
             ANSI.resetStyle();
         }
+
 
         int sxPlayer = px - camX;
         int syPlayer = py - camY;
