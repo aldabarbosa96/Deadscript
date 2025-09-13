@@ -73,6 +73,15 @@ public class InputHandler implements AutoCloseable {
         return km;
     }
 
+    public int terminalWidth() {
+        return terminal.getWidth();
+    }
+
+    public int terminalHeight() {
+        return terminal.getHeight();
+    }
+
+
     @Override
     public void close() {
         running = false;

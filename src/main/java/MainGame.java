@@ -1,3 +1,4 @@
+import ui.EquipmentPanel;
 import ui.MapView;
 import ui.PlayerHud;
 import ui.PlayerStates;
@@ -19,6 +20,13 @@ public class MainGame {
     private static InputHandler input;
     private static boolean running = true;
     private static boolean dirty = true;
+
+    private static EquipmentPanel equip;
+    private static final int HUD_WIDTH = 100;   // ancho de PlayerHud (ya usabas 100)
+    private static final int STATES_LEFT = 48;  // donde pintas PlayerStates
+    private static final int STATES_WIDTH = 30; // ancho de PlayerStates
+    private static final int EQUIP_LEFT = STATES_LEFT + STATES_WIDTH + 2; // a la derecha de estados
+    private static final int EQUIP_ROWS = 10;
 
     private static String ubicacion = "Bosque";
     private static int temperaturaC = 18;
@@ -60,6 +68,8 @@ public class MainGame {
         input = new InputHandler();
         hud = new PlayerHud(1, 1, 100);
         states = new PlayerStates(3, 48, 30);
+        int equipWidth = Math.max(18, Math.min(VIEW_W, 140) - EQUIP_LEFT); // ajusta si tu terminal es más estrecha
+        equip = new EquipmentPanel(3, EQUIP_LEFT, equipWidth, EQUIP_ROWS);
 
         gameMap = GameMap.randomBalanced(240, 160);
         px = gameMap.w / 2;
@@ -114,6 +124,7 @@ public class MainGame {
         String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         hud.renderHud(1, hora, "Soleado", temperaturaC, ubicacion, salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno);
         states.renderStates(salud, maxSalud, energia, maxEnergia, hambre, maxHambre, sed, maxSed, sueno, maxSueno, sangrado, infeccionPct, escondido);
+        equip.render("Navaja", "-", "Gorra", "-", "-", "-", "-", "Mochila tela", 0, 0, 5, 20.0);
         mapView.render(gameMap, px, py);
 
         ANSI.gotoRC(1, 1);
