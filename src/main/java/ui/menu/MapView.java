@@ -148,4 +148,29 @@ public class MapView {
             if (x < 0 || y < 0 || x >= map.w || y >= map.h) return false;
         }
     }
+
+    public int getTop() {
+        return top;
+    }
+
+    public int getLeft() {
+        return left;
+    }
+
+    public int getViewW() {
+        return viewW;
+    }
+
+    public int getViewH() {
+        return viewH;
+    }
+
+    public int getFovRadius() { return fovRadius; }
+
+
+    public boolean wasVisibleLastRender(int x, int y) {
+        if (y < 0 || y >= visible.length) return false;
+        if (x < 0 || x >= visible[0].length) return false;
+        return visible[y][x];
+    }
 }
