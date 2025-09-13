@@ -38,10 +38,18 @@ public class EquipmentPanel {
 
     private void title(int row, String t) {
         ANSI.gotoRC(row, left);
-        String head = "─" + t + "─";
-        String line = head + "─".repeat(Math.max(0, width - head.length()));
-        System.out.print(line);
+        String label = " " + (t == null ? "" : t.trim()) + " ";
+        if (label.length() >= width) {
+            System.out.print(label.substring(0, Math.max(0, width)));
+            return;
+        }
+        int leftDash = (width - label.length()) / 2;
+        int rightDash = width - label.length() - leftDash;
+        System.out.print("─".repeat(leftDash));
+        System.out.print(label);
+        System.out.print("─".repeat(rightDash));
     }
+
 
     private int kv(int row, String k, String v) {
         if (row >= top + maxRows) return row;
