@@ -63,6 +63,8 @@ public class MainGame {
     private static final double FIXED_DT = 1.0 / 60.0;
     private static long prevTimeNs;
     private static double lagSec = 0.0;
+    private static final long RENDER_MIN_INTERVAL_NS = 200_000_000L; // 200ms ~ 5 FPS
+    private static long lastRenderNs = 0L;
 
     // Jugador: cap de velocidad
     private static final long PLAYER_MOVE_COOLDOWN_NS = 180_000_000L; // 180 ms ≈ 5.55 tiles/s
@@ -135,7 +137,9 @@ public class MainGame {
         renderAll();
 
         prevTimeNs = System.nanoTime();
+        lastRenderNs = prevTimeNs;
         dirty = true;
+
     }
 
     private static void gameLoop() {
@@ -196,13 +200,25 @@ public class MainGame {
                 lagSec -= FIXED_DT;
             }
 
-            // RENDER solo si hay cambios o cambia el segundo
+            // RENDER con límite de frecuencia + tick del reloj por segundo
             long nowSec = System.currentTimeMillis() / 1000L;
-            if (dirty || nowSec != lastRenderSec) {
+            long nowNsForRender = System.nanoTime();
+
+            boolean wantRender = false;
+            if (dirty && (nowNsForRender - lastRenderNs) >= RENDER_MIN_INTERVAL_NS) {
+                wantRender = true;
+            }
+            if (nowSec != lastRenderSec) {
+                wantRender = true;
+            }
+
+            if (wantRender) {
                 renderAll();
                 dirty = false;
                 lastRenderSec = nowSec;
+                lastRenderNs = nowNsForRender;
             }
+
 
             try {
                 Thread.sleep(5);
