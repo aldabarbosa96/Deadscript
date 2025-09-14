@@ -17,6 +17,7 @@ public class Item {
     public static final class ArmorAttr {
         public final int proteccion;
         public final int abrigo;
+
         public ArmorAttr(int proteccion, int abrigo) {
             this.proteccion = Math.max(0, proteccion);
             this.abrigo = abrigo;
@@ -27,6 +28,7 @@ public class Item {
         public final int danho;
         public final double cooldownSec;
         public final int manos;
+
         public WeaponAttr(int danho, double cooldownSec, int manos) {
             this.danho = Math.max(0, danho);
             this.cooldownSec = Math.max(0.01, cooldownSec);
@@ -36,6 +38,7 @@ public class Item {
 
     public static final class ContainerAttr {
         public final double capacidadKg;
+
         public ContainerAttr(double capacidadKg) {
             this.capacidadKg = Math.max(0, capacidadKg);
         }
@@ -78,20 +81,57 @@ public class Item {
         return new Item(id, nombre, ItemCategory.CONTAINER, pesoKg, 100, 100, EquipmentSlot.BACKPACK, null, null, new ContainerAttr(capacidadKg));
     }
 
-    public String getId() { return id; }
-    public String getNombre() { return nombre; }
-    public ItemCategory getCategoria() { return categoria; }
-    public double getPesoKg() { return pesoKg; }
-    public int getMaxDurabilidad() { return maxDurabilidad; }
-    public int getDurabilidad() { return durabilidad; }
-    public EquipmentSlot getWearableSlot() { return wearableSlot; }
-    public ArmorAttr getArmor() { return armor; }
-    public WeaponAttr getWeapon() { return weapon; }
-    public ContainerAttr getContainer() { return container; }
+    public String getId() {
+        return id;
+    }
 
-    public int getDurabilidadPct() { return (int) Math.round(100.0 * durabilidad / Math.max(1, maxDurabilidad)); }
-    public void setDurabilidad(int nueva) { this.durabilidad = Math.max(0, Math.min(maxDurabilidad, nueva)); }
-    public void consumirDurabilidad(int puntos) { setDurabilidad(durabilidad - Math.max(0, puntos)); }
+    public String getNombre() {
+        return nombre;
+    }
+
+    public ItemCategory getCategoria() {
+        return categoria;
+    }
+
+    public double getPesoKg() {
+        return pesoKg;
+    }
+
+    public int getMaxDurabilidad() {
+        return maxDurabilidad;
+    }
+
+    public int getDurabilidad() {
+        return durabilidad;
+    }
+
+    public EquipmentSlot getWearableSlot() {
+        return wearableSlot;
+    }
+
+    public ArmorAttr getArmor() {
+        return armor;
+    }
+
+    public WeaponAttr getWeapon() {
+        return weapon;
+    }
+
+    public ContainerAttr getContainer() {
+        return container;
+    }
+
+    public int getDurabilidadPct() {
+        return (int) Math.round(100.0 * durabilidad / Math.max(1, maxDurabilidad));
+    }
+
+    public void setDurabilidad(int nueva) {
+        this.durabilidad = Math.max(0, Math.min(maxDurabilidad, nueva));
+    }
+
+    public void consumirDurabilidad(int puntos) {
+        setDurabilidad(durabilidad - Math.max(0, puntos));
+    }
 
     @Override
     public String toString() {

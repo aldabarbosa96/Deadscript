@@ -2,6 +2,7 @@ package systems;
 
 import game.Constants;
 import game.GameState;
+import items.Item;
 import render.Renderer;
 import world.Entity;
 
@@ -76,9 +77,16 @@ public final class ZombieSystem {
             // ataque
             if (e.attackCooldown > 0) e.attackCooldown -= dt;
             if (e.x == s.px && e.y == s.py && e.attackCooldown <= 0) {
-                s.salud = Math.max(0, s.salud - Constants.ZOMBIE_HIT_DAMAGE);
+                int prot = Math.max(0, s.equipment.proteccionTotal());
+                int base = Constants.ZOMBIE_HIT_DAMAGE;
+                int dmg = Math.max(1, base - prot);
+                s.salud = Math.max(0, s.salud - dmg);
                 e.attackCooldown = Constants.ZOMBIE_ATTACK_COOLDOWN_SEC;
                 r.log("¡Un zombi te ha golpeado!");
+
+                for (Item part : new Item[]{s.equipment.getHead(), s.equipment.getChest(), s.equipment.getHands(), s.equipment.getLegs(), s.equipment.getFeet()}) {
+                    if (part != null && part.getArmor() != null) part.consumirDurabilidad(1 + s.rng.nextInt(2));
+                }
                 touched = true;
             }
         }
