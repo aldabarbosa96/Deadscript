@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class InputHandler implements AutoCloseable {
 
     public enum Command {
-        UP, DOWN, LEFT, RIGHT, REGENERATE, INVENTORY, EQUIPMENT, STATS, ACTION, OPTIONS,QUIT, NONE
+        UP, DOWN, LEFT, RIGHT, REGENERATE, INVENTORY, EQUIPMENT, STATS, ACTION, OPTIONS, QUIT, NONE
     }
 
     private final BlockingQueue<Command> queue = new LinkedBlockingQueue<>();

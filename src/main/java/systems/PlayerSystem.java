@@ -22,16 +22,28 @@ public final class PlayerSystem {
             r.log("No puedes salir del mapa.");
             return false;
         }
+
+        if (dx != 0 && dy != 0) {
+            boolean okX = (s.px + dx >= 0 && s.px + dx < s.map.w) && s.map.walk[s.py][s.px + dx];
+            boolean okY = (s.py + dy >= 0 && s.py + dy < s.map.h) && s.map.walk[s.py + dy][s.px];
+            if (!okX && !okY) {
+                r.log("Hay un obstáculo bloqueando el paso.");
+                return false;
+            }
+        }
+
         if (!s.map.walk[ny][nx]) {
             r.log("Hay un obstáculo bloqueando el paso.");
             return false;
         }
+
         s.px = nx;
         s.py = ny;
         s.lastDx = dx;
         s.lastDy = dy;
         return true;
     }
+
 
     public static void drainNeeds(GameState s, double dt) {
         s.hambreAcc = clamp(s.hambreAcc - dt * 0.02, 0, s.maxHambre);

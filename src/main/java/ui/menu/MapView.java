@@ -55,6 +55,7 @@ public class MapView {
 
                 char tile = map.tiles[my][mx];
                 boolean vis = visible[my][mx];
+                boolean ind = map.indoor[my][mx];
 
                 if (vis) {
                     map.explored[my][mx] = true;
@@ -62,6 +63,7 @@ public class MapView {
                         case '#' -> 92;
                         case '~' -> 100000 + 45;
                         case '^' -> 37;
+                        case '.' -> (ind ? 97 : 100000 + 58);
                         case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
                         case '+' -> 93;
                         default -> 100000 + 58;
@@ -77,6 +79,7 @@ public class MapView {
                         case '#' -> 100000 + 22;
                         case '~' -> 100000 + 24;
                         case '^' -> 90;
+                        case '.' -> (ind ? 90 : 100000 + 137);
                         case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58;
                         case '+' -> 90;
                         default -> 100000 + 137;

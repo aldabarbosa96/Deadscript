@@ -8,6 +8,8 @@ public class GameMap {
     public final boolean[][] walk;
     public final boolean[][] transp;
     public final boolean[][] explored;
+    public final boolean[][] indoor;
+
 
     public GameMap(int w, int h) {
         this.w = w;
@@ -16,6 +18,8 @@ public class GameMap {
         this.walk = new boolean[h][w];
         this.transp = new boolean[h][w];
         this.explored = new boolean[h][w];
+        this.indoor = new boolean[h][w];
+
     }
 
     public static GameMap randomBalanced(int w, int h) {
@@ -331,7 +335,11 @@ public class GameMap {
             }
             if (!ok) continue;
 
-            for (int y = y0 + 1; y <= y1 - 1; y++) for (int x = x0 + 1; x <= x1 - 1; x++) setFloor(m, x, y);
+            for (int y = y0 + 1; y <= y1 - 1; y++)
+                for (int x = x0 + 1; x <= x1 - 1; x++) {
+                    setFloor(m, x, y);
+                    m.indoor[y][x] = true;
+                }
 
             setCabinWall(m, x0, y0, '╔');
             setCabinWall(m, x1, y0, '╗');
