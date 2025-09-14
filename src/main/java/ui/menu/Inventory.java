@@ -1,23 +1,21 @@
 package ui.menu;
 
+import items.Item;
 import utils.ANSI;
 
 import java.util.List;
 
 public class Inventory {
 
-    public void render(int top, int left, int width, int height, List<String> items, int selectedIndex) {
+    public void render(int top, int left, int width, int height, List<Item> items, int selectedIndex) {
         if (width < 10 || height < 5) return;
 
         final int inner = Math.max(0, width - 2);
-        final int listRows = Math.max(1, height - 3); // top border + footer + bottom border
+        final int listRows = Math.max(1, height - 3);
         final int n = items == null ? 0 : items.size();
         int sel = Math.max(0, Math.min(selectedIndex, Math.max(0, n - 1)));
-
-        // centrar selección: que quede más o menos en medio
         int start = Math.max(0, Math.min(sel - listRows / 2, Math.max(0, n - listRows)));
 
-        // ┌── INVENTARIO ──┐
         ANSI.gotoRC(top, left);
         if (width >= 2) {
             System.out.print('┌');
@@ -27,10 +25,10 @@ public class Inventory {
             System.out.print(repeat('─', width));
         }
 
-        // Lista
         for (int i = 0; i < listRows; i++) {
             int idx = start + i;
-            String line = (idx < n) ? items.get(idx) : "";
+            Item it = (idx < n) ? items.get(idx) : null;
+            String line = it == null ? "" : it.getNombre() + "  [" + formatKg(it.getPesoKg()) + "]  " + it.getDurabilidadPct() + "%";
             String view = clipAscii(line, inner);
             boolean selected = (idx == sel);
 
@@ -38,7 +36,6 @@ public class Inventory {
             if (width >= 2) {
                 System.out.print('│');
                 if (selected) ANSI.boldOn();
-                // prefijo selección
                 String prefix = selected ? "» " : "  ";
                 String body = clipAscii(prefix + view, inner);
                 System.out.print(body);
@@ -51,8 +48,7 @@ public class Inventory {
             }
         }
 
-        // Footer de ayuda
-        String help = " [I] Cerrar    [↑/↓] Navegar ";
+        String help = " [I] Cerrar    [Flechas] Navegar ";
         ANSI.gotoRC(top + 1 + listRows, left);
         if (width >= 2) {
             System.out.print('│');
@@ -64,7 +60,6 @@ public class Inventory {
             System.out.print(clipAscii(help, width));
         }
 
-        // └───────────────┘
         ANSI.gotoRC(top + 2 + listRows, left);
         if (width >= 2) {
             System.out.print('└');
@@ -92,5 +87,9 @@ public class Inventory {
 
     private static String repeat(char c, int n) {
         return (n <= 0) ? "" : String.valueOf(c).repeat(n);
+    }
+
+    private static String formatKg(double kg) {
+        return String.format("%.2f kg", kg);
     }
 }

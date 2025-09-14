@@ -1,5 +1,7 @@
 package render;
 
+import items.Item;
+import items.Equipment;
 import ui.menu.Inventory;
 import ui.player.EquipmentPanel;
 import ui.menu.MapView;
@@ -78,7 +80,20 @@ public class Renderer {
         String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         hud.renderHud(1, hora, "Soleado", s.temperaturaC, s.ubicacion, s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.px, s.py, rumboTexto(s.lastDx, s.lastDy));
         states.renderStates(s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.sangrado, s.infeccionPct, s.escondido);
-        equip.render("Navaja", "-", "Gorra", "-", "-", "-", "-", "Mochila tela", 0, 0, 5, 20.0);
+
+        Equipment eq = s.equipment;
+        String arma = eq.nombreOGuion(eq.getMainHand());
+        String off = eq.nombreOGuion(eq.getOffHand());
+        String cabeza = eq.nombreOGuion(eq.getHead());
+        String pecho = eq.nombreOGuion(eq.getChest());
+        String manos = eq.nombreOGuion(eq.getHands());
+        String piernas = eq.nombreOGuion(eq.getLegs());
+        String pies = eq.nombreOGuion(eq.getFeet());
+        String mochila = eq.nombreOGuion(eq.getBackpack());
+        double peso = eq.pesoTotalKg(s.inventory);
+        double capacidad = eq.capacidadKg();
+
+        equip.render(arma, off, cabeza, pecho, manos, piernas, pies, mochila, 0, 0, peso, capacidad);
 
         if (!s.inventoryOpen) {
             mapView.render(s.map, s.px, s.py);
