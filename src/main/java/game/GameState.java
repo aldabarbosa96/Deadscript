@@ -30,6 +30,9 @@ public class GameState {
     public final Random rng = new Random();
     public double spawnTimer = 0.0;
     public int nextGroupId = 1;
+    public boolean inventoryOpen = false;
+    public int invSel = 0;
+    public final List<String> inventory = new ArrayList<>(List.of("Botella de agua (0.5 kg)", "Lata de judías", "Venda improvisada", "Encendedor", "Cuchillo de bolsillo", "Cuerda (5 m)", "Barrita energética x2", "Mapa arrugado", "Cantimplora vacía", "Pila AA x4", "Manta térmica"));
 
 
     public void resetMap() {

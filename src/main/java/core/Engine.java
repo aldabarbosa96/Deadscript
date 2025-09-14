@@ -11,21 +11,16 @@ public class Engine {
     private final GameState state = new GameState();
     private final Renderer renderer = new Renderer();
     private final Clock clock = new Clock();
-
     private boolean running = true;
     private boolean dirty = true;
-
-    // ---- Ventanas de tolerancia / sticky ----
     private static final long MS = 1_000_000L;
-    private static final long COMBINE_WINDOW_MS = 180;           // para formar diagonal al pulsar 2 flechas “casi a la vez”
-    private static final long STICKY_RENEW_MS = 260;           // cuánto se mantiene/renueva la diagonal
+    private static final long COMBINE_WINDOW_MS = 180;
+    private static final long STICKY_RENEW_MS = 260;
     private static final long COMBINE_WINDOW_NS = COMBINE_WINDOW_MS * MS;
     private static final long STICKY_RENEW_NS = STICKY_RENEW_MS * MS;
 
-    // Último time de cada flecha (para detectar combinaciones sin exigir simultaneidad perfecta)
     private long lastUpNs = 0, lastDownNs = 0, lastLeftNs = 0, lastRightNs = 0;
 
-    // Diagonal “sticky”
     private int stickDx = 0, stickDy = 0;
     private long stickUntilNs = 0L;
 
@@ -39,17 +34,22 @@ public class Engine {
 
     public void run() {
         while (running) {
-
-            // --- INPUT ---
             int reqDx = 0, reqDy = 0;
             InputHandler.Command c;
             while ((c = input.poll(0)) != InputHandler.Command.NONE) {
-                if (isArrow(c)) {
-                    handleArrow(c);
-                } else {
-                    if (handleNonMove(c)) {
+                if (state.inventoryOpen) {
+                    if (handleInventoryInput(c)) {
                         running = false;
                         break;
+                    }
+                } else {
+                    if (isArrow(c)) {
+                        handleArrow(c);
+                    } else {
+                        if (handleNonMove(c)) {
+                            running = false;
+                            break;
+                        }
                     }
                 }
             }
@@ -57,30 +57,36 @@ public class Engine {
 
             long now = System.nanoTime();
 
-            // Si hay diagonal sticky activa, la usamos (aunque este frame no lleguen teclas)
-            if (isStickyActive(now)) {
+            if (!state.inventoryOpen && isStickyActive(now)) {
                 reqDx = stickDx;
                 reqDy = stickDy;
             }
 
-            // Ejecutar movimiento si procede
-            if (reqDx != 0 || reqDy != 0) {
+            if (!state.inventoryOpen && (reqDx != 0 || reqDy != 0)) {
                 dirty |= PlayerSystem.tryMoveThrottled(state, reqDx, reqDy, renderer);
             }
 
-            // --- UPDATE ---
             clock.consumeFixedSteps(dt -> {
-                boolean changed = false;
-                changed |= ZombieSystem.update(state, renderer, dt);
-                PlayerSystem.drainNeeds(state, dt);
-                if (changed) dirty = true;
+                if (!state.inventoryOpen) {
+                    boolean changed = false;
+                    changed |= ZombieSystem.update(state, renderer, dt);
+                    PlayerSystem.drainNeeds(state, dt);
+                    if (changed) dirty = true;
+                }
             });
 
-            // --- RENDER ---
-            if (clock.shouldRender(dirty)) {
-                renderer.renderAll(state);
-                clock.onRendered();
-                dirty = false;
+            if (!state.inventoryOpen) {
+                if (clock.shouldRender(dirty)) {
+                    renderer.renderAll(state);
+                    clock.onRendered();
+                    dirty = false;
+                }
+            } else {
+                if (dirty) {
+                    renderer.renderAll(state);
+                    clock.onRendered();
+                    dirty = false;
+                }
             }
 
             try {
@@ -90,11 +96,9 @@ public class Engine {
         }
     }
 
-    // ===== Movimiento: manejo de flechas =====
     private void handleArrow(InputHandler.Command c) {
         long now = System.nanoTime();
 
-        // Registrar timestamp por eje
         switch (c) {
             case UP -> lastUpNs = now;
             case DOWN -> lastDownNs = now;
@@ -107,7 +111,6 @@ public class Engine {
         int dx = axisDx(c);
         int dy = axisDy(c);
 
-        // Si ya hay diagonal sticky, actualizar/renovar por eje
         if (isStickyActive(now)) {
             boolean changed = false;
             if (dx != 0) {
@@ -122,9 +125,6 @@ public class Engine {
             return;
         }
 
-        // Intentar formar diagonal SIN exigir simultaneidad exacta:
-        //   - Si llega vertical, combínala con horizontal “reciente”
-        //   - Si llega horizontal, combínala con vertical “reciente”
         if (dy != 0) {
             int recentHx = recentHorizontalDir(now);
             if (recentHx != 0) {
@@ -139,8 +139,6 @@ public class Engine {
             }
         }
 
-        // Si no hay diagonal aún, damos un paso cardinal inmediato.
-        // (Para el movimiento continuo cardinal confiamos en el autorepeat del SO)
         dirty |= PlayerSystem.tryMoveThrottled(state, dx, dy, renderer);
     }
 
@@ -189,11 +187,17 @@ public class Engine {
         return false;
     }
 
-    // ===== Resto de comandos =====
     private boolean handleNonMove(InputHandler.Command c) {
         switch (c) {
             case INVENTORY -> {
-                renderer.log("Abres el inventario.");
+                if (!state.inventoryOpen) {
+                    state.inventoryOpen = true;
+                    stickUntilNs = 0;
+                    renderer.log("Abres el inventario.");
+                } else {
+                    state.inventoryOpen = false;
+                    renderer.log("Cierras el inventario.");
+                }
                 dirty = true;
             }
             case EQUIPMENT -> {
@@ -217,6 +221,34 @@ public class Engine {
                 renderer.onMapChanged(state);
                 renderer.log("Nuevo mapa generado.");
                 dirty = true;
+            }
+            case QUIT -> {
+                return true;
+            }
+            default -> {
+            }
+        }
+        return false;
+    }
+
+    private boolean handleInventoryInput(InputHandler.Command c) {
+        switch (c) {
+            case INVENTORY -> {
+                state.inventoryOpen = false;
+                renderer.log("Cierras el inventario.");
+                dirty = true;
+            }
+            case UP -> {
+                if (!state.inventory.isEmpty()) {
+                    state.invSel = Math.max(0, state.invSel - 1);
+                    dirty = true;
+                }
+            }
+            case DOWN -> {
+                if (!state.inventory.isEmpty()) {
+                    state.invSel = Math.min(state.inventory.size() - 1, state.invSel + 1);
+                    dirty = true;
+                }
             }
             case QUIT -> {
                 return true;

@@ -1,5 +1,6 @@
 package render;
 
+import ui.menu.Inventory;
 import ui.player.EquipmentPanel;
 import ui.menu.MapView;
 import ui.player.PlayerHud;
@@ -21,6 +22,7 @@ public class Renderer {
     private MapView mapView;
     private MessageLog msgLog;
     private ActionBar actionBar;
+    private final Inventory invOverlay = new Inventory();
 
     public void init(GameState s) {
         ANSI.setEnabled(true);
@@ -51,7 +53,7 @@ public class Renderer {
         ANSI.setScrollRegion(MAP_TOP + 2, MAP_TOP + 2 + viewH - 1);
         mapView.prefill();
 
-        renderAll(s); // primer frame
+        renderAll(s);
     }
 
     public void onMapChanged(GameState s) {
@@ -77,8 +79,20 @@ public class Renderer {
         hud.renderHud(1, hora, "Soleado", s.temperaturaC, s.ubicacion, s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.px, s.py, rumboTexto(s.lastDx, s.lastDy));
         states.renderStates(s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.sangrado, s.infeccionPct, s.escondido);
         equip.render("Navaja", "-", "Gorra", "-", "-", "-", "-", "Mochila tela", 0, 0, 5, 20.0);
-        mapView.render(s.map, s.px, s.py);
-        renderEntities(s);
+
+        if (!s.inventoryOpen) {
+            mapView.render(s.map, s.px, s.py);
+            renderEntities(s);
+        }
+
+        if (s.inventoryOpen) {
+            int top = MAP_TOP + 2;
+            int left = mapView.getLeft();
+            int w = mapView.getViewW();
+            int h = mapView.getViewH();
+            invOverlay.render(top, left, w, h, s.inventory, s.invSel);
+        }
+
         msgLog.render();
         actionBar.render();
 
@@ -107,7 +121,7 @@ public class Renderer {
 
     public boolean isNearCamera(int x, int y, GameState s) {
         int camX = cameraX(s), camY = cameraY(s);
-        return x >= camX && x < camX + mapView.getViewW() && y >= camY && y < mapView.getViewH();
+        return x >= camX && x < camX + mapView.getViewW() && y >= camY && y < camY + mapView.getViewH();
     }
 
     public int cameraX(GameState s) {
