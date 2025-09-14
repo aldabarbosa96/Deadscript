@@ -33,16 +33,13 @@
                             <shadedClassifierName>shaded</shadedClassifierName>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
-                                <!-- Mantén el Main-Class -->
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>MainGame</mainClass>
                                 </transformer>
-                                <!-- NUEVO: fusiona META-INF/services para ServiceLoader -->
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>
-                            <!-- Opcional: evita firmas duplicadas de dependencias -->
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -57,7 +54,6 @@
                     </execution>
                 </executions>
             </plugin>
-
 
             <plugin>
                 <groupId>com.akathist.maven.plugins.launch4j</groupId>
@@ -75,16 +71,15 @@
                 <configuration>
                     <outfile>${project.build.directory}/Deadscript.exe</outfile>
                     <headerType>console</headerType>
-                    <!-- Debe existir gracias a shade -->
                     <jar>${project.build.directory}/${project.build.finalName}-shaded.jar</jar>
                     <classPath>
-                        <!-- Igual que arriba: usa el FQN si MainGame tiene package -->
                         <mainClass>MainGame</mainClass>
                     </classPath>
                     <jre>
                         <minVersion>17</minVersion>
                         <opts>
                             <opt>-Dfile.encoding=UTF-8</opt>
+                            <opt>-Dorg.jline.terminal.disableDeprecatedProviderWarning=true</opt>
                         </opts>
                     </jre>
                     <versionInfo>
@@ -94,22 +89,27 @@
                         <productVersion>1.0.0.0</productVersion>
                         <txtProductVersion>1.0.0</txtProductVersion>
                     </versionInfo>
-
                 </configuration>
             </plugin>
 
-            <!-- (Opcional) Ejecutar sin empaquetar: mvn exec:java -Dexec.mainClass=MainGame -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.2.0</version>
                 <configuration>
                     <mainClass>MainGame</mainClass>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>org.jline.terminal.disableDeprecatedProviderWarning</key>
+                            <value>true</value>
+                        </systemProperty>
+                    </systemProperties>
                 </configuration>
             </plugin>
 
         </plugins>
     </build>
+
     <dependencies>
         <dependency>
             <groupId>org.jline</groupId>

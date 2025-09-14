@@ -19,10 +19,6 @@ public class MapView {
         this.visible = new boolean[map.h][map.w];
     }
 
-    public static int suggestedWidth(int viewH, double cellAspect) {
-        return (int) Math.round(viewH * (cellAspect <= 0 ? 2.0 : cellAspect));
-    }
-
     public void prefill() {
         drawTitle();
         int base = top + 2;
@@ -63,13 +59,12 @@ public class MapView {
                 if (vis) {
                     map.explored[my][mx] = true;
                     int next = switch (tile) {
-                        case '#' -> 92;                    // árbol vivo
-                        case '~' -> 100000 + 45;           // agua VIVA (azul brillante)
-                        case ':' -> 33;                    // pista
-                        case '^' -> 37;                    // roca
-                        case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94; // madera cálida
-                        case '+' -> 93;                    // puerta
-                        default -> 37;                     // suelo
+                        case '#' -> 92;
+                        case '~' -> 100000 + 45;
+                        case '^' -> 37;
+                        case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
+                        case '+' -> 93;
+                        default -> 100000 + 58;
                     };
                     if (next != currentColor) {
                         applyColor(next);
@@ -79,13 +74,12 @@ public class MapView {
 
                 } else if (map.explored[my][mx]) {
                     int next = switch (tile) {
-                        case '#' -> 100000 + 22;           // árbol MUY oscuro
-                        case '~' -> 100000 + 24;           // agua OSCURA
-                        case ':' -> 90;                    // pista apagada
-                        case '^' -> 90;                    // roca apagada
-                        case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58; // madera apagada
-                        case '+' -> 90;                    // puerta apagada
-                        default -> 90;                     // suelo atenuado
+                        case '#' -> 100000 + 22;
+                        case '~' -> 100000 + 24;
+                        case '^' -> 90;
+                        case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58;
+                        case '+' -> 90;
+                        default -> 100000 + 137;
                     };
                     if (next != currentColor) {
                         applyColor(next);
@@ -189,7 +183,6 @@ public class MapView {
         return visible[y][x];
     }
 
-    // ---- helpers de color (evitan repetir escapes) ----
     private static void applyColor(int sentinel) {
         if (sentinel >= 100000) {
             int idx = sentinel - 100000;

@@ -83,10 +83,9 @@ public class GameMap {
             placedTrees += placed;
         }
 
-        // decoración
+        // decoración (SÍ río/rocas/cabañas, NO caminos)
         addRiver(m, rng, cx, cy, safeRadius);
         addRockClusters(m, rng, 10, 28, safeRadius);
-        addTrails(m, rng, 2 + rng.nextInt(3), safeRadius);
         addCabins(m, rng, 2 + rng.nextInt(3), safeRadius);
 
         return m;
@@ -115,12 +114,6 @@ public class GameMap {
         m.tiles[y][x] = '^';
         m.walk[y][x] = false;
         m.transp[y][x] = false;
-    }
-
-    private static void setTrail(GameMap m, int x, int y) {
-        m.tiles[y][x] = ':';
-        m.walk[y][x] = true;
-        m.transp[y][x] = true;
     }
 
     private static void setCabinWall(GameMap m, int x, int y, char ch) {
@@ -310,61 +303,6 @@ public class GameMap {
                 int y = ry + rng.nextInt(5) - 2;
                 if (!inBounds(m, x, y) || m.tiles[y][x] == '~') continue;
                 setRock(m, x, y);
-            }
-        }
-    }
-
-    // pistas
-    private static void addTrails(GameMap m, Random rng, int count, int safeRadius) {
-        for (int i = 0; i < count; i++) {
-            int x0 = 2 + rng.nextInt(Math.max(1, m.w - 4));
-            int y0 = 2 + rng.nextInt(Math.max(1, m.h - 4));
-            int x1 = 2 + rng.nextInt(Math.max(1, m.w - 4));
-            int y1 = 2 + rng.nextInt(Math.max(1, m.h - 4));
-
-            if (rng.nextBoolean()) {
-                if (rng.nextBoolean()) {
-                    x0 = rng.nextBoolean() ? 1 : m.w - 2;
-                    y0 = 2 + rng.nextInt(m.h - 4);
-                } else {
-                    y0 = rng.nextBoolean() ? 1 : m.h - 2;
-                    x0 = 2 + rng.nextInt(m.w - 4);
-                }
-            }
-            carveTrailBresenham(m, x0, y0, x1, y1, 1 + rng.nextInt(2));
-        }
-        // limpiar bordes con árboles colindantes
-        for (int y = 1; y < m.h - 1; y++)
-            for (int x = 1; x < m.w - 1; x++) {
-                if (m.tiles[y][x] == ':') {
-                    for (int yy = y - 1; yy <= y + 1; yy++)
-                        for (int xx = x - 1; xx <= x + 1; xx++)
-                            if (m.tiles[yy][xx] == '#') setTrail(m, xx, yy);
-                }
-            }
-        carveDisk(m, m.w / 2, m.h / 2, safeRadius);
-    }
-
-    private static void carveTrailBresenham(GameMap m, int x0, int y0, int x1, int y1, int halfW) {
-        int dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-        int dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-        int err = dx + dy, e2, x = x0, y = y0;
-        while (true) {
-            for (int ox = -halfW; ox <= halfW; ox++)
-                for (int oy = -halfW; oy <= halfW; oy++) {
-                    int xx = x + ox, yy = y + oy;
-                    if (!inBounds(m, xx, yy) || m.tiles[yy][xx] == '~') continue;
-                    setTrail(m, xx, yy);
-                }
-            if (x == x1 && y == y1) break;
-            e2 = 2 * err;
-            if (e2 >= dy) {
-                err += dy;
-                x += sx;
-            }
-            if (e2 <= dx) {
-                err += dx;
-                y += sy;
             }
         }
     }

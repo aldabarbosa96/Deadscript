@@ -3,6 +3,7 @@ import ui.input.InputHandler;
 
 public class MainGame {
     public static void main(String[] args) {
+        //System.setProperty("org.jline.terminal.disableDeprecatedProviderWarning", "true");
         runGame();
     }
 
