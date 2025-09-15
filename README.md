@@ -13,39 +13,39 @@ Deadscript es un videojuego de supervivencia en un mundo postapocalíptico domin
 
 🎮 Características principales
 
-100% texto: todo se juega en la terminal. Sin gráficos, sin interfaz visual, solo tú y el mundo que te rodea en ASCII.
+ - 100% texto: todo se juega en la terminal. Sin gráficos, sin interfaz visual, solo tú y el mundo que te rodea en ASCII.
 
-Exploración procedural: cada partida genera un mundo único lleno de bosques, casas, ciudades en ruinas y laboratorios olvidados.
+ - Exploración procedural: cada partida genera un mundo único lleno de bosques, casas, ciudades en ruinas y laboratorios olvidados.
 
-Sistema profundo de combate y heridas: no solo puedes morir… puedes desangrarte, enfermar, infectarte, volverte loco…
+ - Sistema profundo de combate y heridas: no solo puedes morir… puedes desangrarte, enfermar, infectarte, volverte loco…
 
-Crafteo, construcción y desmontaje: aprovecha cualquier cosa, desde una cuerda hecha con sábanas hasta una lanza improvisada.
+ - Crafteo, construcción y desmontaje: aprovecha cualquier cosa, desde una cuerda hecha con sábanas hasta una lanza improvisada.
 
-Gestión completa de inventario y equipo: con peso, volumen, deterioro, slots… y ASCII-art para representar objetos únicos.
+ - Gestión completa de inventario y equipo: con peso, volumen, deterioro, slots… y ASCII-art para representar objetos únicos.
 
-Zombis y amenazas reales: enemigos que escuchan, huelen y no se detienen. No puedes pausar. No puedes guardar.
+ - Zombis y amenazas reales: enemigos que escuchan, huelen y no se detienen. No puedes pausar. No puedes guardar.
 
-Permadeath: mueres y vuelves a empezar. La muerte es definitiva, como debe ser.
+ - Permadeath: mueres y vuelves a empezar. La muerte es definitiva, como debe ser.
 
 🛠️ Inspiraciones
 
 Deadscript bebe de lo mejor de:
 
-Cataclysm: Dark Days Ahead (mecánicas duras y emergentes)
+ - Cataclysm: Dark Days Ahead (mecánicas duras y emergentes)
 
-Project Zomboid (realismo, sistema de heridas, inventario detallado)
+ - Project Zomboid (realismo, sistema de heridas, inventario detallado)
 
-Rogue-like clásicos (ASCII, permadeath, generación procedural)
+ - Rogue-like clásicos (ASCII, permadeath, generación procedural)
 
-Neo-scavenger (decisiones con consecuencias reales, crudeza)
+ - Neo-scavenger (decisiones con consecuencias reales, crudeza)
 
 ⚙️ Requisitos
 
-Java 17+
+ - Java 17+
 
-Terminal ANSI-compatible (CMD, PowerShell, Bash, etc.)
+ - Terminal ANSI-compatible (CMD, PowerShell, Bash, etc.)
 
-Mente fría y nervios de acero.
+ - Mente fría y nervios de acero.
 
 💡 Filosofía
 
