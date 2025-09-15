@@ -13,38 +13,30 @@ public class Item {
     private final ArmorAttr armor;
     private final WeaponAttr weapon;
     private final ContainerAttr container;
+    private final String descripcion;
 
-    public static final class ArmorAttr {
-        public final int proteccion;
-        public final int abrigo;
-
-        public ArmorAttr(int proteccion, int abrigo) {
-            this.proteccion = Math.max(0, proteccion);
-            this.abrigo = abrigo;
+    public record ArmorAttr(int proteccion, int abrigo) {
+            public ArmorAttr(int proteccion, int abrigo) {
+                this.proteccion = Math.max(0, proteccion);
+                this.abrigo = abrigo;
+            }
         }
-    }
 
-    public static final class WeaponAttr {
-        public final int danho;
-        public final double cooldownSec;
-        public final int manos;
-
-        public WeaponAttr(int danho, double cooldownSec, int manos) {
-            this.danho = Math.max(0, danho);
-            this.cooldownSec = Math.max(0.01, cooldownSec);
-            this.manos = Math.max(1, Math.min(2, manos));
+    public record WeaponAttr(int danho, double cooldownSec, int manos) {
+            public WeaponAttr(int danho, double cooldownSec, int manos) {
+                this.danho = Math.max(0, danho);
+                this.cooldownSec = Math.max(0.01, cooldownSec);
+                this.manos = Math.max(1, Math.min(2, manos));
+            }
         }
-    }
 
-    public static final class ContainerAttr {
-        public final double capacidadKg;
-
-        public ContainerAttr(double capacidadKg) {
-            this.capacidadKg = Math.max(0, capacidadKg);
+    public record ContainerAttr(double capacidadKg) {
+            public ContainerAttr(double capacidadKg) {
+                this.capacidadKg = Math.max(0, capacidadKg);
+            }
         }
-    }
 
-    private Item(String id, String nombre, ItemCategory categoria, double pesoKg, int maxDurabilidad, int durabilidad, EquipmentSlot wearableSlot, ArmorAttr armor, WeaponAttr weapon, ContainerAttr container) {
+    private Item(String id, String nombre, ItemCategory categoria, double pesoKg, int maxDurabilidad, int durabilidad, EquipmentSlot wearableSlot, ArmorAttr armor, WeaponAttr weapon, ContainerAttr container, String descripcion) {
         this.id = Objects.requireNonNull(id);
         this.nombre = Objects.requireNonNull(nombre);
         this.categoria = Objects.requireNonNull(categoria);
@@ -55,31 +47,33 @@ public class Item {
         this.armor = armor;
         this.weapon = weapon;
         this.container = container;
+        this.descripcion = (descripcion == null) ? "" : descripcion.trim();
     }
 
-    public static Item misc(String id, String nombre, double pesoKg) {
-        return new Item(id, nombre, ItemCategory.MISC, pesoKg, 100, 100, null, null, null, null);
+    public static Item misc(String id, String nombre, double pesoKg, String descripcion) {
+        return new Item(id, nombre, ItemCategory.MISC, pesoKg, 100, 100, null, null, null, null, descripcion);
     }
 
-    public static Item consumible(String id, String nombre, double pesoKg) {
-        return new Item(id, nombre, ItemCategory.CONSUMABLE, pesoKg, 100, 100, null, null, null, null);
+    public static Item consumible(String id, String nombre, double pesoKg, String descripcion) {
+        return new Item(id, nombre, ItemCategory.CONSUMABLE, pesoKg, 100, 100, null, null, null, null, descripcion);
     }
 
-    public static Item arma(String id, String nombre, double pesoKg, int danho, double cooldownSec, int manos) {
-        return new Item(id, nombre, ItemCategory.WEAPON, pesoKg, 100, 100, null, null, new WeaponAttr(danho, cooldownSec, manos), null);
+    public static Item arma(String id, String nombre, double pesoKg, int danho, double cooldownSec, int manos, String descripcion) {
+        return new Item(id, nombre, ItemCategory.WEAPON, pesoKg, 100, 100, null, null, new WeaponAttr(danho, cooldownSec, manos), null, descripcion);
     }
 
-    public static Item armadura(String id, String nombre, double pesoKg, EquipmentSlot slot, int proteccion, int abrigo) {
-        return new Item(id, nombre, ItemCategory.ARMOR, pesoKg, 100, 100, slot, new ArmorAttr(proteccion, abrigo), null, null);
+    public static Item armadura(String id, String nombre, double pesoKg, EquipmentSlot slot, int proteccion, int abrigo, String descripcion) {
+        return new Item(id, nombre, ItemCategory.ARMOR, pesoKg, 100, 100, slot, new ArmorAttr(proteccion, abrigo), null, null, descripcion);
     }
 
-    public static Item ropa(String id, String nombre, double pesoKg, EquipmentSlot slot, int abrigo) {
-        return new Item(id, nombre, ItemCategory.CLOTHING, pesoKg, 100, 100, slot, new ArmorAttr(0, abrigo), null, null);
+    public static Item ropa(String id, String nombre, double pesoKg, EquipmentSlot slot, int abrigo, String descripcion) {
+        return new Item(id, nombre, ItemCategory.CLOTHING, pesoKg, 100, 100, slot, new ArmorAttr(0, abrigo), null, null, descripcion);
     }
 
-    public static Item mochila(String id, String nombre, double pesoKg, double capacidadKg) {
-        return new Item(id, nombre, ItemCategory.CONTAINER, pesoKg, 100, 100, EquipmentSlot.BACKPACK, null, null, new ContainerAttr(capacidadKg));
+    public static Item mochila(String id, String nombre, double pesoKg, double capacidadKg, String descripcion) {
+        return new Item(id, nombre, ItemCategory.CONTAINER, pesoKg, 100, 100, EquipmentSlot.BACKPACK, null, null, new ContainerAttr(capacidadKg), descripcion);
     }
+
 
     public String getId() {
         return id;
@@ -119,6 +113,10 @@ public class Item {
 
     public ContainerAttr getContainer() {
         return container;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
     }
 
     public int getDurabilidadPct() {

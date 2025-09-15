@@ -66,11 +66,11 @@ public class Equipment {
 
     public void setMainHand(Item i) {
         mainHand = i;
-        if (i != null && i.getWeapon() != null && i.getWeapon().manos == 2) offHand = null;
+        if (i != null && i.getWeapon() != null && i.getWeapon().manos() == 2) offHand = null;
     }
 
     public void setOffHand(Item i) {
-        if (mainHand == null || mainHand.getWeapon() == null || mainHand.getWeapon().manos == 1) offHand = i;
+        if (mainHand == null || mainHand.getWeapon() == null || mainHand.getWeapon().manos() == 1) offHand = i;
     }
 
     public void setBackpack(Item i) {
@@ -78,7 +78,7 @@ public class Equipment {
     }
 
     public double capacidadKg() {
-        if (backpack != null && backpack.getContainer() != null) return backpack.getContainer().capacidadKg;
+        if (backpack != null && backpack.getContainer() != null) return backpack.getContainer().capacidadKg();
         return 20.0;
     }
 
@@ -97,21 +97,21 @@ public class Equipment {
 
     public int proteccionTotal() {
         int s = 0;
-        if (head != null && head.getArmor() != null) s += head.getArmor().proteccion;
-        if (chest != null && chest.getArmor() != null) s += chest.getArmor().proteccion;
-        if (hands != null && hands.getArmor() != null) s += hands.getArmor().proteccion;
-        if (legs != null && legs.getArmor() != null) s += legs.getArmor().proteccion;
-        if (feet != null && feet.getArmor() != null) s += feet.getArmor().proteccion;
+        if (head != null && head.getArmor() != null) s += head.getArmor().proteccion();
+        if (chest != null && chest.getArmor() != null) s += chest.getArmor().proteccion();
+        if (hands != null && hands.getArmor() != null) s += hands.getArmor().proteccion();
+        if (legs != null && legs.getArmor() != null) s += legs.getArmor().proteccion();
+        if (feet != null && feet.getArmor() != null) s += feet.getArmor().proteccion();
         return s;
     }
 
     public int abrigoTotal() {
         int s = 0;
-        if (head != null && head.getArmor() != null) s += head.getArmor().abrigo;
-        if (chest != null && chest.getArmor() != null) s += chest.getArmor().abrigo;
-        if (hands != null && hands.getArmor() != null) s += hands.getArmor().abrigo;
-        if (legs != null && legs.getArmor() != null) s += legs.getArmor().abrigo;
-        if (feet != null && feet.getArmor() != null) s += feet.getArmor().abrigo;
+        if (head != null && head.getArmor() != null) s += head.getArmor().abrigo();
+        if (chest != null && chest.getArmor() != null) s += chest.getArmor().abrigo();
+        if (hands != null && hands.getArmor() != null) s += hands.getArmor().abrigo();
+        if (legs != null && legs.getArmor() != null) s += legs.getArmor().abrigo();
+        if (feet != null && feet.getArmor() != null) s += feet.getArmor().abrigo();
         return s;
     }
 

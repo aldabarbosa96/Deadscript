@@ -108,34 +108,39 @@ public class InventoryView {
             return out;
         }
 
+        // línea en blanco superior para alinear con la lista
         out.add("");
+        // título
         out.add(center("[" + it.getNombre() + "]", w));
+        // separación extra bajo el título
         out.add("");
 
         // arte ASCII
         List<String> art = asciiArtFor(it);
         for (String line : art) out.add(center(line, w));
 
-        // atributos
+        // atributos básicos
         out.add(pad("Peso: " + formatKg(it.getPesoKg()), w));
         out.add(pad("Condición: " + it.getDurabilidadPct() + "%", w));
+        out.add(pad("Tipo: " + categoriaTexto(it.getCategoria()), w));
+
+        // atributos específicos
         if (it.getWeapon() != null) {
-            out.add(pad("Daño: " + it.getWeapon().danho + "   Manos: " + it.getWeapon().manos, w));
-            out.add(pad(String.format("Cadencia: %.2fs", it.getWeapon().cooldownSec), w));
+            out.add(pad("Daño: " + it.getWeapon().danho() + "   Manos: " + it.getWeapon().manos(), w));
+            out.add(pad(String.format("Cadencia: %.2fs", it.getWeapon().cooldownSec()), w));
         }
         if (it.getArmor() != null) {
-            out.add(pad("Protección: " + it.getArmor().proteccion + "   Abrigo: " + it.getArmor().abrigo, w));
+            out.add(pad("Protección: " + it.getArmor().proteccion() + "   Abrigo: " + it.getArmor().abrigo(), w));
         }
         if (it.getContainer() != null) {
-            out.add(pad("Capacidad: " + formatKg(it.getContainer().capacidadKg), w));
+            out.add(pad("Capacidad: " + formatKg(it.getContainer().capacidadKg()), w));
         }
         if (it.getWearableSlot() != null) {
             out.add(pad("Slot: " + it.getWearableSlot().name(), w));
         }
 
-        // descripción
-        String desc = describe(it);
-        for (String ln : wrap(desc, w)) out.add(ln);
+        // descripción ÚNICA del ítem (no por categoría)
+        out.addAll(wrap(it.getDescripcion(), w));
 
         return out;
     }
@@ -147,7 +152,7 @@ public class InventoryView {
             return "Arma cuerpo a cuerpo fiable. Útil para encuentros cercanos.";
         } else if (it.getContainer() != null) {
             return "Contenedor para transportar equipo y recursos.";
-        } else if (it.getArmor() != null && it.getArmor().proteccion > 0) {
+        } else if (it.getArmor() != null && it.getArmor().proteccion() > 0) {
             return "Pieza de protección que reduce el daño recibido.";
         } else if (it.getArmor() != null) {
             return "Prenda que aporta abrigo frente al frío.";
@@ -254,5 +259,18 @@ public class InventoryView {
         }
         if (!line.isEmpty()) out.add(pad(line.toString(), w));
         return out;
+    }
+
+    private static String categoriaTexto(items.ItemCategory c) {
+        return switch (c) {
+            case WEAPON -> "arma";
+            case ARMOR -> "armadura";
+            case CLOTHING -> "ropa";
+            case CONSUMABLE -> "comestible";
+            case TOOL -> "herramienta";
+            case MATERIAL -> "material";
+            case CONTAINER -> "contenedor";
+            case MISC -> "misceláneo";
+        };
     }
 }
