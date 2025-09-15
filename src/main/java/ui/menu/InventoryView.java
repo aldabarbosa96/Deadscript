@@ -76,7 +76,7 @@ public class InventoryView {
             if (width >= 2) System.out.print('│');
         }
 
-        String help = " [I] Cerrar    [Flechas] Navegar ";
+        String help = " [I] Cerrar    [Flechas] Navegar    [Espacio] Acciones";
         ANSI.gotoRC(top + 1 + contentRows, left);
         if (width >= 2) {
             System.out.print('│');
@@ -108,11 +108,8 @@ public class InventoryView {
             return out;
         }
 
-        // línea en blanco superior para alinear con la lista
         out.add("");
-        // título
         out.add(center("[" + it.getNombre() + "]", w));
-        // separación extra bajo el título
         out.add("");
 
         // arte ASCII
