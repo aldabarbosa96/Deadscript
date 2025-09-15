@@ -107,7 +107,7 @@ public class EquipmentView {
         int legsRow = figTop + 10;
         printLeftLabeled(legsRow, colRstart, baseLeft + drawW, "Piernas: ", sLegs, selectedIndex == idxLegs);
 
-        int feetRow = Math.min(actionsRow - 1, figTop + 15);
+        int feetRow = Math.min(actionsRow - 1, figTop + 16);
         printCenteredLabeled(feetRow, baseLeft, drawW, "Pies: ", sFeet, selectedIndex == idxFeet);
 
         String help = " [E] Cerrar    [Flechas] Seleccionar    [Espacio] Acciones ";
@@ -133,7 +133,8 @@ public class EquipmentView {
     }
 
     private void printCenteredLabeled(int row, int areaLeft, int areaWidth, String key, String val, boolean selected) {
-        String text = key + val;
+        String prefix = selected ? ">> " : "  ";
+        String text = prefix + key + val;
         String s = clip(text, areaWidth);
         int start = areaLeft + Math.max(0, (areaWidth - s.length()) / 2);
         putSelected(row, start, s, selected);
@@ -142,7 +143,8 @@ public class EquipmentView {
     private void printRightLabeled(int row, int leftBound, int rightBound, String key, String val, boolean selected) {
         int span = Math.max(0, rightBound - leftBound);
         if (span <= 0) return;
-        String s = clip(key + val, span);
+        String prefix = selected ? ">> " : "  ";
+        String s = clip(prefix + key + val, span);
         int start = rightBound - s.length();
         putSelected(row, start, s, selected);
     }
@@ -150,7 +152,8 @@ public class EquipmentView {
     private void printLeftLabeled(int row, int leftBound, int rightBound, String key, String val, boolean selected) {
         int span = Math.max(0, rightBound - leftBound);
         if (span <= 0) return;
-        String s = clip(key + val, span);
+        String prefix = selected ? ">> " : "  ";
+        String s = clip(prefix + key + val, span);
         putSelected(row, leftBound, s, selected);
     }
 
@@ -214,7 +217,7 @@ public class EquipmentView {
         for (int i = 0; i < show; i++) {
             ANSI.gotoRC(listStart + i, baseLeft);
             boolean selected = (i == Math.floorMod(selectedIndex, 7));
-            String prefix = selected ? "» " : "  ";
+            String prefix = selected ? ">> " : "  ";
             String body = clip(prefix + lines[i], inner);
             if (selected) ANSI.boldOn();
             System.out.print(body);
