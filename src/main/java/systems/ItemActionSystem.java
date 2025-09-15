@@ -9,9 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ItemActionSystem {
-    private ItemActionSystem() {}
+    private ItemActionSystem() {
+    }
 
-    /** Devuelve las acciones lógicas disponibles para el ítem. */
+    /**
+     * Devuelve las acciones lógicas disponibles para el ítem.
+     */
     public static List<String> actionsFor(GameState s, Item it) {
         ArrayList<String> out = new ArrayList<>();
         if (it == null) return out;
@@ -25,7 +28,9 @@ public final class ItemActionSystem {
         return out;
     }
 
-    /** Aplica una acción. Devuelve true si cambia el estado/inventario/equipo. */
+    /**
+     * Aplica una acción. Devuelve true si cambia el estado/inventario/equipo.
+     */
     public static boolean apply(GameState s, Item it, String action, Renderer r) {
         if (it == null || action == null) return false;
         action = action.trim().toLowerCase();
@@ -41,9 +46,9 @@ public final class ItemActionSystem {
                 int addS = pctOf(s.maxSed, c.sedPct());
 
                 s.hambreAcc = clamp(s.hambreAcc + addH, 0, s.maxHambre);
-                s.sedAcc    = clamp(s.sedAcc    + addS, 0, s.maxSed);
-                s.hambre = (int)Math.round(s.hambreAcc);
-                s.sed    = (int)Math.round(s.sedAcc);
+                s.sedAcc = clamp(s.sedAcc + addS, 0, s.maxSed);
+                s.hambre = (int) Math.round(s.hambreAcc);
+                s.sed = (int) Math.round(s.sedAcc);
 
                 // consumir 1 unidad
                 if (s.inventory.remove(it)) {
@@ -86,6 +91,188 @@ public final class ItemActionSystem {
         }
     }
 
+    /**
+     * Lista los ítems del inventario que pueden equiparse en un slot concreto.
+     */
+    public static List<Item> equippablesForSlot(GameState s, EquipmentSlot slot) {
+        ArrayList<Item> out = new ArrayList<>();
+        if (s == null || slot == null) return out;
+
+        switch (slot) {
+            case HEAD, TORSO, HANDS, LEGS, FEET, BACKPACK -> {
+                for (Item it : s.inventory) {
+                    if (it == null) continue;
+                    if (it.getWearableSlot() == slot) out.add(it);
+                }
+            }
+            case MAIN_HAND -> {
+                for (Item it : s.inventory) {
+                    if (it != null && it.getWeapon() != null) out.add(it);
+                }
+            }
+            case OFF_HAND -> {
+                Item main = s.equipment.getMainHand();
+                if (main != null && main.getWeapon() != null && main.getWeapon().manos() == 2) {
+                    return out; // no permitido si el arma principal es a 2 manos
+                }
+                for (Item it : s.inventory) {
+                    if (it != null && it.getWeapon() != null && it.getWeapon().manos() == 1) out.add(it);
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Desequipa lo que haya en un slot y lo devuelve al inventario.
+     */
+    public static boolean unequipSlot(GameState s, EquipmentSlot slot, Renderer r) {
+        if (s == null || slot == null) return false;
+
+        Item removed = null;
+        switch (slot) {
+            case HEAD -> {
+                removed = s.equipment.getHead();
+                s.equipment.setHead(null);
+            }
+            case TORSO -> {
+                removed = s.equipment.getChest();
+                s.equipment.setChest(null);
+            }
+            case HANDS -> {
+                removed = s.equipment.getHands();
+                s.equipment.setHands(null);
+            }
+            case LEGS -> {
+                removed = s.equipment.getLegs();
+                s.equipment.setLegs(null);
+            }
+            case FEET -> {
+                removed = s.equipment.getFeet();
+                s.equipment.setFeet(null);
+            }
+            case BACKPACK -> {
+                removed = s.equipment.getBackpack();
+                s.equipment.setBackpack(null);
+            }
+            case MAIN_HAND -> {
+                removed = s.equipment.getMainHand();
+                s.equipment.setMainHand(null);
+                // libera la off-hand por si el arma previa era a 2 manos
+                s.equipment.setOffHand(null);
+            }
+            case OFF_HAND -> {
+                removed = s.equipment.getOffHand();
+                s.equipment.setOffHand(null);
+            }
+        }
+
+        if (removed != null) {
+            s.inventory.add(removed);
+            if (r != null) r.log("Desequipas: " + removed.getNombre() + " (guardado en la mochila).");
+            return true;
+        } else {
+            if (r != null) r.log("No hay nada equipado en ese slot.");
+            return false;
+        }
+    }
+
+    /**
+     * Equipa un ítem forzando el slot destino.
+     */
+    public static boolean equipToSlot(GameState s, Item it, EquipmentSlot slot, Renderer r) {
+        if (s == null || it == null || slot == null) return false;
+
+        // Slots de ropa/armadura/mochila
+        if (slot == EquipmentSlot.HEAD || slot == EquipmentSlot.TORSO || slot == EquipmentSlot.HANDS || slot == EquipmentSlot.LEGS || slot == EquipmentSlot.FEET || slot == EquipmentSlot.BACKPACK) {
+            if (it.getWearableSlot() != slot) {
+                if (r != null) r.log("Ese objeto no encaja en ese slot.");
+                return false;
+            }
+            Item swapped = null;
+            switch (slot) {
+                case HEAD -> {
+                    swapped = s.equipment.getHead();
+                    s.equipment.setHead(it);
+                }
+                case TORSO -> {
+                    swapped = s.equipment.getChest();
+                    s.equipment.setChest(it);
+                }
+                case HANDS -> {
+                    swapped = s.equipment.getHands();
+                    s.equipment.setHands(it);
+                }
+                case LEGS -> {
+                    swapped = s.equipment.getLegs();
+                    s.equipment.setLegs(it);
+                }
+                case FEET -> {
+                    swapped = s.equipment.getFeet();
+                    s.equipment.setFeet(it);
+                }
+                case BACKPACK -> {
+                    swapped = s.equipment.getBackpack();
+                    s.equipment.setBackpack(it);
+                }
+                default -> {
+                }
+            }
+            if (s.inventory.remove(it)) {
+                if (swapped != null) s.inventory.add(swapped);
+                if (r != null)
+                    r.log("Te equipas: " + it.getNombre() + (swapped != null ? " (guardas " + swapped.getNombre() + " en la mochila)" : ""));
+                return true;
+            }
+            return false;
+        }
+
+        // Manos
+        if (slot == EquipmentSlot.MAIN_HAND) {
+            if (it.getWeapon() == null) {
+                if (r != null) r.log("Solo puedes empuñar armas.");
+                return false;
+            }
+            Item prevMain = s.equipment.getMainHand();
+            Item prevOff = s.equipment.getOffHand();
+            boolean twoHands = it.getWeapon().manos() == 2;
+            if (!s.inventory.remove(it)) return false;
+
+            if (twoHands) {
+                if (prevMain != null) s.inventory.add(prevMain);
+                if (prevOff != null) s.inventory.add(prevOff);
+                s.equipment.setMainHand(it);
+                s.equipment.setOffHand(null);
+                if (r != null) r.log("Empuñas (dos manos): " + it.getNombre() + ".");
+            } else {
+                if (prevMain != null) s.inventory.add(prevMain);
+                s.equipment.setMainHand(it);
+                if (r != null) r.log("Empuñas: " + it.getNombre() + ".");
+            }
+            return true;
+        }
+
+        if (slot == EquipmentSlot.OFF_HAND) {
+            if (it.getWeapon() == null || it.getWeapon().manos() != 1) {
+                if (r != null) r.log("En la mano izquierda solo puedes llevar armas a 1 mano.");
+                return false;
+            }
+            Item main = s.equipment.getMainHand();
+            if (main != null && main.getWeapon() != null && main.getWeapon().manos() == 2) {
+                if (r != null) r.log("No puedes usar off-hand con un arma de dos manos equipada.");
+                return false;
+            }
+            if (!s.inventory.remove(it)) return false;
+            Item prevOff = s.equipment.getOffHand();
+            if (prevOff != null) s.inventory.add(prevOff);
+            s.equipment.setOffHand(it);
+            if (r != null) r.log("Equipas en mano izq.: " + it.getNombre() + ".");
+            return true;
+        }
+        return false;
+    }
+
+
     private static boolean isEquippable(Item it) {
         // Armaduras/ropa/contenedores usan wearableSlot/armor/container.
         if (it.getWearableSlot() != null) return true;
@@ -103,12 +290,30 @@ public final class ItemActionSystem {
         EquipmentSlot slot = it.getWearableSlot();
         if (slot != null || it.getArmor() != null || it.getContainer() != null) {
             switch (slot) {
-                case HEAD -> { swapped = s.equipment.getHead(); s.equipment.setHead(it); }
-                case TORSO -> { swapped = s.equipment.getChest(); s.equipment.setChest(it); }
-                case HANDS -> { swapped = s.equipment.getHands(); s.equipment.setHands(it); }
-                case LEGS -> { swapped = s.equipment.getLegs(); s.equipment.setLegs(it); }
-                case FEET -> { swapped = s.equipment.getFeet(); s.equipment.setFeet(it); }
-                case BACKPACK -> { swapped = s.equipment.getBackpack(); s.equipment.setBackpack(it); }
+                case HEAD -> {
+                    swapped = s.equipment.getHead();
+                    s.equipment.setHead(it);
+                }
+                case TORSO -> {
+                    swapped = s.equipment.getChest();
+                    s.equipment.setChest(it);
+                }
+                case HANDS -> {
+                    swapped = s.equipment.getHands();
+                    s.equipment.setHands(it);
+                }
+                case LEGS -> {
+                    swapped = s.equipment.getLegs();
+                    s.equipment.setLegs(it);
+                }
+                case FEET -> {
+                    swapped = s.equipment.getFeet();
+                    s.equipment.setFeet(it);
+                }
+                case BACKPACK -> {
+                    swapped = s.equipment.getBackpack();
+                    s.equipment.setBackpack(it);
+                }
                 default -> { /* MAIN/OFF no aplican aquí */ }
             }
             // quitar del inventario y devolver lo previamente equipado (si existe)
@@ -121,14 +326,14 @@ public final class ItemActionSystem {
         // 2) Armas a mano
         else if (it.getWeapon() != null) {
             Item prevMain = s.equipment.getMainHand();
-            Item prevOff  = s.equipment.getOffHand();
+            Item prevOff = s.equipment.getOffHand();
 
             boolean twoHands = it.getWeapon().manos() == 2;
 
             if (twoHands) {
                 if (s.inventory.remove(it)) {
                     if (prevMain != null) s.inventory.add(prevMain);
-                    if (prevOff != null)  s.inventory.add(prevOff);
+                    if (prevOff != null) s.inventory.add(prevOff);
                     s.equipment.setMainHand(it);
                     s.equipment.setOffHand(null);
                     r.log("Empuñas (dos manos): " + it.getNombre() + ".");

@@ -1,6 +1,8 @@
 package core;
 
 import game.GameState;
+import items.EquipmentSlot;
+import items.Item;
 import render.Renderer;
 import systems.PlayerSystem;
 import systems.ZombieSystem;
@@ -323,33 +325,139 @@ public class Engine {
 
 
     private boolean handleEquipmentInput(InputHandler.Command c) {
-        final int SLOTS = 7; // Cabeza, Mochila, Torso, Mano izq., Mano der., Piernas, Pies
+        final int SLOTS = 7; // Cabeza, Mochila, Pecho, Mano izq., Mano der., Piernas, Pies
+
         switch (c) {
             case EQUIPMENT -> {
                 state.equipmentOpen = false;
+                state.eqActionsOpen = false;
+                state.eqSelectOpen = false;
                 renderer.log("Cierras el equipo.");
                 dirty = true;
             }
             case UP, LEFT -> {
-                state.eqSel = (state.eqSel - 1 + SLOTS) % SLOTS;
-                dirty = true;
+                if (state.eqSelectOpen) {
+                    if (state.eqSelectItems != null && !state.eqSelectItems.isEmpty()) {
+                        state.eqSelectSel = Math.max(0, state.eqSelectSel - 1);
+                        dirty = true;
+                    }
+                } else if (state.eqActionsOpen) {
+                    if (state.eqActions != null && !state.eqActions.isEmpty()) {
+                        state.eqActionSel = Math.max(0, state.eqActionSel - 1);
+                        dirty = true;
+                    }
+                } else {
+                    state.eqSel = (state.eqSel - 1 + SLOTS) % SLOTS;
+                    dirty = true;
+                }
             }
             case DOWN, RIGHT -> {
-                state.eqSel = (state.eqSel + 1) % SLOTS;
-                dirty = true;
+                if (state.eqSelectOpen) {
+                    if (state.eqSelectItems != null && !state.eqSelectItems.isEmpty()) {
+                        state.eqSelectSel = Math.min(state.eqSelectItems.size() - 1, state.eqSelectSel + 1);
+                        dirty = true;
+                    }
+                } else if (state.eqActionsOpen) {
+                    if (state.eqActions != null && !state.eqActions.isEmpty()) {
+                        state.eqActionSel = Math.min(state.eqActions.size() - 1, state.eqActionSel + 1);
+                        dirty = true;
+                    }
+                } else {
+                    state.eqSel = (state.eqSel + 1) % SLOTS;
+                    dirty = true;
+                }
             }
             case ACTION -> {
-                renderer.log("Acciones sobre slot: " + slotNameByIndex(state.eqSel)); // todo --> definir opciones concretas para cada ítem
+                EquipmentSlot slot = slotByIndex(state.eqSel);
+
+                // 1) Selector abierto -> equipar elección (o nada si placeholder)
+                if (state.eqSelectOpen) {
+                    if (state.eqSelectItems != null && !state.eqSelectItems.isEmpty()) {
+                        int idx = Math.max(0, Math.min(state.eqSelectSel, state.eqSelectItems.size() - 1));
+                        Item choice = state.eqSelectItems.get(idx);
+                        systems.ItemActionSystem.equipToSlot(state, choice, slot, renderer);
+                    }
+                    state.eqSelectOpen = false;
+                    state.eqActionsOpen = false;
+                    dirty = true;
+                    break;
+                }
+
+                // 2) Acciones abiertas -> ejecutar
+                if (state.eqActionsOpen) {
+                    if (state.eqActionSel >= 0 && state.eqActionSel < state.eqActions.size()) {
+                        String action = state.eqActions.get(state.eqActionSel).toLowerCase();
+                        switch (action) {
+                            case "equipar" -> {
+                                state.eqSelectItems = systems.ItemActionSystem.equippablesForSlot(state, slot);
+                                state.eqSelectSel = 0;
+                                state.eqSelectOpen = true; // mostramos incluso si está vacío (placeholder)
+                                dirty = true;
+                            }
+                            case "desequipar" -> {
+                                systems.ItemActionSystem.unequipSlot(state, slot, renderer);
+                                state.eqActionsOpen = false;
+                                dirty = true;
+                            }
+                            default -> {
+                                state.eqActionsOpen = false;
+                                dirty = true;
+                            }
+                        }
+                    } else {
+                        state.eqActionsOpen = false;
+                        dirty = true;
+                    }
+                    break;
+                }
+
+                // 3) Sin menús abiertos -> abrir acciones según estado del slot
+                Item cur = itemInSlot(slot);
+                java.util.ArrayList<String> actions = new java.util.ArrayList<>();
+                if (cur == null) actions.add("Equipar");
+                else actions.add("Desequipar");
+                actions.add("Cancelar");
+
+                state.eqActions = actions;
+                state.eqActionSel = 0;
+                state.eqActionsOpen = true;
+                renderer.log("Acciones sobre " + slotNameByIndex(state.eqSel) + ": " + String.join(", ", actions) + ".");
                 dirty = true;
             }
             case QUIT -> {
                 return true;
             }
-            default -> {
-            }
+            default -> { /* nada */ }
         }
         return false;
     }
+
+    private EquipmentSlot slotByIndex(int idx) {
+        return switch (Math.floorMod(idx, 7)) {
+            case 0 -> EquipmentSlot.HEAD;
+            case 1 -> EquipmentSlot.BACKPACK;
+            case 2 -> EquipmentSlot.TORSO;
+            case 3 -> EquipmentSlot.OFF_HAND;
+            case 4 -> EquipmentSlot.MAIN_HAND;
+            case 5 -> EquipmentSlot.LEGS;
+            case 6 -> EquipmentSlot.FEET;
+            default -> EquipmentSlot.TORSO;
+        };
+    }
+
+    private Item itemInSlot(EquipmentSlot slot) {
+        return switch (slot) {
+            case HEAD -> state.equipment.getHead();
+            case TORSO -> state.equipment.getChest();
+            case HANDS -> state.equipment.getHands();
+            case LEGS -> state.equipment.getLegs();
+            case FEET -> state.equipment.getFeet();
+            case MAIN_HAND -> state.equipment.getMainHand();
+            case OFF_HAND -> state.equipment.getOffHand();
+            case BACKPACK -> state.equipment.getBackpack();
+        };
+    }
+
 
     private String slotNameByIndex(int idx) {
         return switch (Math.floorMod(idx, 7)) {

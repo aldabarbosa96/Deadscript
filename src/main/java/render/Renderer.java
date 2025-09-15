@@ -114,6 +114,13 @@ public class Renderer {
             int w = mapView.getViewW();
             int h = mapView.getViewH();
             equipOverlay.render(top, left, w, h, s.equipment, s.inventory, s.eqSel);
+            if (s.eqActionsOpen && s.eqActions != null && !s.eqActions.isEmpty()) {
+                equipOverlay.renderActionMenu(top, left, w, h, s.eqActions, s.eqActionSel);
+            }
+            if (s.eqSelectOpen) {
+                equipOverlay.renderSelectMenu(top, left, w, h, s.eqSelectItems, s.eqSelectSel, "EQUIPAR", s.eqSelectItems == null || s.eqSelectItems.isEmpty());
+            }
+
         }
 
         msgLog.render();

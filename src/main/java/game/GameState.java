@@ -47,12 +47,22 @@ public class GameState {
     public int invActionSel = 0;
     public List<String> invActions = Collections.emptyList();
 
+    public boolean eqActionsOpen = false;
+    public int eqActionSel = 0;
+    public List<String> eqActions = Collections.emptyList();
+
+    public boolean eqSelectOpen = false;
+    public int eqSelectSel = 0;
+    public List<Item> eqSelectItems = Collections.emptyList();
+
+
 
     public GameState() {
         // equipo
         equipment.setHead(Item.ropa("cap_01", "Gorra", 0.20, EquipmentSlot.HEAD, 1, "Gorra de tela descolorida; corta algo el frío y la llovizna."));
         equipment.setBackpack(Item.mochila("bag_01", "Mochila tela", 0.80, 20.0, "Mochila de lona sencilla con cremalleras gastadas; suficiente para lo básico."));
-        equipment.setMainHand(Item.arma("knife_01", "Navaja", 0.25, 4, 0.7, 1, "Navaja plegable simple; útil para tareas y defensa cercana."));
+        equipment.setMainHand(Item.arma("knife_01", "Navaja", 0.125, 4, 0.7, 1, "Navaja plegable simple; útil para tareas y defensa cercana."));
+        equipment.setFeet(Item.ropa("shoe_01", "Zapatillas", 0.25, EquipmentSlot.FEET, 1, "Zapatillas de estar por casa de la Hello Kitty."));
 
         // inventario
         inventory.add(Item.consumible("water_01", "Botella de agua (0.5 L)", 0.50, 0, 50, "Botella de plástico de medio litro. *Agua potable*."));

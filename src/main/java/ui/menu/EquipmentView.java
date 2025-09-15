@@ -257,4 +257,147 @@ public class EquipmentView {
     private static String repeat(char c, int n) {
         return (n <= 0) ? "" : String.valueOf(c).repeat(n);
     }
+
+
+    public void renderActionMenu(int top, int left, int width, int height, java.util.List<String> options, int selectedIndex) {
+        if (options == null || options.isEmpty()) return;
+
+        int inner = Math.max(0, width - 2);
+        int rows = Math.max(1, height - 3);
+        int baseTop = top + 1;
+        int baseLeft = left + 1;
+
+        int maxLen = 0;
+        for (String s : options) maxLen = Math.max(maxLen, s == null ? 0 : s.length());
+        int boxH = Math.min(options.size() + 2, Math.max(3, rows / 2));
+        int boxW = Math.min(Math.max(14, maxLen + 6), Math.max(16, inner / 2));
+
+        // Encima del placeholder "[Espacio] Acciones"
+        int actionsRow = baseTop + rows - 1;
+        int anchorTop = actionsRow - boxH - 2;
+
+        // Panel derecho (igual que inventario)
+        int drawW = inner;
+        int cx = baseLeft + drawW / 2;
+        int gapSide = 10;
+        int rightStart = cx + gapSide;
+        int anchorLeft = rightStart + 1;
+        int detailW = baseLeft + drawW - rightStart;
+        boxW = Math.min(boxW, Math.max(10, detailW - 2));
+
+        // Marco
+        ANSI.gotoRC(anchorTop, anchorLeft);
+        System.out.print('┌');
+        System.out.print(repeat('─', boxW - 2));
+        System.out.print('┐');
+        for (int i = 0; i < boxH - 2; i++) {
+            ANSI.gotoRC(anchorTop + 1 + i, anchorLeft);
+            System.out.print('│');
+            System.out.print(repeat(' ', boxW - 2));
+            System.out.print('│');
+        }
+        ANSI.gotoRC(anchorTop + boxH - 1, anchorLeft);
+        System.out.print('└');
+        System.out.print(repeat('─', boxW - 2));
+        System.out.print('┘');
+
+        // Título
+        String title = " ACCIONES ";
+        ANSI.gotoRC(anchorTop, anchorLeft + Math.max(1, (boxW - title.length()) / 2));
+        System.out.print(clip(title, Math.max(0, boxW - 2)));
+
+        // Opciones (scroll sencillo si no caben)
+        int maxOpts = boxH - 2;
+        int start = 0;
+        if (selectedIndex >= maxOpts) start = selectedIndex - (maxOpts - 1);
+
+        for (int i = 0; i < maxOpts; i++) {
+            int idx = start + i;
+            String opt = (idx < options.size()) ? options.get(idx) : "";
+            boolean sel = (idx == selectedIndex);
+            String prefix = sel ? "» " : "  ";
+            String line = clip(prefix + opt, boxW - 2);
+            ANSI.gotoRC(anchorTop + 1 + i, anchorLeft + 1);
+            if (sel) ANSI.boldOn();
+            System.out.print(line);
+            if (line.length() < boxW - 2) System.out.print(repeat(' ', (boxW - 2) - line.length()));
+            if (sel) ANSI.boldOff();
+        }
+    }
+
+    public void renderSelectMenu(int top, int left, int width, int height, java.util.List<Item> items, int selectedIndex, String title, boolean disabled) {
+        if (items == null) items = java.util.Collections.emptyList();
+
+        int inner = Math.max(0, width - 2);
+        int rows = Math.max(1, height - 3);
+        int baseTop = top + 1;
+        int baseLeft = left + 1;
+
+        int maxLen = 0;
+        for (Item it : items) {
+            String n = (it == null || it.getNombre() == null) ? "" : it.getNombre();
+            if (n.length() > maxLen) maxLen = n.length();
+        }
+
+        int boxH = Math.min(Math.max(3, items.size() + 2), Math.max(3, rows / 2));
+        int drawW = inner;
+        int cx = baseLeft + drawW / 2;
+        int gapSide = 8;
+        int rightStart = cx + gapSide;
+        int detailW = baseLeft + drawW - rightStart;
+        if (detailW < 8) return;
+
+        int minInner = Math.max(16, Math.max(16, maxLen + 6));
+        int availInner = Math.max(6, detailW - 2);
+        int boxW = Math.min(minInner + 2, availInner + 2);
+
+        int actionsRow = baseTop + rows - 1;
+        int anchorTop = Math.max(baseTop, actionsRow - boxH - 2);
+        int anchorLeft = rightStart + 1;
+
+        ANSI.gotoRC(anchorTop, anchorLeft);
+        System.out.print('┌');
+        System.out.print(repeat('─', boxW - 2));
+        System.out.print('┐');
+
+        for (int i = 0; i < boxH - 2; i++) {
+            ANSI.gotoRC(anchorTop + 1 + i, anchorLeft);
+            System.out.print('│');
+            System.out.print(repeat(' ', boxW - 2));
+            System.out.print('│');
+        }
+        ANSI.gotoRC(anchorTop + boxH - 1, anchorLeft);
+        System.out.print('└');
+        System.out.print(repeat('─', boxW - 2));
+        System.out.print('┘');
+
+        String titleText = " " + ((title == null) ? "SELECCIONAR" : title.trim()) + " ";
+        ANSI.gotoRC(anchorTop, anchorLeft + Math.max(1, (boxW - titleText.length()) / 2));
+        System.out.print(clip(titleText, Math.max(0, boxW - 2)));
+
+        int maxOpts = boxH - 2;
+        if (items.isEmpty()) {
+            String placeholder = "— Sin opciones —";
+            ANSI.gotoRC(anchorTop + 1, anchorLeft + 1);
+            System.out.print(clip(placeholder, boxW - 2));
+            return;
+        }
+
+        int sel = Math.max(0, Math.min(selectedIndex, items.size() - 1));
+        int start = 0;
+        if (sel >= maxOpts) start = sel - (maxOpts - 1);
+
+        for (int i = 0; i < maxOpts; i++) {
+            int idx = start + i;
+            String opt = (idx < items.size() && items.get(idx) != null) ? items.get(idx).getNombre() : "";
+            boolean isSel = (idx == sel);
+            String prefix = isSel ? "» " : "  ";
+            String line = clip(prefix + opt, boxW - 2);
+            ANSI.gotoRC(anchorTop + 1 + i, anchorLeft + 1);
+            if (isSel) ANSI.boldOn();
+            System.out.print(line);
+            if (line.length() < boxW - 2) System.out.print(repeat(' ', (boxW - 2) - line.length()));
+            if (isSel) ANSI.boldOff();
+        }
+    }
 }
