@@ -35,8 +35,8 @@ public class InventoryView {
         int start = Math.max(0, Math.min(sel - visibleRowsForItems / 2, Math.max(0, n - visibleRowsForItems)));
 
         int listW = Math.max(18, (int) Math.round(inner * 0.58));
-        int detailW = Math.max(0, inner - listW - 1);
-        boolean drawDivider = detailW >= 6;
+        int gap = 1;
+        int detailW = Math.max(0, inner - listW - gap);
 
         Item selected = (sel < n && sel >= 0) ? items.get(sel) : null;
         List<String> rightLines = buildRightPanel(selected, detailW);
@@ -46,35 +46,32 @@ public class InventoryView {
             if (width >= 2) System.out.print('│');
 
             String leftCell;
+            boolean selectedRow = false;
+
             if (i < blankTopRows) {
-                leftCell = repeat(' ', listW);
-                System.out.print(leftCell);
+                leftCell = repeat(' ', listW);  // limpia la fila en blanco
             } else {
                 int idx = start + (i - blankTopRows);
                 Item it = (idx < n) ? items.get(idx) : null;
                 String line = it == null ? "" : it.getNombre() + "  [" + formatKg(it.getPesoKg()) + "]  " + it.getDurabilidadPct() + "%";
-                boolean selectedRow = (idx == sel);
+                selectedRow = (idx == sel);
                 String prefix = selectedRow ? "» " : "  ";
                 leftCell = clipAscii(prefix + line, listW);
                 if (leftCell.length() < listW) leftCell = leftCell + repeat(' ', listW - leftCell.length());
-                if (selectedRow) {
-                    ANSI.boldOn();
-                    System.out.print(leftCell);
-                    ANSI.boldOff();
-                } else {
-                    System.out.print(leftCell);
-                }
             }
 
-            if (drawDivider) {
-                System.out.print('│');
-                String rightCell = (i < rightLines.size()) ? clipAscii(rightLines.get(i), detailW) : "";
-                if (rightCell.length() < detailW) rightCell = rightCell + repeat(' ', detailW - rightCell.length());
-                System.out.print(rightCell);
+            if (selectedRow) {
+                ANSI.boldOn();
+                System.out.print(leftCell);
+                ANSI.boldOff();
             } else {
-                int rem = Math.max(0, inner - listW);
-                if (rem > 0) System.out.print(repeat(' ', rem));
+                System.out.print(leftCell);
             }
+
+            System.out.print(repeat(' ', gap));
+            String rightCell = (i < rightLines.size()) ? clipAscii(rightLines.get(i), detailW) : "";
+            if (rightCell.length() < detailW) rightCell = rightCell + repeat(' ', detailW - rightCell.length());
+            System.out.print(rightCell);
 
             if (width >= 2) System.out.print('│');
         }
@@ -101,6 +98,7 @@ public class InventoryView {
         }
     }
 
+
     private static List<String> buildRightPanel(Item it, int w) {
         ArrayList<String> out = new ArrayList<>();
         if (w <= 0) return out;
@@ -110,14 +108,17 @@ public class InventoryView {
             return out;
         }
 
+        out.add("");
         out.add(center("[" + it.getNombre() + "]", w));
+        out.add("");
 
+        // arte ASCII
         List<String> art = asciiArtFor(it);
         for (String line : art) out.add(center(line, w));
 
+        // atributos
         out.add(pad("Peso: " + formatKg(it.getPesoKg()), w));
         out.add(pad("Condición: " + it.getDurabilidadPct() + "%", w));
-
         if (it.getWeapon() != null) {
             out.add(pad("Daño: " + it.getWeapon().danho + "   Manos: " + it.getWeapon().manos, w));
             out.add(pad(String.format("Cadencia: %.2fs", it.getWeapon().cooldownSec), w));
@@ -132,11 +133,13 @@ public class InventoryView {
             out.add(pad("Slot: " + it.getWearableSlot().name(), w));
         }
 
+        // descripción
         String desc = describe(it);
         for (String ln : wrap(desc, w)) out.add(ln);
 
         return out;
     }
+
 
     private static String describe(Item it) {
         if (it == null) return "";
