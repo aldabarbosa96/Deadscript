@@ -28,15 +28,18 @@ public class InventoryView {
 
         final int blankTopRows = 1;
 
+        final int leftPad = 1;
+        final int contentW = Math.max(0, inner - leftPad);
+
         final int n = items == null ? 0 : items.size();
         int sel = Math.max(0, Math.min(selectedIndex, Math.max(0, n - 1)));
         int listRows = Math.max(0, contentRows);
         int visibleRowsForItems = Math.max(0, listRows - blankTopRows);
         int start = Math.max(0, Math.min(sel - visibleRowsForItems / 2, Math.max(0, n - visibleRowsForItems)));
 
-        int listW = Math.max(18, (int) Math.round(inner * 0.58));
+        int listW = Math.max(18, (int) Math.round(contentW * 0.58));
         int gap = 1;
-        int detailW = Math.max(0, inner - listW - gap);
+        int detailW = Math.max(0, contentW - listW - gap);
 
         Item selected = (sel < n && sel >= 0) ? items.get(sel) : null;
         List<String> rightLines = buildRightPanel(selected, detailW);
@@ -45,6 +48,7 @@ public class InventoryView {
             ANSI.gotoRC(baseTop + i, left);
             if (width >= 2) System.out.print('│');
 
+            System.out.print(repeat(' ', leftPad));
             String leftCell;
             boolean selectedRow = false;
 
@@ -137,7 +141,6 @@ public class InventoryView {
             out.add(pad("Slot: " + it.getWearableSlot().name(), w));
         }
 
-        // descripción ÚNICA del ítem (no por categoría)
         out.addAll(wrap(it.getDescripcion(), Math.max(1, w - 1)));
 
         return out;
@@ -258,24 +261,24 @@ public class InventoryView {
     public void renderActionMenu(int top, int left, int width, int height, java.util.List<String> options, int selectedIndex) {
         if (options == null || options.isEmpty()) return;
 
-        int inner = Math.max(0, width - 2);
-        int contentRows = Math.max(1, height - 3);
-        int baseTop = top + 1;
-        int baseLeft = left + 1;
-
-        // Área donde dibuja el inventario
-        int listW = Math.max(18, (int) Math.round(inner * 0.58));
-        int gap = 1;
-        int detailW = Math.max(0, inner - listW - gap);
-
-        // Caja pequeña abajo a la izquierda del panel derecho (detalles)
+        final int inner = Math.max(0, width - 2);
+        final int contentRows = Math.max(1, height - 3);
+        final int baseTop = top + 1;
+        final int baseLeft = left + 1;
+        final int contentBottom = baseTop + contentRows - 1;
+        final int innerRight = baseLeft + inner - 1;
         int maxLen = 0;
         for (String s : options) maxLen = Math.max(maxLen, s == null ? 0 : s.length());
-        int boxW = Math.min(Math.max(14, maxLen + 6), detailW);
         int boxH = Math.min(options.size() + 2, Math.max(3, contentRows / 2));
 
-        int anchorTop = baseTop + contentRows - boxH - 1;
-        int anchorLeft = baseLeft + listW + gap + 1; // dentro del panel derecho
+        int boxW = Math.max(14, maxLen + 6);
+        int maxBoxW = Math.max(10, inner - 6);
+        boxW = Math.min(boxW, maxBoxW);
+
+        final int marginRows = 5;
+        final int marginCols = 15;
+        int anchorTop = Math.max(baseTop + marginRows, contentBottom - marginRows - (boxH - 1));
+        int anchorLeft = Math.max(baseLeft + marginCols, innerRight - marginCols - (boxW - 1));
 
         // Marco
         ANSI.gotoRC(anchorTop, anchorLeft);
@@ -289,6 +292,7 @@ public class InventoryView {
             System.out.print(repeat(' ', boxW - 2));
             System.out.print('│');
         }
+
         ANSI.gotoRC(anchorTop + boxH - 1, anchorLeft);
         System.out.print('└');
         System.out.print(repeat('─', boxW - 2));
@@ -299,12 +303,11 @@ public class InventoryView {
         ANSI.gotoRC(anchorTop, anchorLeft + Math.max(1, (boxW - title.length()) / 2));
         System.out.print(clipAscii(title, Math.max(0, boxW - 2)));
 
-        // Opciones
+        // Opciones (scroll permitido)
         int maxOpts = boxH - 2;
         int start = 0;
-        if (selectedIndex >= maxOpts) {
-            start = selectedIndex - (maxOpts - 1);
-        }
+        if (selectedIndex >= maxOpts) start = selectedIndex - (maxOpts - 1);
+
         for (int i = 0; i < maxOpts; i++) {
             int idx = start + i;
             String opt = (idx < options.size()) ? options.get(idx) : "";
@@ -319,8 +322,6 @@ public class InventoryView {
             System.out.print(line);
             if (line.length() < boxW - 2) System.out.print(repeat(' ', (boxW - 2) - line.length()));
             if (sel) ANSI.resetStyle();
-
         }
     }
-
 }

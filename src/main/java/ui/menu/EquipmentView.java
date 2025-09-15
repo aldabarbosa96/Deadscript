@@ -7,6 +7,7 @@ import utils.ANSI;
 import java.util.List;
 
 public class EquipmentView {
+    private int lastActionTop = -1, lastActionLeft = -1, lastActionW = -1, lastActionH = -1;
 
     public void render(int top, int left, int width, int height, Equipment eq, List<Item> inventory, int selectedIndex) {
         if (width < 28 || height < 10) {
@@ -48,24 +49,24 @@ public class EquipmentView {
 
         final int baseTop = top + 1;
         final int baseLeft = left + 1;
-        final int drawH = rows;
-        final int drawW = inner;
 
         double peso = eq.pesoTotalKg(inventory);
         double capa = Math.max(0.0001, eq.capacidadKg());
         int prot = eq.proteccionTotal();
         int abrigo = eq.abrigoTotal();
         String resumen = String.format(" Protección: %d   Abrigo: %d   Carga: %.2f/%.2f kg", prot, abrigo, peso, capa);
-        ANSI.gotoRC(baseTop, baseLeft);
-        System.out.print(clip(resumen, drawW));
+        final int marginX = 1, marginY = 1;
+        final int resumenRow = baseTop + marginY;
+        ANSI.gotoRC(resumenRow, baseLeft + marginX);
+        System.out.print(clip(resumen, Math.max(0, inner - marginX)));
 
-        final int actionsRow = baseTop + drawH - 1;
-        if (actionsRow <= baseTop + 1 || drawW < 30) {
+        final int actionsRow = baseTop + rows - 1;
+        if (actionsRow <= baseTop + 1 || inner < 30) {
             renderFallback(top, left, width, height, eq, inventory, selectedIndex);
             return;
         }
 
-        final int figAreaTop = baseTop + 1;
+        final int figAreaTop = resumenRow + 1;
         final int figAreaH = (actionsRow - 1) - figAreaTop + 1;
         final int figH = 15;
         final int gapSide = 10;
@@ -75,7 +76,7 @@ public class EquipmentView {
             return;
         }
 
-        final int cx = baseLeft + drawW / 2;
+        final int cx = baseLeft + inner / 2;
         final int figTopBase = figAreaTop + Math.max(0, (figAreaH - figH) / 2);
         final int figTop = Math.max(figAreaTop, figTopBase - 1);
         final int colLend = cx - gapSide;
@@ -93,27 +94,27 @@ public class EquipmentView {
 
         int idxHead = 0, idxPack = 1, idxChest = 2, idxOff = 3, idxMain = 4, idxLegs = 5, idxFeet = 6;
 
-        int headRow = Math.max(baseTop + 1, figTopBase - 3);
-        printCenteredLabeled(headRow, baseLeft, drawW, "Cabeza: ", sHead, selectedIndex == idxHead);
+        int headRow = Math.max(resumenRow + 1, figTopBase - 3);
+        printCenteredLabeled(headRow, baseLeft, inner, "Cabeza: ", sHead, selectedIndex == idxHead);
 
         int chestRow = figTop + 4;
         int packRow = figTop + 4;
         printRightLabeled(chestRow, baseLeft, colLend, "Pecho: ", sChest, selectedIndex == idxChest);
-        printLeftLabeled(packRow, colRstart, baseLeft + drawW, "Mochila: ", sPack, selectedIndex == idxPack);
+        printLeftLabeled(packRow, colRstart, baseLeft + inner, "Mochila: ", sPack, selectedIndex == idxPack);
 
         int armsRow = figTop + 8;
         printRightLabeled(armsRow, baseLeft, colLend, "Mano izq.: ", sOff, selectedIndex == idxOff);
-        printLeftLabeled(armsRow, colRstart, baseLeft + drawW, "Mano der.: ", sMain, selectedIndex == idxMain);
+        printLeftLabeled(armsRow, colRstart, baseLeft + inner, "Mano der.: ", sMain, selectedIndex == idxMain);
 
         int legsRow = figTop + 11;
-        printLeftLabeled(legsRow, colRstart, baseLeft + drawW, "Piernas: ", sLegs, selectedIndex == idxLegs);
+        printLeftLabeled(legsRow, colRstart, baseLeft + inner, "Piernas: ", sLegs, selectedIndex == idxLegs);
 
         int feetRow = Math.min(actionsRow - 1, figTop + 17);
-        printCenteredLabeled(feetRow, baseLeft, drawW, "Pies: ", sFeet, selectedIndex == idxFeet);
+        printCenteredLabeled(feetRow, baseLeft, inner, "Pies: ", sFeet, selectedIndex == idxFeet);
 
         String help = " [E] Cerrar    [Flechas] Seleccionar    [Espacio] Acciones ";
         ANSI.gotoRC(actionsRow, baseLeft);
-        System.out.print(clip(centerLabel(help, drawW, ' '), drawW));
+        System.out.print(clip(centerLabel(help, inner, ' '), inner));
     }
 
     private void drawStickman(int figTop, int cx) {
@@ -270,40 +271,40 @@ public class EquipmentView {
     public void renderActionMenu(int top, int left, int width, int height, java.util.List<String> options, int selectedIndex) {
         if (options == null || options.isEmpty()) return;
 
-        int inner = Math.max(0, width - 2);
-        int rows = Math.max(1, height - 3);
-        int baseTop = top + 1;
-        int baseLeft = left + 1;
+        final int inner = Math.max(0, width - 2);
+        final int rows = Math.max(1, height - 3);
+        final int baseTop = top + 1;
+        final int baseLeft = left + 1;
 
+        // Geometría del panel interior
+        final int contentBottom = baseTop + rows - 1;
+        final int innerRight = baseLeft + inner - 1;
         int maxLen = 0;
         for (String s : options) maxLen = Math.max(maxLen, s == null ? 0 : s.length());
         int boxH = Math.min(options.size() + 2, Math.max(3, rows / 2));
-        int boxW = Math.min(Math.max(14, maxLen + 6), Math.max(16, inner / 2));
 
-        // Encima del placeholder "[Espacio] Acciones"
-        int actionsRow = baseTop + rows - 1;
-        int anchorTop = actionsRow - boxH - 2;
+        int boxW = Math.max(14, maxLen + 6);
+        int maxBoxW = Math.max(10, inner - 6);
+        boxW = Math.min(boxW, maxBoxW);
+        final int marginRows = 5;
+        final int marginCols = 15;
 
-        // Panel derecho (igual que inventario)
-        int drawW = inner;
-        int cx = baseLeft + drawW / 2;
-        int gapSide = 10;
-        int rightStart = cx + gapSide;
-        int anchorLeft = rightStart + 1;
-        int detailW = baseLeft + drawW - rightStart;
-        boxW = Math.min(boxW, Math.max(10, detailW - 2));
+        int anchorTop = Math.max(baseTop + marginRows, contentBottom - marginRows - (boxH - 1));
+        int anchorLeft = Math.max(baseLeft + marginCols, innerRight - marginCols - (boxW - 1));
 
         // Marco
         ANSI.gotoRC(anchorTop, anchorLeft);
         System.out.print('┌');
         System.out.print(repeat('─', boxW - 2));
         System.out.print('┐');
+
         for (int i = 0; i < boxH - 2; i++) {
             ANSI.gotoRC(anchorTop + 1 + i, anchorLeft);
             System.out.print('│');
             System.out.print(repeat(' ', boxW - 2));
             System.out.print('│');
         }
+
         ANSI.gotoRC(anchorTop + boxH - 1, anchorLeft);
         System.out.print('└');
         System.out.print(repeat('─', boxW - 2));
@@ -314,7 +315,7 @@ public class EquipmentView {
         ANSI.gotoRC(anchorTop, anchorLeft + Math.max(1, (boxW - title.length()) / 2));
         System.out.print(clip(title, Math.max(0, boxW - 2)));
 
-        // Opciones (scroll sencillo si no caben)
+        // Opciones (scroll)
         int maxOpts = boxH - 2;
         int start = 0;
         if (selectedIndex >= maxOpts) start = selectedIndex - (maxOpts - 1);
@@ -336,36 +337,53 @@ public class EquipmentView {
         }
     }
 
+
     public void renderSelectMenu(int top, int left, int width, int height, java.util.List<Item> items, int selectedIndex, String title, boolean disabled) {
         if (items == null) items = java.util.Collections.emptyList();
 
-        int inner = Math.max(0, width - 2);
-        int rows = Math.max(1, height - 3);
-        int baseTop = top + 1;
-        int baseLeft = left + 1;
+        final int inner = Math.max(0, width - 2);
+        final int rows = Math.max(1, height - 3);
+        final int baseTop = top + 1;
+        final int baseLeft = left + 1;
 
+        final int contentBottom = baseTop + rows - 1;
+        final int innerRight = baseLeft + inner - 1;
+
+        // Márgenes (mismos que acciones)
+        final int marginRows = 5;
+        final int marginCols = 15;
+
+        // Tamaño de la caja
         int maxLen = 0;
         for (Item it : items) {
             String n = (it == null || it.getNombre() == null) ? "" : it.getNombre();
             if (n.length() > maxLen) maxLen = n.length();
         }
-
         int boxH = Math.min(Math.max(3, items.size() + 2), Math.max(3, rows / 2));
-        int drawW = inner;
-        int cx = baseLeft + drawW / 2;
-        int gapSide = 8;
-        int rightStart = cx + gapSide;
-        int detailW = baseLeft + drawW - rightStart;
-        if (detailW < 8) return;
 
-        int minInner = Math.max(16, Math.max(16, maxLen + 6));
-        int availInner = Math.max(6, detailW - 2);
-        int boxW = Math.min(minInner + 2, availInner + 2);
+        int boxW = Math.max(18, maxLen + 6);
+        int maxBoxW = Math.max(10, inner - 2 * marginCols);
+        boxW = Math.min(boxW, maxBoxW);
 
-        int actionsRow = baseTop + rows - 1;
-        int anchorTop = Math.max(baseTop, actionsRow - boxH - 2);
-        int anchorLeft = rightStart + 1;
+        int anchorLeft = Math.max(baseLeft + marginCols, innerRight - marginCols - (boxW - 1));
+        int anchorTop = Math.max(baseTop + marginRows, contentBottom - marginRows - (boxH - 1));
 
+        if (lastActionTop > 0 && lastActionLeft > 0 && lastActionW > 0 && lastActionH > 0) {
+            // Alinea borde derecho con el de acciones
+            int desiredRight = lastActionLeft + lastActionW - 1;
+            anchorLeft = Math.min(desiredRight - (boxW - 1), innerRight - marginCols - (boxW - 1));
+            anchorLeft = Math.max(anchorLeft, baseLeft + marginCols);
+
+            int belowTop = lastActionTop + lastActionH + 1;
+            if (belowTop + (boxH - 1) <= contentBottom - marginRows) {
+                anchorTop = Math.max(belowTop, baseTop + marginRows);
+            } else {
+                int aboveTop = lastActionTop - 1 - (boxH - 1);
+                anchorTop = Math.max(baseTop + marginRows, aboveTop);
+            }
+        }
+
+        // Marco
         ANSI.gotoRC(anchorTop, anchorLeft);
         System.out.print('┌');
         System.out.print(repeat('─', boxW - 2));
@@ -412,7 +430,7 @@ public class EquipmentView {
             System.out.print(line);
             if (line.length() < boxW - 2) System.out.print(repeat(' ', (boxW - 2) - line.length()));
             if (isSel) ANSI.resetStyle();
-
         }
     }
+
 }
