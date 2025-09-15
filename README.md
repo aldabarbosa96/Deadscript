@@ -1,4 +1,5 @@
 🧟‍♂️ Deadscript
+
 Survival zombi minimalista para terminal.
 
 Deadscript es un videojuego de supervivencia en un mundo postapocalíptico dominado por los zombis. Inspirado en clásicos como Cataclysm: DDA y Project Zomboid, Deadscript se ejecuta íntegramente en la consola o terminal de tu sistema (CMD, PowerShell, Bash…).
