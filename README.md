@@ -21,7 +21,7 @@ Deadscript es un videojuego de supervivencia en un mundo postapocalíptico domin
 
  - Gestión completa de inventario y equipo: con peso, volumen, deterioro, slots… y ASCII-art para representar objetos únicos.
 
- - Zombis y amenazas reales: enemigos que escuchan, huelen y no se detienen. No puedes pausar. No puedes guardar.
+ - Zombis y amenazas reales: enemigos que escuchan, huelen y no se detienen. Npc's amigables y otros no tanto...
 
  - Permadeath: mueres y vuelves a empezar. La muerte es definitiva, como debe ser.
 
