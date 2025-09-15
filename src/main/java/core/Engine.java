@@ -275,10 +275,23 @@ public class Engine {
     }
 
     private boolean handleEquipmentInput(InputHandler.Command c) {
+        final int SLOTS = 7; // Cabeza, Mochila, Torso, Mano izq., Mano der., Piernas, Pies
         switch (c) {
             case EQUIPMENT -> {
                 state.equipmentOpen = false;
                 renderer.log("Cierras el equipo.");
+                dirty = true;
+            }
+            case UP, LEFT -> {
+                state.eqSel = (state.eqSel - 1 + SLOTS) % SLOTS;
+                dirty = true;
+            }
+            case DOWN, RIGHT -> {
+                state.eqSel = (state.eqSel + 1) % SLOTS;
+                dirty = true;
+            }
+            case ACTION -> {
+                renderer.log("Acciones sobre slot: " + slotNameByIndex(state.eqSel)); // todo --> definir opciones concretas para cada ítem
                 dirty = true;
             }
             case QUIT -> {
@@ -289,6 +302,20 @@ public class Engine {
         }
         return false;
     }
+
+    private String slotNameByIndex(int idx) {
+        return switch (Math.floorMod(idx, 7)) {
+            case 0 -> "Cabeza";
+            case 1 -> "Mochila";
+            case 2 -> "Pecho";
+            case 3 -> "Mano izq.";
+            case 4 -> "Mano der.";
+            case 5 -> "Piernas";
+            case 6 -> "Pies";
+            default -> "-";
+        };
+    }
+
 
     public void shutdown() {
         renderer.shutdown();

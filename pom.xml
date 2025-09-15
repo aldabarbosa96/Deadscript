@@ -98,12 +98,6 @@
                 <version>3.2.0</version>
                 <configuration>
                     <mainClass>MainGame</mainClass>
-                    <systemProperties>
-                        <systemProperty>
-                            <key>org.jline.terminal.disableDeprecatedProviderWarning</key>
-                            <value>true</value>
-                        </systemProperty>
-                    </systemProperties>
                 </configuration>
             </plugin>
 

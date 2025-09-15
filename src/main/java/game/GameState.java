@@ -37,6 +37,7 @@ public class GameState {
     public boolean inventoryOpen = false;
     public boolean equipmentOpen = false;
     public int invSel = 0;
+    public int eqSel = 0;
 
     public final List<Item> inventory = new ArrayList<>();
     public final Equipment equipment = new Equipment();

@@ -110,7 +110,7 @@ public class Renderer {
             int left = mapView.getLeft();
             int w = mapView.getViewW();
             int h = mapView.getViewH();
-            equipOverlay.render(top, left, w, h, s.equipment, s.inventory);
+            equipOverlay.render(top, left, w, h, s.equipment, s.inventory, s.eqSel);
         }
 
         msgLog.render();

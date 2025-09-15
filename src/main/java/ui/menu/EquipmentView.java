@@ -8,9 +8,9 @@ import java.util.List;
 
 public class EquipmentView {
 
-    public void render(int top, int left, int width, int height, Equipment eq, List<Item> inventory) {
-        if (width < 28 || height < 16) {
-            renderFallback(top, left, width, height, eq, inventory);
+    public void render(int top, int left, int width, int height, Equipment eq, List<Item> inventory, int selectedIndex) {
+        if (width < 28 || height < 10) {
+            renderFallback(top, left, width, height, eq, inventory, selectedIndex);
             return;
         }
 
@@ -51,19 +51,34 @@ public class EquipmentView {
         final int drawH = rows;
         final int drawW = inner;
 
+        double peso = eq.pesoTotalKg(inventory);
+        double capa = Math.max(0.0001, eq.capacidadKg());
+        int prot = eq.proteccionTotal();
+        int abrigo = eq.abrigoTotal();
+        String resumen = String.format(" Protección: %d   Abrigo: %d   Carga: %.2f/%.2f kg", prot, abrigo, peso, capa);
+        ANSI.gotoRC(baseTop, baseLeft);
+        System.out.print(clip(resumen, drawW));
+
+        final int actionsRow = baseTop + drawH - 1;
+        if (actionsRow <= baseTop + 1 || drawW < 30) {
+            renderFallback(top, left, width, height, eq, inventory, selectedIndex);
+            return;
+        }
+
+        final int figAreaTop = baseTop + 1;
+        final int figAreaH = (actionsRow - 1) - figAreaTop + 1;
         final int figH = 14;
         final int gapSide = 10;
 
-        final int cx = baseLeft + drawW / 2;
-        final int figTop = baseTop + Math.max(1, (drawH - figH) / 2);
-        final int figBottom = figTop + figH - 1;
-
-        int leftAvail = (cx - gapSide) - baseLeft;
-        int rightAvail = (baseLeft + drawW) - (cx + gapSide);
-        if (leftAvail < 10 || rightAvail < 10 || drawH < figH + 3) {
-            renderFallback(top, left, width, height, eq, inventory);
+        if (figAreaH < Math.min(10, figH - 2)) {
+            renderFallback(top, left, width, height, eq, inventory, selectedIndex);
             return;
         }
+
+        final int cx = baseLeft + drawW / 2;
+        final int figTop = figAreaTop + Math.max(0, (figAreaH - figH) / 2);
+        final int colLend = cx - gapSide;
+        final int colRstart = cx + gapSide;
 
         drawStickman(figTop, cx);
 
@@ -75,35 +90,29 @@ public class EquipmentView {
         String sOff = name(eq.getOffHand());
         String sPack = name(eq.getBackpack());
 
-        int colLend = cx - gapSide;
-        int colRstart = cx + gapSide;
+        int idxHead = 0, idxPack = 1, idxChest = 2, idxOff = 3, idxMain = 4, idxLegs = 5, idxFeet = 6;
 
-        int headRow = Math.max(baseTop, figTop - 3);
-        printCentered(headRow, baseLeft, drawW, "Cabeza: " + sHead);
+        int headRow = Math.max(baseTop + 1, figTop - 3);
+        printCenteredLabeled(headRow, baseLeft, drawW, "Cabeza: ", sHead, selectedIndex == idxHead);
 
         int chestRow = figTop + 4;
         int packRow = figTop + 4;
-        printRight(chestRow, baseLeft, colLend, "Pecho: " + sChest);
-        printLeft(packRow, colRstart, baseLeft + drawW, "Mochila: " + sPack);
+        printRightLabeled(chestRow, baseLeft, colLend, "Pecho: ", sChest, selectedIndex == idxChest);
+        printLeftLabeled(packRow, colRstart, baseLeft + drawW, "Mochila: ", sPack, selectedIndex == idxPack);
 
-        int handsRow = figTop + 6;
-        printRight(handsRow, baseLeft, colLend, "Mano izq.: " + sOff);
-        printLeft(handsRow, colRstart, baseLeft + drawW, "Mano der.: " + sMain);
+        int armsRow = figTop + 8;
+        printRightLabeled(armsRow, baseLeft, colLend, "Mano izq.: ", sOff, selectedIndex == idxOff);
+        printLeftLabeled(armsRow, colRstart, baseLeft + drawW, "Mano der.: ", sMain, selectedIndex == idxMain);
 
         int legsRow = figTop + 10;
-        printLeft(legsRow, colRstart, baseLeft + drawW, "Piernas: " + sLegs);
+        printLeftLabeled(legsRow, colRstart, baseLeft + drawW, "Piernas: ", sLegs, selectedIndex == idxLegs);
 
-        int feetRow = Math.min(figBottom + 2, baseTop + drawH - 1);
-        printCentered(feetRow, baseLeft, drawW, "Pies: " + sFeet);
+        int feetRow = Math.min(actionsRow - 1, figTop + 15);
+        printCenteredLabeled(feetRow, baseLeft, drawW, "Pies: ", sFeet, selectedIndex == idxFeet);
 
-        double peso = eq.pesoTotalKg(inventory);
-        double capa = Math.max(0.0001, eq.capacidadKg());
-        int prot = eq.proteccionTotal();
-        int abrigo = eq.abrigoTotal();
-        String resumen = String.format(" Protección: %d   Abrigo: %d   Carga: %.2f/%.2f kg", prot, abrigo, peso, capa);
-
-        ANSI.gotoRC(top + rows, baseLeft);
-        System.out.print(clip(resumen, inner));
+        String help = " [E] Cerrar    [Flechas] Seleccionar    [Espacio] Acciones ";
+        ANSI.gotoRC(actionsRow, baseLeft);
+        System.out.print(clip(centerLabel(help, drawW, ' '), drawW));
     }
 
     private void drawStickman(int figTop, int cx) {
@@ -123,28 +132,37 @@ public class EquipmentView {
         put(figTop + 13, cx - 4, "/       \\");
     }
 
-    private void printCentered(int row, int areaLeft, int areaWidth, String text) {
+    private void printCenteredLabeled(int row, int areaLeft, int areaWidth, String key, String val, boolean selected) {
+        String text = key + val;
         String s = clip(text, areaWidth);
         int start = areaLeft + Math.max(0, (areaWidth - s.length()) / 2);
-        put(row, start, s);
+        putSelected(row, start, s, selected);
     }
 
-    private void printRight(int row, int leftBound, int rightBound, String text) {
+    private void printRightLabeled(int row, int leftBound, int rightBound, String key, String val, boolean selected) {
         int span = Math.max(0, rightBound - leftBound);
         if (span <= 0) return;
-        String s = clip(text, span);
+        String s = clip(key + val, span);
         int start = rightBound - s.length();
-        put(row, start, s);
+        putSelected(row, start, s, selected);
     }
 
-    private void printLeft(int row, int leftBound, int rightBound, String text) {
+    private void printLeftLabeled(int row, int leftBound, int rightBound, String key, String val, boolean selected) {
         int span = Math.max(0, rightBound - leftBound);
         if (span <= 0) return;
-        String s = clip(text, span);
-        put(row, leftBound, s);
+        String s = clip(key + val, span);
+        putSelected(row, leftBound, s, selected);
     }
 
-    private void renderFallback(int top, int left, int width, int height, Equipment eq, List<Item> inv) {
+    private void putSelected(int row, int col, String s, boolean selected) {
+        if (s == null || s.isEmpty()) return;
+        ANSI.gotoRC(row, col);
+        if (selected) ANSI.boldOn();
+        System.out.print(s);
+        if (selected) ANSI.boldOff();
+    }
+
+    private void renderFallback(int top, int left, int width, int height, Equipment eq, List<Item> inv, int selectedIndex) {
         final int inner = Math.max(0, width - 2);
         final int rows = Math.max(1, height - 3);
 
@@ -157,36 +175,55 @@ public class EquipmentView {
             System.out.print(repeat('─', width));
         }
 
-        String[] lines = new String[]{"Cabeza: " + name(eq.getHead()), "Pecho: " + name(eq.getChest()), "Piernas: " + name(eq.getLegs()), "Pies: " + name(eq.getFeet()), "Mochila: " + name(eq.getBackpack()), "Mano der.: " + name(eq.getMainHand()), "Mano izq.: " + name(eq.getOffHand())};
-
-        int show = Math.min(rows - 1, lines.length);
         for (int i = 0; i < rows; i++) {
             ANSI.gotoRC(top + 1 + i, left);
             if (width >= 2) {
                 System.out.print('│');
-                String body = (i < show) ? clip(lines[i], inner) : repeat(' ', inner);
-                if (body.length() < inner) body = body + repeat(' ', inner - body.length());
-                System.out.print(body);
+                System.out.print(repeat(' ', inner));
                 System.out.print('│');
             } else {
-                System.out.print(clip(i < show ? lines[i] : "", width));
+                System.out.print(repeat(' ', width));
             }
         }
+
+        ANSI.gotoRC(top + 1 + rows, left);
+        if (width >= 2) {
+            System.out.print('└');
+            System.out.print(repeat('─', inner));
+            System.out.print('┘');
+        } else {
+            System.out.print(repeat('─', width));
+        }
+
+        final int baseTop = top + 1;
+        final int baseLeft = left + 1;
 
         double peso = eq.pesoTotalKg(inv);
         double capa = Math.max(0.0001, eq.capacidadKg());
         int prot = eq.proteccionTotal();
         int abrigo = eq.abrigoTotal();
         String resumen = clip(String.format("Prot:%d  Abr:%d  Carga: %.2f/%.2f kg", prot, abrigo, peso, capa), inner);
+        ANSI.gotoRC(baseTop, baseLeft);
+        System.out.print(resumen);
 
-        ANSI.gotoRC(top + rows, left);
-        if (width >= 2) {
-            System.out.print('└');
-            System.out.print(centerLabel(" " + resumen + " ", inner, '─'));
-            System.out.print('┘');
-        } else {
-            System.out.print(clip(resumen, width));
+        String[] lines = new String[]{"Cabeza: " + name(eq.getHead()), "Mochila: " + name(eq.getBackpack()), "Pecho: " + name(eq.getChest()), "Mano izq.: " + name(eq.getOffHand()), "Mano der.: " + name(eq.getMainHand()), "Piernas: " + name(eq.getLegs()), "Pies: " + name(eq.getFeet())};
+
+        int listStart = baseTop + 1;
+        int listRows = Math.max(0, rows - 2);
+        int show = Math.min(listRows, lines.length);
+        for (int i = 0; i < show; i++) {
+            ANSI.gotoRC(listStart + i, baseLeft);
+            boolean selected = (i == Math.floorMod(selectedIndex, 7));
+            String prefix = selected ? "» " : "  ";
+            String body = clip(prefix + lines[i], inner);
+            if (selected) ANSI.boldOn();
+            System.out.print(body);
+            if (selected) ANSI.boldOff();
         }
+
+        String help = " [E] Cerrar    [Flechas] Seleccionar    [Espacio] Acciones ";
+        ANSI.gotoRC(baseTop + rows - 1, baseLeft);
+        System.out.print(clip(centerLabel(help, inner, ' '), inner));
     }
 
     private static void put(int row, int col, String s) {
