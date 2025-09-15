@@ -140,29 +140,9 @@ public class InventoryView {
         }
 
         // descripción ÚNICA del ítem (no por categoría)
-        out.addAll(wrap(it.getDescripcion(), w));
+        out.addAll(wrap(it.getDescripcion(), Math.max(1, w - 1)));
 
         return out;
-    }
-
-
-    private static String describe(Item it) {
-        if (it == null) return "";
-        if (it.getWeapon() != null) {
-            return "Arma cuerpo a cuerpo fiable. Útil para encuentros cercanos.";
-        } else if (it.getContainer() != null) {
-            return "Contenedor para transportar equipo y recursos.";
-        } else if (it.getArmor() != null && it.getArmor().proteccion() > 0) {
-            return "Pieza de protección que reduce el daño recibido.";
-        } else if (it.getArmor() != null) {
-            return "Prenda que aporta abrigo frente al frío.";
-        } else if (it.getCategoria() == items.ItemCategory.CONSUMABLE) {
-            return "Objeto consumible. Restaura o satisface necesidades.";
-        } else if (it.getCategoria() == items.ItemCategory.MISC) {
-            return "Objeto misceláneo con posibles usos variados.";
-        } else {
-            return "Objeto utilitario.";
-        }
     }
 
     private static List<String> asciiArtFor(Item it) {
@@ -171,8 +151,6 @@ public class InventoryView {
 
         if (it.getWeapon() != null) {
             art.add("   |   ");
-            art.add("   |   ");
-            art.add("  ###  ");
             art.add("  ###  ");
             art.add("  ###  ");
         } else if (it.getContainer() != null) {
@@ -187,11 +165,15 @@ public class InventoryView {
         } else if (it.getArmor() != null || it.getWearableSlot() == items.EquipmentSlot.TORSO) {
             art.add(" |====| ");
             art.add(" | || | ");
-            art.add(" |____| ");
+            art.add(" |_||_| ");
         } else if (it.getCategoria() == items.ItemCategory.CONSUMABLE) {
             art.add("  ____  ");
             art.add(" |____| ");
             art.add(" |____| ");
+        } else if (it.getCategoria() == items.ItemCategory.HEALING) {
+            art.add(" #   # ");
+            art.add("  # #  ");
+            art.add(" #   # ");
         } else {
             art.add("  ____  ");
             art.add(" / __ \\ ");
@@ -266,11 +248,13 @@ public class InventoryView {
             case WEAPON -> "arma";
             case ARMOR -> "armadura";
             case CLOTHING -> "ropa";
-            case CONSUMABLE -> "comestible";
+            case CONSUMABLE -> "consumible";
+            case HEALING -> "curación";
             case TOOL -> "herramienta";
             case MATERIAL -> "material";
             case CONTAINER -> "contenedor";
             case MISC -> "misceláneo";
         };
     }
+
 }

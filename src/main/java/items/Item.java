@@ -73,6 +73,9 @@ public class Item {
     public static Item mochila(String id, String nombre, double pesoKg, double capacidadKg, String descripcion) {
         return new Item(id, nombre, ItemCategory.CONTAINER, pesoKg, 100, 100, EquipmentSlot.BACKPACK, null, null, new ContainerAttr(capacidadKg), descripcion);
     }
+    public static Item curacion(String id, String nombre, double pesoKg, String descripcion) {
+        return new Item(id, nombre, ItemCategory.HEALING, pesoKg, 100, 100, null, null, null, null, descripcion);
+    }
 
 
     public String getId() {

@@ -48,9 +48,10 @@ public class GameState {
         equipment.setMainHand(Item.arma("knife_01", "Navaja", 0.25, 4, 0.7, 1, "Navaja plegable simple; útil para tareas y defensa cercana."));
 
 
-        inventory.add(Item.misc("water_01", "Botella de agua (0.5 L)", 0.50, "Botella de plástico de medio litro. *Agua potable*."));
+        inventory.add(Item.consumible("water_01", "Botella de agua (0.5 L)", 0.50, "Botella de plástico de medio litro. *Agua potable*."));
         inventory.add(Item.consumible("beans_01", "Lata de judías", 0.35, "Lata de alubias en salsa. Se necesita abrelatas o similar para poder abrirse."));
-        inventory.add(Item.misc("bandage_01", "Venda improvisada", 0.10, "Tira de tela limpia y rasgada; detiene sangrados. *No esterilizada*."));
+        inventory.add(Item.curacion("bandage_01", "Venda improvisada", 0.10, "Tira de tela limpia y rasgada; detiene sangrados. *No esterilizada*."));
+        inventory.add(Item.arma("knife_02", "Cuchillo de cocina", 0.13,5,1,1, "Cuchillo de cocina afilado; útil para cortar alimentos, en especial carne."));
         inventory.add(Item.misc("lighter_01", "Encendedor", 0.05, "Mechero de plástico; pequeña fuente de fuego. *No recargable*."));
         inventory.add(Item.misc("rope_01", "Cuerda (5 m)", 1.00, "Cuerda de nylon de cinco metros, resistencia media; útil para atar o asegurar."));
         inventory.add(Item.consumible("bar_01", "Barrita energética", 0.08, "Barrita de chocolate compacta y muy calórica; recupera +15% de hambre."));
