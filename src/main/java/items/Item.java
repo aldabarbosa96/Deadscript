@@ -13,30 +13,45 @@ public class Item {
     private final ArmorAttr armor;
     private final WeaponAttr weapon;
     private final ContainerAttr container;
+    private final ConsumableAttr consumable;
+    private final HealingAttr healing;
     private final String descripcion;
 
     public record ArmorAttr(int proteccion, int abrigo) {
-            public ArmorAttr(int proteccion, int abrigo) {
-                this.proteccion = Math.max(0, proteccion);
-                this.abrigo = abrigo;
-            }
+        public ArmorAttr(int proteccion, int abrigo) {
+            this.proteccion = Math.max(0, proteccion);
+            this.abrigo = abrigo;
         }
+    }
 
     public record WeaponAttr(int danho, double cooldownSec, int manos) {
-            public WeaponAttr(int danho, double cooldownSec, int manos) {
-                this.danho = Math.max(0, danho);
-                this.cooldownSec = Math.max(0.01, cooldownSec);
-                this.manos = Math.max(1, Math.min(2, manos));
-            }
+        public WeaponAttr(int danho, double cooldownSec, int manos) {
+            this.danho = Math.max(0, danho);
+            this.cooldownSec = Math.max(0.01, cooldownSec);
+            this.manos = Math.max(1, Math.min(2, manos));
         }
+    }
 
     public record ContainerAttr(double capacidadKg) {
-            public ContainerAttr(double capacidadKg) {
-                this.capacidadKg = Math.max(0, capacidadKg);
-            }
+        public ContainerAttr(double capacidadKg) {
+            this.capacidadKg = Math.max(0, capacidadKg);
         }
+    }
 
-    private Item(String id, String nombre, ItemCategory categoria, double pesoKg, int maxDurabilidad, int durabilidad, EquipmentSlot wearableSlot, ArmorAttr armor, WeaponAttr weapon, ContainerAttr container, String descripcion) {
+    public record ConsumableAttr(int hambrePct, int sedPct) {
+        public ConsumableAttr {
+            hambrePct = Math.max(-100, Math.min(100, hambrePct));
+            sedPct = Math.max(-100, Math.min(100, sedPct));
+        }
+    }
+
+    public record HealingAttr(int saludPct) {
+        public HealingAttr {
+            saludPct = Math.max(0, Math.min(100, saludPct));
+        }
+    }
+
+    private Item(String id, String nombre, ItemCategory categoria, double pesoKg, int maxDurabilidad, int durabilidad, EquipmentSlot wearableSlot, ArmorAttr armor, WeaponAttr weapon, ContainerAttr container, ConsumableAttr consumable, HealingAttr healing, String descripcion) {
         this.id = Objects.requireNonNull(id);
         this.nombre = Objects.requireNonNull(nombre);
         this.categoria = Objects.requireNonNull(categoria);
@@ -47,36 +62,53 @@ public class Item {
         this.armor = armor;
         this.weapon = weapon;
         this.container = container;
+        this.consumable = consumable;
+        this.healing = healing;
         this.descripcion = (descripcion == null) ? "" : descripcion.trim();
     }
 
+    // Fábricas
+
     public static Item misc(String id, String nombre, double pesoKg, String descripcion) {
-        return new Item(id, nombre, ItemCategory.MISC, pesoKg, 100, 100, null, null, null, null, descripcion);
+        return new Item(id, nombre, ItemCategory.MISC, pesoKg, 100, 100, null, null, null, null, null, null, descripcion);
     }
 
+    /**
+     * Versión con efectos de hambre/sed.
+     */
+    public static Item consumible(String id, String nombre, double pesoKg, int hambrePct, int sedPct, String descripcion) {
+        return new Item(id, nombre, ItemCategory.CONSUMABLE, pesoKg, 100, 100, null, null, null, null, new ConsumableAttr(hambrePct, sedPct), null, descripcion);
+    }
+
+    // (Compat, si lo usas en algún sitio; no tiene efecto al consumir)
     public static Item consumible(String id, String nombre, double pesoKg, String descripcion) {
-        return new Item(id, nombre, ItemCategory.CONSUMABLE, pesoKg, 100, 100, null, null, null, null, descripcion);
+        return new Item(id, nombre, ItemCategory.CONSUMABLE, pesoKg, 100, 100, null, null, null, null, null, null, descripcion);
     }
 
     public static Item arma(String id, String nombre, double pesoKg, int danho, double cooldownSec, int manos, String descripcion) {
-        return new Item(id, nombre, ItemCategory.WEAPON, pesoKg, 100, 100, null, null, new WeaponAttr(danho, cooldownSec, manos), null, descripcion);
+        return new Item(id, nombre, ItemCategory.WEAPON, pesoKg, 100, 100, null, null, new WeaponAttr(danho, cooldownSec, manos), null, null, null, descripcion);
     }
 
     public static Item armadura(String id, String nombre, double pesoKg, EquipmentSlot slot, int proteccion, int abrigo, String descripcion) {
-        return new Item(id, nombre, ItemCategory.ARMOR, pesoKg, 100, 100, slot, new ArmorAttr(proteccion, abrigo), null, null, descripcion);
+        return new Item(id, nombre, ItemCategory.ARMOR, pesoKg, 100, 100, slot, new ArmorAttr(proteccion, abrigo), null, null, null, null, descripcion);
     }
 
     public static Item ropa(String id, String nombre, double pesoKg, EquipmentSlot slot, int abrigo, String descripcion) {
-        return new Item(id, nombre, ItemCategory.CLOTHING, pesoKg, 100, 100, slot, new ArmorAttr(0, abrigo), null, null, descripcion);
+        return new Item(id, nombre, ItemCategory.CLOTHING, pesoKg, 100, 100, slot, new ArmorAttr(0, abrigo), null, null, null, null, descripcion);
     }
 
     public static Item mochila(String id, String nombre, double pesoKg, double capacidadKg, String descripcion) {
-        return new Item(id, nombre, ItemCategory.CONTAINER, pesoKg, 100, 100, EquipmentSlot.BACKPACK, null, null, new ContainerAttr(capacidadKg), descripcion);
-    }
-    public static Item curacion(String id, String nombre, double pesoKg, String descripcion) {
-        return new Item(id, nombre, ItemCategory.HEALING, pesoKg, 100, 100, null, null, null, null, descripcion);
+        return new Item(id, nombre, ItemCategory.CONTAINER, pesoKg, 100, 100, EquipmentSlot.BACKPACK, null, null, new ContainerAttr(capacidadKg), null, null, descripcion);
     }
 
+    /**
+     * Curación por % de salud.
+     */
+    public static Item curacion(String id, String nombre, double pesoKg, int saludPct, String descripcion) {
+        return new Item(id, nombre, ItemCategory.HEALING, pesoKg, 100, 100, null, null, null, null, null, new HealingAttr(saludPct), descripcion);
+    }
+
+    // Getters
 
     public String getId() {
         return id;
@@ -116,6 +148,14 @@ public class Item {
 
     public ContainerAttr getContainer() {
         return container;
+    }
+
+    public ConsumableAttr getConsumable() {
+        return consumable;
+    }
+
+    public HealingAttr getHealing() {
+        return healing;
     }
 
     public String getDescripcion() {

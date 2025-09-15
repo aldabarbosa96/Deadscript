@@ -103,6 +103,9 @@ public class Renderer {
             int w = mapView.getViewW();
             int h = mapView.getViewH();
             invOverlay.render(top, left, w, h, s.inventory, s.invSel);
+            if (s.invActionsOpen && s.invActions != null && !s.invActions.isEmpty()) {
+                invOverlay.renderActionMenu(top, left, w, h, s.invActions, s.invActionSel);
+            }
         }
 
         if (s.equipmentOpen) {

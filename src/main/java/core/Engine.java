@@ -250,19 +250,66 @@ public class Engine {
         switch (c) {
             case INVENTORY -> {
                 state.inventoryOpen = false;
+                state.invActionsOpen = false;
                 renderer.log("Cierras el inventario.");
                 dirty = true;
             }
             case UP -> {
-                if (!state.inventory.isEmpty()) {
+                if (state.invActionsOpen) {
+                    // mover en menú acciones
+                    if (!state.invActions.isEmpty()) {
+                        state.invActionSel = Math.max(0, state.invActionSel - 1);
+                        dirty = true;
+                    }
+                } else if (!state.inventory.isEmpty()) {
                     state.invSel = Math.max(0, state.invSel - 1);
+                    // al cambiar selección, resetea acciones
+                    state.invActionsOpen = false;
                     dirty = true;
                 }
             }
             case DOWN -> {
-                if (!state.inventory.isEmpty()) {
+                if (state.invActionsOpen) {
+                    if (!state.invActions.isEmpty()) {
+                        state.invActionSel = Math.min(state.invActions.size() - 1, state.invActionSel + 1);
+                        dirty = true;
+                    }
+                } else if (!state.inventory.isEmpty()) {
                     state.invSel = Math.min(state.inventory.size() - 1, state.invSel + 1);
+                    state.invActionsOpen = false;
                     dirty = true;
+                }
+            }
+            case ACTION -> {
+                if (state.inventory.isEmpty()) break;
+
+                items.Item selected = state.inventory.get(Math.max(0, Math.min(state.invSel, state.inventory.size() - 1)));
+
+                if (!state.invActionsOpen) {
+                    // abrir submenú con acciones calculadas
+                    state.invActions = systems.ItemActionSystem.actionsFor(state, selected);
+                    state.invActionSel = 0;
+                    state.invActionsOpen = !state.invActions.isEmpty();
+                    if (state.invActionsOpen)
+                        renderer.log("Acciones para " + selected.getNombre() + ": " + String.join(", ", state.invActions) + ".");
+                    dirty = true;
+                } else {
+                    // aplicar acción seleccionada
+                    if (state.invActionSel >= 0 && state.invActionSel < state.invActions.size()) {
+                        String action = state.invActions.get(state.invActionSel);
+                        boolean changed = systems.ItemActionSystem.apply(state, selected, action, renderer);
+                        // tras aplicar o cancelar, cerramos submenú
+                        state.invActionsOpen = false;
+                        dirty = true;
+                        if (changed) {
+                            // corrige índices si hizo desaparecer el ítem
+                            if (state.invSel >= state.inventory.size())
+                                state.invSel = Math.max(0, state.inventory.size() - 1);
+                        }
+                    } else {
+                        state.invActionsOpen = false;
+                        dirty = true;
+                    }
                 }
             }
             case QUIT -> {
@@ -273,6 +320,7 @@ public class Engine {
         }
         return false;
     }
+
 
     private boolean handleEquipmentInput(InputHandler.Command c) {
         final int SLOTS = 7; // Cabeza, Mochila, Torso, Mano izq., Mano der., Piernas, Pies

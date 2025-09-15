@@ -254,4 +254,68 @@ public class InventoryView {
         };
     }
 
+    public void renderActionMenu(int top, int left, int width, int height, java.util.List<String> options, int selectedIndex) {
+        if (options == null || options.isEmpty()) return;
+
+        int inner = Math.max(0, width - 2);
+        int contentRows = Math.max(1, height - 3);
+        int baseTop = top + 1;
+        int baseLeft = left + 1;
+
+        // Área donde dibuja el inventario
+        int listW = Math.max(18, (int) Math.round(inner * 0.58));
+        int gap = 1;
+        int detailW = Math.max(0, inner - listW - gap);
+
+        // Caja pequeña abajo a la izquierda del panel derecho (detalles)
+        int maxLen = 0;
+        for (String s : options) maxLen = Math.max(maxLen, s == null ? 0 : s.length());
+        int boxW = Math.min(Math.max(14, maxLen + 6), detailW);
+        int boxH = Math.min(options.size() + 2, Math.max(3, contentRows / 2));
+
+        int anchorTop = baseTop + contentRows - boxH - 1;
+        int anchorLeft = baseLeft + listW + gap + 1; // dentro del panel derecho
+
+        // Marco
+        ANSI.gotoRC(anchorTop, anchorLeft);
+        System.out.print('┌');
+        System.out.print(repeat('─', boxW - 2));
+        System.out.print('┐');
+
+        for (int i = 0; i < boxH - 2; i++) {
+            ANSI.gotoRC(anchorTop + 1 + i, anchorLeft);
+            System.out.print('│');
+            System.out.print(repeat(' ', boxW - 2));
+            System.out.print('│');
+        }
+        ANSI.gotoRC(anchorTop + boxH - 1, anchorLeft);
+        System.out.print('└');
+        System.out.print(repeat('─', boxW - 2));
+        System.out.print('┘');
+
+        // Título
+        String title = " ACCIONES ";
+        ANSI.gotoRC(anchorTop, anchorLeft + Math.max(1, (boxW - title.length()) / 2));
+        System.out.print(clipAscii(title, Math.max(0, boxW - 2)));
+
+        // Opciones
+        int maxOpts = boxH - 2;
+        int start = 0;
+        if (selectedIndex >= maxOpts) {
+            start = selectedIndex - (maxOpts - 1);
+        }
+        for (int i = 0; i < maxOpts; i++) {
+            int idx = start + i;
+            String opt = (idx < options.size()) ? options.get(idx) : "";
+            boolean sel = (idx == selectedIndex);
+            String prefix = sel ? "» " : "  ";
+            String line = clipAscii(prefix + opt, boxW - 2);
+            ANSI.gotoRC(anchorTop + 1 + i, anchorLeft + 1);
+            if (sel) ANSI.boldOn();
+            System.out.print(line);
+            if (line.length() < boxW - 2) System.out.print(repeat(' ', (boxW - 2) - line.length()));
+            if (sel) ANSI.boldOff();
+        }
+    }
+
 }
