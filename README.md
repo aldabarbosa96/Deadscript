@@ -1,13 +1,10 @@
 🧟‍♂️ Deadscript
+Survival zombi minimalista para terminal.
 
-Un survival zombi minimalista para terminal.
-
-"Sobrevive sin gráficos. Sobrevive sin ayudas. Sobrevive… escribiendo."
-
-Deadscript es un videojuego de supervivencia en un mundo postapocalíptico dominado por los zombis. Inspirado en clásicos como Dwarf Fortress, Cataclysm: DDA y Project Zomboid, Deadscript se ejecuta íntegramente en la consola o terminal de tu sistema (CMD, PowerShell, Bash…).
+Deadscript es un videojuego de supervivencia en un mundo postapocalíptico dominado por los zombis. Inspirado en clásicos como Cataclysm: DDA y Project Zomboid, Deadscript se ejecuta íntegramente en la consola o terminal de tu sistema (CMD, PowerShell, Bash…).
 
  - Minimalista en apariencia.
- - Realista y despiadado en sus mecánicas.
+ - Realista en sus mecánicas.
  - Complejo en sus sistemas.
  - Y brutalmente inmersivo.
 
@@ -15,7 +12,7 @@ Deadscript es un videojuego de supervivencia en un mundo postapocalíptico domin
 
  - 100% texto: todo se juega en la terminal. Sin gráficos, sin interfaz visual, solo tú y el mundo que te rodea en ASCII.
 
- - Exploración procedural: cada partida genera un mundo único lleno de bosques, casas, ciudades en ruinas y laboratorios olvidados.
+ - Exploración procedural: cada partida genera un mundo único lleno de bosques, casas, ciudades, ruinas, laboratorios olvidados y mucho más.
 
  - Sistema profundo de combate y heridas: no solo puedes morir… puedes desangrarte, enfermar, infectarte, volverte loco…
 
