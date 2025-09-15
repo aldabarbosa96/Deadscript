@@ -93,8 +93,8 @@ public class Item {
         return new Item(id, nombre, ItemCategory.ARMOR, pesoKg, 100, 100, slot, new ArmorAttr(proteccion, abrigo), null, null, null, null, descripcion);
     }
 
-    public static Item ropa(String id, String nombre, double pesoKg, EquipmentSlot slot, int abrigo, String descripcion) {
-        return new Item(id, nombre, ItemCategory.CLOTHING, pesoKg, 100, 100, slot, new ArmorAttr(0, abrigo), null, null, null, null, descripcion);
+    public static Item ropa(String id, String nombre, double pesoKg, EquipmentSlot slot,int proteccion, int abrigo, String descripcion) {
+        return new Item(id, nombre, ItemCategory.CLOTHING, pesoKg, 100, 100, slot, new ArmorAttr(proteccion, abrigo), null, null, null, null, descripcion);
     }
 
     public static Item mochila(String id, String nombre, double pesoKg, double capacidadKg, String descripcion) {

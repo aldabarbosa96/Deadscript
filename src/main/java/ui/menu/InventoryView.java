@@ -61,9 +61,10 @@ public class InventoryView {
             }
 
             if (selectedRow) {
+                ANSI.setFg(92);
                 ANSI.boldOn();
                 System.out.print(leftCell);
-                ANSI.boldOff();
+                ANSI.resetStyle();
             } else {
                 System.out.print(leftCell);
             }
@@ -311,10 +312,14 @@ public class InventoryView {
             String prefix = sel ? "» " : "  ";
             String line = clipAscii(prefix + opt, boxW - 2);
             ANSI.gotoRC(anchorTop + 1 + i, anchorLeft + 1);
-            if (sel) ANSI.boldOn();
+            if (sel) {
+                ANSI.setFg(92);
+                ANSI.boldOn();
+            }
             System.out.print(line);
             if (line.length() < boxW - 2) System.out.print(repeat(' ', (boxW - 2) - line.length()));
-            if (sel) ANSI.boldOff();
+            if (sel) ANSI.resetStyle();
+
         }
     }
 

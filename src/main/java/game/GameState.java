@@ -59,10 +59,10 @@ public class GameState {
 
     public GameState() {
         // equipo
-        equipment.setHead(Item.ropa("cap_01", "Gorra", 0.20, EquipmentSlot.HEAD, 1, "Gorra de tela descolorida; corta algo el frío y la llovizna."));
+        equipment.setHead(Item.ropa("cap_01", "Gorra", 0.20, EquipmentSlot.HEAD, 1,1, "Gorra de tela descolorida; corta algo el frío y la llovizna."));
         equipment.setBackpack(Item.mochila("bag_01", "Mochila tela", 0.80, 20.0, "Mochila de lona sencilla con cremalleras gastadas; suficiente para lo básico."));
         equipment.setMainHand(Item.arma("knife_01", "Navaja", 0.125, 4, 0.7, 1, "Navaja plegable simple; útil para tareas y defensa cercana."));
-        equipment.setFeet(Item.ropa("shoe_01", "Zapatillas", 0.25, EquipmentSlot.FEET, 1, "Zapatillas de estar por casa de la Hello Kitty."));
+        equipment.setFeet(Item.ropa("shoe_01", "Zapatillas", 0.25, EquipmentSlot.FEET, 2,1, "Zapatillas de estar por casa de la Hello Kitty."));
 
         // inventario
         inventory.add(Item.consumible("water_01", "Botella de agua (0.5 L)", 0.50, 0, 50, "Botella de plástico de medio litro. *Agua potable*."));
@@ -76,7 +76,7 @@ public class GameState {
         inventory.add(Item.misc("map_01", "Mapa arrugado", 0.02, "Mapa viejo de la zona con anotaciones a bolígrafo y bordes desgastados."));
         inventory.add(Item.misc("canteen_01", "Cantimplora vacía", 0.20, "Cantimplora térmica metálica ligera. *Vacía*."));
         inventory.add(Item.misc("battery_aa_4", "Pila AA x4", 0.10, "Paquete improvisado de cuatro pilas alcalinas; carga óptima."));
-        inventory.add(Item.ropa("blanket_01", "Manta térmica", 0.40, EquipmentSlot.TORSO, 2, "Manta de emergencia aluminizada; retiene calor y hace ruido al moverse."));
+        inventory.add(Item.ropa("blanket_01", "Manta térmica", 0.40, EquipmentSlot.TORSO, 1,2, "Manta de emergencia aluminizada; retiene calor y hace ruido al moverse."));
         inventory.add(Item.armadura("gloves_01", "Guantes de trabajo", 0.25, EquipmentSlot.HANDS, 1, 1, "Guantes de cuero con refuerzos; amortiguan golpes y cortaduras leves."));
     }
 

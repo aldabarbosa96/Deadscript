@@ -67,7 +67,7 @@ public class EquipmentView {
 
         final int figAreaTop = baseTop + 1;
         final int figAreaH = (actionsRow - 1) - figAreaTop + 1;
-        final int figH = 14;
+        final int figH = 15;
         final int gapSide = 10;
 
         if (figAreaH < Math.min(10, figH - 2)) {
@@ -76,7 +76,8 @@ public class EquipmentView {
         }
 
         final int cx = baseLeft + drawW / 2;
-        final int figTop = figAreaTop + Math.max(0, (figAreaH - figH) / 2);
+        final int figTopBase = figAreaTop + Math.max(0, (figAreaH - figH) / 2);
+        final int figTop = Math.max(figAreaTop, figTopBase - 1);
         final int colLend = cx - gapSide;
         final int colRstart = cx + gapSide;
 
@@ -92,7 +93,7 @@ public class EquipmentView {
 
         int idxHead = 0, idxPack = 1, idxChest = 2, idxOff = 3, idxMain = 4, idxLegs = 5, idxFeet = 6;
 
-        int headRow = Math.max(baseTop + 1, figTop - 3);
+        int headRow = Math.max(baseTop + 1, figTopBase - 3);
         printCenteredLabeled(headRow, baseLeft, drawW, "Cabeza: ", sHead, selectedIndex == idxHead);
 
         int chestRow = figTop + 4;
@@ -104,10 +105,10 @@ public class EquipmentView {
         printRightLabeled(armsRow, baseLeft, colLend, "Mano izq.: ", sOff, selectedIndex == idxOff);
         printLeftLabeled(armsRow, colRstart, baseLeft + drawW, "Mano der.: ", sMain, selectedIndex == idxMain);
 
-        int legsRow = figTop + 10;
+        int legsRow = figTop + 11;
         printLeftLabeled(legsRow, colRstart, baseLeft + drawW, "Piernas: ", sLegs, selectedIndex == idxLegs);
 
-        int feetRow = Math.min(actionsRow - 1, figTop + 16);
+        int feetRow = Math.min(actionsRow - 1, figTop + 17);
         printCenteredLabeled(feetRow, baseLeft, drawW, "Pies: ", sFeet, selectedIndex == idxFeet);
 
         String help = " [E] Cerrar    [Flechas] Seleccionar    [Espacio] Acciones ";
@@ -118,7 +119,7 @@ public class EquipmentView {
     private void drawStickman(int figTop, int cx) {
         put(figTop + 0, cx - 3, "  ___  ");
         put(figTop + 1, cx - 3, " /   \\");
-        put(figTop + 2, cx - 3, "| - - |");
+        put(figTop + 2, cx - 3, "| 0 0 |");
         put(figTop + 3, cx - 3, " \\___/");
         put(figTop + 4, cx, "|");
         put(figTop + 5, cx, "|");
@@ -130,6 +131,7 @@ public class EquipmentView {
         put(figTop + 11, cx - 2, "/   \\");
         put(figTop + 12, cx - 3, "/     \\");
         put(figTop + 13, cx - 4, "/       \\");
+        put(figTop + 14, cx - 5, "/         \\");
     }
 
     private void printCenteredLabeled(int row, int areaLeft, int areaWidth, String key, String val, boolean selected) {
@@ -160,9 +162,12 @@ public class EquipmentView {
     private void putSelected(int row, int col, String s, boolean selected) {
         if (s == null || s.isEmpty()) return;
         ANSI.gotoRC(row, col);
-        if (selected) ANSI.boldOn();
+        if (selected) {
+            ANSI.setFg(92);
+            ANSI.boldOn();
+        }
         System.out.print(s);
-        if (selected) ANSI.boldOff();
+        if (selected) ANSI.resetStyle();
     }
 
     private void renderFallback(int top, int left, int width, int height, Equipment eq, List<Item> inv, int selectedIndex) {
@@ -219,9 +224,12 @@ public class EquipmentView {
             boolean selected = (i == Math.floorMod(selectedIndex, 7));
             String prefix = selected ? ">> " : "  ";
             String body = clip(prefix + lines[i], inner);
-            if (selected) ANSI.boldOn();
+            if (selected) {
+                ANSI.setFg(92);
+                ANSI.boldOn();
+            }
             System.out.print(body);
-            if (selected) ANSI.boldOff();
+            if (selected) ANSI.resetStyle();
         }
 
         String help = " [E] Cerrar    [Flechas] Seleccionar    [Espacio] Acciones ";
@@ -318,10 +326,13 @@ public class EquipmentView {
             String prefix = sel ? "» " : "  ";
             String line = clip(prefix + opt, boxW - 2);
             ANSI.gotoRC(anchorTop + 1 + i, anchorLeft + 1);
-            if (sel) ANSI.boldOn();
+            if (sel) {
+                ANSI.setFg(92);
+                ANSI.boldOn();
+            }
             System.out.print(line);
             if (line.length() < boxW - 2) System.out.print(repeat(' ', (boxW - 2) - line.length()));
-            if (sel) ANSI.boldOff();
+            if (sel) ANSI.resetStyle();
         }
     }
 
@@ -394,10 +405,14 @@ public class EquipmentView {
             String prefix = isSel ? "» " : "  ";
             String line = clip(prefix + opt, boxW - 2);
             ANSI.gotoRC(anchorTop + 1 + i, anchorLeft + 1);
-            if (isSel) ANSI.boldOn();
+            if (isSel) {
+                ANSI.setFg(92);
+                ANSI.boldOn();
+            }
             System.out.print(line);
             if (line.length() < boxW - 2) System.out.print(repeat(' ', (boxW - 2) - line.length()));
-            if (isSel) ANSI.boldOff();
+            if (isSel) ANSI.resetStyle();
+
         }
     }
 }
