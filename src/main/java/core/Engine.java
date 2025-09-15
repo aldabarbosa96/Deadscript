@@ -256,16 +256,26 @@ public class Engine {
                 renderer.log("Cierras el inventario.");
                 dirty = true;
             }
+            case EQUIPMENT -> {
+                state.inventoryOpen = false;
+                state.invActionsOpen = false;
+
+                state.equipmentOpen = true;
+                state.eqActionsOpen = false;
+                state.eqSelectOpen = false;
+
+                stickUntilNs = 0;
+                renderer.log("Abres el equipo.");
+                dirty = true;
+            }
             case UP -> {
                 if (state.invActionsOpen) {
-                    // mover en menú acciones
                     if (!state.invActions.isEmpty()) {
                         state.invActionSel = Math.max(0, state.invActionSel - 1);
                         dirty = true;
                     }
                 } else if (!state.inventory.isEmpty()) {
                     state.invSel = Math.max(0, state.invSel - 1);
-                    // al cambiar selección, resetea acciones
                     state.invActionsOpen = false;
                     dirty = true;
                 }
@@ -288,7 +298,6 @@ public class Engine {
                 items.Item selected = state.inventory.get(Math.max(0, Math.min(state.invSel, state.inventory.size() - 1)));
 
                 if (!state.invActionsOpen) {
-                    // abrir submenú con acciones calculadas
                     state.invActions = systems.ItemActionSystem.actionsFor(state, selected);
                     state.invActionSel = 0;
                     state.invActionsOpen = !state.invActions.isEmpty();
@@ -296,15 +305,12 @@ public class Engine {
                         renderer.log("Acciones para " + selected.getNombre() + ": " + String.join(", ", state.invActions) + ".");
                     dirty = true;
                 } else {
-                    // aplicar acción seleccionada
                     if (state.invActionSel >= 0 && state.invActionSel < state.invActions.size()) {
                         String action = state.invActions.get(state.invActionSel);
                         boolean changed = systems.ItemActionSystem.apply(state, selected, action, renderer);
-                        // tras aplicar o cancelar, cerramos submenú
                         state.invActionsOpen = false;
                         dirty = true;
                         if (changed) {
-                            // corrige índices si hizo desaparecer el ítem
                             if (state.invSel >= state.inventory.size())
                                 state.invSel = Math.max(0, state.inventory.size() - 1);
                         }
@@ -323,7 +329,6 @@ public class Engine {
         return false;
     }
 
-
     private boolean handleEquipmentInput(InputHandler.Command c) {
         final int SLOTS = 7; // Cabeza, Mochila, Pecho, Mano izq., Mano der., Piernas, Pies
 
@@ -333,6 +338,18 @@ public class Engine {
                 state.eqActionsOpen = false;
                 state.eqSelectOpen = false;
                 renderer.log("Cierras el equipo.");
+                dirty = true;
+            }
+            case INVENTORY -> {
+                state.equipmentOpen = false;
+                state.eqActionsOpen = false;
+                state.eqSelectOpen = false;
+
+                state.inventoryOpen = true;
+                state.invActionsOpen = false;
+
+                stickUntilNs = 0;
+                renderer.log("Abres el inventario.");
                 dirty = true;
             }
             case UP, LEFT -> {
@@ -370,7 +387,6 @@ public class Engine {
             case ACTION -> {
                 EquipmentSlot slot = slotByIndex(state.eqSel);
 
-                // 1) Selector abierto -> equipar elección (o nada si placeholder)
                 if (state.eqSelectOpen) {
                     if (state.eqSelectItems != null && !state.eqSelectItems.isEmpty()) {
                         int idx = Math.max(0, Math.min(state.eqSelectSel, state.eqSelectItems.size() - 1));
@@ -383,7 +399,6 @@ public class Engine {
                     break;
                 }
 
-                // 2) Acciones abiertas -> ejecutar
                 if (state.eqActionsOpen) {
                     if (state.eqActionSel >= 0 && state.eqActionSel < state.eqActions.size()) {
                         String action = state.eqActions.get(state.eqActionSel).toLowerCase();
@@ -391,7 +406,7 @@ public class Engine {
                             case "equipar" -> {
                                 state.eqSelectItems = systems.ItemActionSystem.equippablesForSlot(state, slot);
                                 state.eqSelectSel = 0;
-                                state.eqSelectOpen = true; // mostramos incluso si está vacío (placeholder)
+                                state.eqSelectOpen = true;
                                 dirty = true;
                             }
                             case "desequipar" -> {
@@ -411,7 +426,6 @@ public class Engine {
                     break;
                 }
 
-                // 3) Sin menús abiertos -> abrir acciones según estado del slot
                 Item cur = itemInSlot(slot);
                 java.util.ArrayList<String> actions = new java.util.ArrayList<>();
                 if (cur == null) actions.add("Equipar");
@@ -431,6 +445,7 @@ public class Engine {
         }
         return false;
     }
+
 
     private EquipmentSlot slotByIndex(int idx) {
         return switch (Math.floorMod(idx, 7)) {

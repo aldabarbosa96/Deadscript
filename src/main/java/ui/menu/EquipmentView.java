@@ -118,11 +118,11 @@ public class EquipmentView {
     private void drawStickman(int figTop, int cx) {
         put(figTop + 0, cx - 3, "  ___  ");
         put(figTop + 1, cx - 3, " /   \\");
-        put(figTop + 2, cx - 3, "|     |");
+        put(figTop + 2, cx - 3, "| - - |");
         put(figTop + 3, cx - 3, " \\___/");
         put(figTop + 4, cx, "|");
         put(figTop + 5, cx, "|");
-        put(figTop + 6, cx - 5, "/----|----\\");
+        put(figTop + 6, cx - 6, "/-----|-----\\");
         put(figTop + 7, cx, "|");
         put(figTop + 8, cx, "|");
         put(figTop + 9, cx, "|");
