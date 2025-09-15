@@ -42,6 +42,11 @@ public class Engine {
                         running = false;
                         break;
                     }
+                } else if (state.equipmentOpen) {
+                    if (handleEquipmentInput(c)) {
+                        running = false;
+                        break;
+                    }
                 } else {
                     if (isArrow(c)) {
                         handleArrow(c);
@@ -56,18 +61,19 @@ public class Engine {
             if (!running) break;
 
             long now = System.nanoTime();
+            boolean uiOpen = state.inventoryOpen || state.equipmentOpen;
 
-            if (!state.inventoryOpen && isStickyActive(now)) {
+            if (!uiOpen && isStickyActive(now)) {
                 reqDx = stickDx;
                 reqDy = stickDy;
             }
 
-            if (!state.inventoryOpen && (reqDx != 0 || reqDy != 0)) {
+            if (!uiOpen && (reqDx != 0 || reqDy != 0)) {
                 dirty |= PlayerSystem.tryMoveThrottled(state, reqDx, reqDy, renderer);
             }
 
             clock.consumeFixedSteps(dt -> {
-                if (!state.inventoryOpen) {
+                if (!uiOpen) {
                     boolean changed = false;
                     changed |= ZombieSystem.update(state, renderer, dt);
                     PlayerSystem.drainNeeds(state, dt);
@@ -75,7 +81,7 @@ public class Engine {
                 }
             });
 
-            if (!state.inventoryOpen) {
+            if (!uiOpen) {
                 if (clock.shouldRender(dirty)) {
                     renderer.renderAll(state);
                     clock.onRendered();
@@ -192,6 +198,7 @@ public class Engine {
             case INVENTORY -> {
                 if (!state.inventoryOpen) {
                     state.inventoryOpen = true;
+                    state.equipmentOpen = false;
                     stickUntilNs = 0;
                     renderer.log("Abres el inventario.");
                 } else {
@@ -201,7 +208,15 @@ public class Engine {
                 dirty = true;
             }
             case EQUIPMENT -> {
-                renderer.log("Abres el equipo.");
+                if (!state.equipmentOpen) {
+                    state.equipmentOpen = true;
+                    state.inventoryOpen = false;
+                    stickUntilNs = 0;
+                    renderer.log("Abres el equipo.");
+                } else {
+                    state.equipmentOpen = false;
+                    renderer.log("Cierras el equipo.");
+                }
                 dirty = true;
             }
             case STATS -> {
@@ -249,6 +264,22 @@ public class Engine {
                     state.invSel = Math.min(state.inventory.size() - 1, state.invSel + 1);
                     dirty = true;
                 }
+            }
+            case QUIT -> {
+                return true;
+            }
+            default -> {
+            }
+        }
+        return false;
+    }
+
+    private boolean handleEquipmentInput(InputHandler.Command c) {
+        switch (c) {
+            case EQUIPMENT -> {
+                state.equipmentOpen = false;
+                renderer.log("Cierras el equipo.");
+                dirty = true;
             }
             case QUIT -> {
                 return true;

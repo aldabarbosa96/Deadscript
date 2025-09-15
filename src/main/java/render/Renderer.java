@@ -1,14 +1,10 @@
 package render;
 
-import items.Item;
 import items.Equipment;
-import ui.menu.Inventory;
+import ui.menu.*;
 import ui.player.EquipmentPanel;
-import ui.menu.MapView;
 import ui.player.PlayerHud;
 import ui.player.PlayerStates;
-import ui.menu.MessageLog;
-import ui.menu.ActionBar;
 import utils.ANSI;
 import game.GameState;
 
@@ -24,7 +20,8 @@ public class Renderer {
     private MapView mapView;
     private MessageLog msgLog;
     private ActionBar actionBar;
-    private final Inventory invOverlay = new Inventory();
+    private final InventoryView invOverlay = new InventoryView();
+    private final EquipmentView equipOverlay = new EquipmentView();
 
     public void init(GameState s) {
         ANSI.setEnabled(true);
@@ -95,7 +92,7 @@ public class Renderer {
 
         equip.render(arma, off, cabeza, pecho, manos, piernas, pies, mochila, 0, 0, peso, capacidad);
 
-        if (!s.inventoryOpen) {
+        if (!s.inventoryOpen && !s.equipmentOpen) {
             mapView.render(s.map, s.px, s.py);
             renderEntities(s);
         }
@@ -106,6 +103,14 @@ public class Renderer {
             int w = mapView.getViewW();
             int h = mapView.getViewH();
             invOverlay.render(top, left, w, h, s.inventory, s.invSel);
+        }
+
+        if (s.equipmentOpen) {
+            int top = MAP_TOP + 2;
+            int left = mapView.getLeft();
+            int w = mapView.getViewW();
+            int h = mapView.getViewH();
+            equipOverlay.render(top, left, w, h, s.equipment, s.inventory);
         }
 
         msgLog.render();

@@ -35,6 +35,7 @@ public class GameState {
     public int nextGroupId = 1;
 
     public boolean inventoryOpen = false;
+    public boolean equipmentOpen = false;
     public int invSel = 0;
 
     public final List<Item> inventory = new ArrayList<>();

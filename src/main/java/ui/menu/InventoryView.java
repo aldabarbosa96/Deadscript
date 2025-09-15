@@ -5,7 +5,7 @@ import utils.ANSI;
 
 import java.util.List;
 
-public class Inventory {
+public class InventoryView {
 
     public void render(int top, int left, int width, int height, List<Item> items, int selectedIndex) {
         if (width < 10 || height < 5) return;
