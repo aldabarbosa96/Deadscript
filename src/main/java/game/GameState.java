@@ -24,7 +24,7 @@ public class GameState {
     public int sueno = 100, maxSueno = 100;
     public boolean sangrado = false;
     public int infeccionPct = 0;
-    public boolean escondido = true;
+    public boolean escondido = false;
     public double hambreAcc = hambre;
     public double sedAcc = sed;
     public double suenoAcc = sueno;
@@ -55,7 +55,12 @@ public class GameState {
     public int eqSelectSel = 0;
     public List<Item> eqSelectItems = Collections.emptyList();
 
-
+    public boolean worldActionsOpen = false;
+    public int worldActionSel = 0;
+    public List<String> worldActions = Collections.emptyList();
+    public int worldTx = 0, worldTy = 0;
+    public world.Entity worldTarget = null;
+    public int hidePrevX = -1, hidePrevY = -1;
 
     public GameState() {
         // equipo
@@ -85,6 +90,9 @@ public class GameState {
         px = map.w / 2;
         py = map.h / 2;
         lastDx = lastDy = 0;
+        escondido = false;
+        hidePrevX = -1;
+        hidePrevY = -1;
         entities.clear();
         spawnTimer = 0.0;
     }

@@ -23,6 +23,11 @@ public class PlayerStates {
     }
 
     public void renderStates(int salud, int maxSalud, int energia, int maxEnergia, int hambre, int maxHambre, int sed, int maxSed, int sueno, int maxSueno, boolean sangrado, int infeccionPct, boolean escondido) {
+
+        // 1) Limpiar completamente el panel (título + línea en blanco + cuerpo)
+        clearPanel();
+
+        // 2) Recalcular badges en base al estado actual
         List<Badge> activos = new ArrayList<>();
 
         double ps = ratio(salud, maxSalud);
@@ -59,9 +64,10 @@ public class PlayerStates {
 
         if (escondido) activos.add(new Badge("ESCONDIDO", 36));
 
+        // 3) Título y contenido
         title(topRow, "ESTADOS");
 
-        int row = topRow + 2;  // línea en blanco bajo el título
+        int row = topRow + 2; // una línea en blanco bajo el título
         int printedLines = 0;
         int i = 0;
 
@@ -87,6 +93,7 @@ public class PlayerStates {
                 first = false;
             }
 
+            // Relleno para cubrir hasta el final de línea
             if (used < width) System.out.print(" ".repeat(width - used));
 
             ANSI.resetStyle();
@@ -94,11 +101,20 @@ public class PlayerStates {
             row++;
         }
 
+        // 4) Borrar líneas sobrantes si esta vez hay menos badges
         for (int k = printedLines; k < maxLines; k++) {
-            ANSI.gotoRC(topRow + 2 + k, leftCol); // respeta el hueco del título + línea en blanco
+            ANSI.gotoRC(topRow + 2 + k, leftCol);
             System.out.print(" ".repeat(width));
         }
     }
+
+    private void clearPanel() {
+        for (int r = 0; r < maxLines + 2; r++) {
+            ANSI.gotoRC(topRow + r, leftCol);
+            System.out.print(" ".repeat(width));
+        }
+    }
+
 
     private void title(int row, String t) {
         ANSI.gotoRC(row, leftCol);

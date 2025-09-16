@@ -145,6 +145,14 @@ public class Renderer {
             }
         }
 
+        if (s.worldActionsOpen && s.worldActions != null && !s.worldActions.isEmpty()) {
+            int top = MAP_TOP + 2;
+            int left = mapView.getLeft();
+            int w = mapView.getViewW();
+            int h = mapView.getViewH();
+            invOverlay.renderActionMenu(top, left, w, h, s.worldActions, s.worldActionSel);
+        }
+
         msgLog.render();
         renderInspectPanel(s);
         actionBar.render();

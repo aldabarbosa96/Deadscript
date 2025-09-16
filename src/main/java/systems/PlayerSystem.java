@@ -41,6 +41,14 @@ public final class PlayerSystem {
         s.py = ny;
         s.lastDx = dx;
         s.lastDy = dy;
+
+        if (s.escondido) {
+            s.escondido = false;
+            s.hidePrevX = -1;
+            s.hidePrevY = -1;
+            r.log("Sales de tu escondite.");
+        }
+
         return true;
     }
 

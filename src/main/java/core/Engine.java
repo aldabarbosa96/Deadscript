@@ -46,6 +46,7 @@ public class Engine {
     }
 
     public void run() {
+
         while (running) {
             int reqDx = 0, reqDy = 0;
             InputHandler.Command c;
@@ -57,6 +58,11 @@ public class Engine {
                     }
                 } else if (state.equipmentOpen) {
                     if (handleEquipmentInput(c)) {
+                        running = false;
+                        break;
+                    }
+                } else if (state.worldActionsOpen) {
+                    if (handleWorldActionInput(c)) {
                         running = false;
                         break;
                     }
@@ -256,8 +262,11 @@ public class Engine {
                 dirty = true;
             }
             case ACTION -> {
-                renderer.log("Acción principal.");
-                dirty = true;
+                if (!state.worldActionsOpen) {
+                    stickUntilNs = 0;
+                    systems.WorldActionSystem.openContextActions(state, renderer);
+                    dirty = true;
+                }
             }
             case OPTIONS -> {
                 renderer.log("Abres el menú de opciones.");
@@ -472,6 +481,32 @@ public class Engine {
                 return true;
             }
             default -> { /* nada */ }
+        }
+        return false;
+    }
+
+    private boolean handleWorldActionInput(InputHandler.Command c) {
+        switch (c) {
+            case UP -> {
+                if (systems.WorldActionSystem.handleArrow(state, true)) dirty = true;
+            }
+            case DOWN -> {
+                if (systems.WorldActionSystem.handleArrow(state, false)) dirty = true;
+            }
+            case ACTION -> {
+                boolean changed = systems.WorldActionSystem.executeSelected(state, renderer);
+                dirty = true | changed;
+            }
+            case INVENTORY, EQUIPMENT, STATS, OPTIONS -> {
+                // Cerrar el menú si se abre otra UI
+                state.worldActionsOpen = false;
+                dirty = true;
+                // y sigue el flujo normal del atajo (no lo activamos aquí)
+            }
+            case QUIT -> {
+                return true;
+            }
+            default -> { /* ignorar */ }
         }
         return false;
     }
