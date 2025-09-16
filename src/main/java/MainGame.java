@@ -17,6 +17,8 @@ public class MainGame {
             if (engine != null) engine.shutdown();
             if (input != null) try {
                 input.close();
+                System.out.flush();
+                Runtime.getRuntime().halt(0);
             } catch (Exception ignored) {
             }
         }

@@ -86,30 +86,30 @@ public class InputHandler implements AutoCloseable {
         return km;
     }
 
-    public int terminalWidth() {
-        return terminal.getWidth();
-    }
-
-    public int terminalHeight() {
-        return terminal.getHeight();
-    }
-
     @Override
     public void close() {
         running = false;
+
+        try {
+            readerThread.interrupt();
+        } catch (Exception ignore) {
+        }
+
         try {
             if (terminal != null && prevAttrs != null) {
                 terminal.setAttributes(prevAttrs);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignore) {
+        }
 
         try {
             if (terminal != null) terminal.close();
-        } catch (Exception ignored) {}
+        } catch (Exception ignore) {
+        }
 
         try {
-            if (readerThread != null) readerThread.join(200);
-        } catch (InterruptedException ignored) {}
+            if (readerThread != null) readerThread.join(1000);
+        } catch (InterruptedException ignore) {
+        }
     }
-
 }
