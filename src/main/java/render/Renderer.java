@@ -20,6 +20,8 @@ public class Renderer {
     private MapView mapView;
     private MessageLog msgLog;
     private ActionBar actionBar;
+    private InspectView inspect;
+    private int inspectTop, inspectLeft, inspectW, inspectH;
     private final InventoryView invOverlay = new InventoryView();
     private final EquipmentView equipOverlay = new EquipmentView();
 
@@ -41,9 +43,20 @@ public class Renderer {
         mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, s.map, 2.0);
 
         int logTop = MAP_TOP + 2 + viewH + 1;
-        msgLog = new MessageLog(logTop, MAP_LEFT, headerWidth, LOG_ROWS);
+        int inspectWMin = 24;
+        int proposedInspect = Math.max(inspectWMin, headerWidth / 4);
+        int logW = Math.max(32, headerWidth - proposedInspect - 1);
+        int finalInspect = Math.max(inspectWMin, headerWidth - logW - 1);
+
+        msgLog = new MessageLog(logTop, MAP_LEFT, logW, LOG_ROWS);
         msgLog.add(String.format("Día %d: %s, %d°C, Zona: %s", 1, "Soleado", s.temperaturaC, s.ubicacion + " (Bosque)"));
         msgLog.add(String.format("Posición inicial: (%d,%d).", s.px, s.py));
+
+        inspect = new InspectView();
+        inspectTop = logTop;
+        inspectLeft = MAP_LEFT + logW + 1;
+        inspectW = finalInspect;
+        inspectH = LOG_ROWS;
 
         int menuTop = logTop + LOG_ROWS + 1;
         actionBar = new ActionBar(menuTop, MAP_LEFT, headerWidth);
@@ -65,7 +78,17 @@ public class Renderer {
         mapView.prefill();
 
         int logTop = MAP_TOP + 2 + viewH + 1;
-        msgLog.updateGeometry(logTop, MAP_LEFT, headerWidth, LOG_ROWS);
+        int inspectWMin = 24;
+        int proposedInspect = Math.max(inspectWMin, headerWidth / 4);
+        int logW = Math.max(32, headerWidth - proposedInspect - 1);
+        int finalInspect = Math.max(inspectWMin, headerWidth - logW - 1);
+
+        msgLog.updateGeometry(logTop, MAP_LEFT, logW, LOG_ROWS);
+
+        inspectTop = logTop;
+        inspectLeft = MAP_LEFT + logW + 1;
+        inspectW = finalInspect;
+        inspectH = LOG_ROWS;
 
         int menuTop = logTop + LOG_ROWS + 1;
         actionBar.updateGeometry(menuTop, MAP_LEFT, headerWidth);
@@ -123,6 +146,7 @@ public class Renderer {
         }
 
         msgLog.render();
+        renderInspectPanel(s);
         actionBar.render();
 
         ANSI.gotoRC(1, 1);
@@ -158,8 +182,102 @@ public class Renderer {
         }
     }
 
+    private void renderInspectPanel(GameState s) {
+        if (inspect == null || inspectW < 18) return;
+
+        int dx = s.lastDx, dy = s.lastDy;
+
+        String title = "OBJETIVO";
+        char glyph = ' ';
+        String kind = "—";
+        java.util.ArrayList<String> lines = new java.util.ArrayList<>();
+
+        // 1) Casilla objetivo = contigua según última dirección.
+        //    Si no hay dirección, usamos la casilla actual SOLO para mostrar entidades bajo los pies.
+        boolean hasDir = !(dx == 0 && dy == 0);
+        int tx = s.px + (hasDir ? dx : 0);
+        int ty = s.py + (hasDir ? dy : 0);
+
+        if (tx < 0 || ty < 0 || tx >= s.map.w || ty >= s.map.h) {
+            lines.add("Fuera del mapa.");
+            inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, lines);
+            return;
+        }
+
+        // 2) Entidad en la casilla objetivo (prevalece sobre el terreno)
+        world.Entity found = findTopEntityAt(s, tx, ty);
+
+        // 3) Si NO hay dirección y NO hay entidad en objetivo
+        if (found == null) {
+            world.Entity under = findTopEntityAt(s, s.px, s.py);
+            if (under != null) {
+                found = under;
+                tx = s.px;
+                ty = s.py;
+            }
+        }
+
+        boolean vis = wasVisibleLastRender(tx, ty);
+        boolean det = wasDetectedLastRender(tx, ty);
+
+        if (found != null) {
+            glyph = found.glyph;
+            kind = switch (found.type) {
+                case ZOMBIE -> "Enemigo";
+                case LOOT -> "Botín";
+                default -> "Entidad";
+            };
+            String name = entityName(found);
+            title = "OBJETIVO: " + name;
+
+            lines.add(String.format("Pos: (%d,%d)", tx, ty));
+            lines.add("Tipo: " + kind);
+            lines.add("Visible: " + (vis ? "Sí" : det ? "Detectado" : "No"));
+            lines.add("Terreno: " + tileName(s.map.tiles[ty][tx], s.map.indoor[ty][tx]));
+            lines.add("Transitable: " + (s.map.walk[ty][tx] ? "Sí" : "No"));
+        } else {
+            char t = s.map.tiles[ty][tx];
+            glyph = t;
+            kind = "Terreno";
+            title = "OBJETIVO: " + tileName(t, s.map.indoor[ty][tx]);
+
+            lines.add(String.format("Pos: (%d,%d)", tx, ty));
+            lines.add("Visible: " + (vis ? "Sí" : det ? "Detectado" : "No"));
+            lines.add("Tipo: " + kind);
+            lines.add("Transitable: " + (s.map.walk[ty][tx] ? "Sí" : "No"));
+
+            String extra = tileHint(t);
+            if (!extra.isEmpty()) lines.add(extra);
+        }
+
+        inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, lines);
+    }
+
+    private static world.Entity findTopEntityAt(GameState s, int x, int y) {
+        world.Entity best = null;
+        for (world.Entity e : s.entities) {
+            if (e.x == x && e.y == y) {
+                if (best == null) best = e;
+                // Prioridad sencilla: enemigo > loot > resto
+                boolean eIsZ = (e.glyph == 'Z') || (e.type == world.Entity.Type.ZOMBIE);
+                boolean bIsZ = best != null && ((best.glyph == 'Z') || (best.type == world.Entity.Type.ZOMBIE));
+                boolean eIsLoot = (e.glyph == '*') || (e.type == world.Entity.Type.LOOT);
+                boolean bIsLoot = best != null && ((best.glyph == '*') || (best.type == world.Entity.Type.LOOT));
+
+                if (eIsZ && !bIsZ) return e;        // enemigo gana siempre
+                if (!bIsZ && eIsLoot && !bIsLoot) best = e; // loot gana frente a otros
+            }
+        }
+        return best;
+    }
+
+
     public boolean wasVisibleLastRender(int x, int y) {
         return mapView.wasVisibleLastRender(x, y);
+    }
+
+    public boolean wasDetectedLastRender(int x, int y) {
+        return mapView.wasDetectedLastRender(x, y);
     }
 
     public boolean isNearCamera(int x, int y, GameState s) {
@@ -196,5 +314,34 @@ public class Renderer {
         if (dy > 0) return "SO";
         if (dy == 0) return "OESTE";
         return "NO";
+    }
+
+    private static String entityName(world.Entity e) {
+        if (e == null) return "-";
+        if (e.type == world.Entity.Type.ZOMBIE || e.glyph == 'Z') return "Zombi";
+        if (e.type == world.Entity.Type.LOOT || e.glyph == '*') return "Botín";
+        return "Entidad";
+    }
+
+    private static String tileName(char t, boolean indoor) {
+        return switch (t) {
+            case '#' -> "Árbol";
+            case '~' -> "Agua";
+            case '^' -> "Roca";
+            case '+' -> "Puerta";
+            case '╔', '╗', '╚', '╝', '═', '║' -> indoor ? "Pared interior" : "Pared";
+            case '.' -> indoor ? "Suelo (interior)" : "Suelo";
+            default -> "Terreno";
+        };
+    }
+
+    private static String tileHint(char t) {
+        return switch (t) {
+            case '+' -> "Acción futura: abrir/cerrar.";
+            case '~' -> "No transitable. Posible fuente de agua.";
+            case '#' -> "Obstáculo. Cubre visión y paso.";
+            case '^' -> "Cobertura dura. No transitable.";
+            default -> "";
+        };
     }
 }

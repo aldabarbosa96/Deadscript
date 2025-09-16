@@ -130,35 +130,54 @@ public class Engine {
         int dx = axisDx(c);
         int dy = axisDy(c);
 
+        int vx = dx, vy = dy;
+
         if (isStickyActive(now)) {
             boolean changed = false;
+            int ndx = stickDx, ndy = stickDy;
             if (dx != 0) {
-                stickDx = dx;
+                ndx = dx;
                 changed = true;
             }
             if (dy != 0) {
-                stickDy = dy;
+                ndy = dy;
                 changed = true;
             }
             if (changed || belongsToSticky(c)) renewSticky(now);
+            vx = ndx;
+            vy = ndy;
+
+            state.lastDx = vx;
+            state.lastDy = vy;
             return;
         }
 
         if (dy != 0) {
             int recentHx = recentHorizontalDir(now);
             if (recentHx != 0) {
-                setSticky(recentHx, dy, now);
+                vx = recentHx;
+                vy = dy;
+                setSticky(vx, vy, now);
+                state.lastDx = vx;
+                state.lastDy = vy;
                 return;
             }
         } else if (dx != 0) {
             int recentVy = recentVerticalDir(now);
             if (recentVy != 0) {
-                setSticky(dx, recentVy, now);
+                vx = dx;
+                vy = recentVy;
+                setSticky(vx, vy, now);
+                state.lastDx = vx;
+                state.lastDy = vy;
                 return;
             }
         }
 
-        dirty |= PlayerSystem.tryMoveThrottled(state, dx, dy, renderer);
+        state.lastDx = vx;
+        state.lastDy = vy;
+
+        dirty |= PlayerSystem.tryMoveThrottled(state, vx, vy, renderer);
     }
 
     private static boolean isArrow(InputHandler.Command c) {

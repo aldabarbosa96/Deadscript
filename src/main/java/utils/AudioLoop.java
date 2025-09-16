@@ -17,7 +17,7 @@ public class AudioLoop implements AutoCloseable {
             try (BufferedInputStream bin = new BufferedInputStream(in); AudioInputStream ais = AudioSystem.getAudioInputStream(bin)) {
 
                 clip = AudioSystem.getClip();
-                clip.open(ais); // carga a memoria
+                clip.open(ais);
             }
 
             if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {

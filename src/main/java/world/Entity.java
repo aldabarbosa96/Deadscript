@@ -1,6 +1,7 @@
 package world;
 
 public class Entity {
+    public enum Type { ZOMBIE, LOOT, OTHER }
     public int x, y;
     public char glyph;
     public double speedTilesPerSec;
@@ -10,6 +11,7 @@ public class Entity {
     public boolean leader;
     public int offX, offY;
     public boolean revealed;
+    public Type type = Type.OTHER;
 
     public Entity(int x, int y, char glyph, double speed) {
         this.x = x;

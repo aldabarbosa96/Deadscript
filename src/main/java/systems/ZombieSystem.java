@@ -116,6 +116,7 @@ public final class ZombieSystem {
             double speed = Constants.ZOMBIE_MIN_SPEED + s.rng.nextDouble() * Constants.ZOMBIE_SPEED_RANGE;
 
             Entity z = new Entity(rx, ry, 'Z', speed);
+            z.type = Entity.Type.ZOMBIE;
             z.groupId = groupId;
             z.leader = (i == 0);
             if (!z.leader) {
