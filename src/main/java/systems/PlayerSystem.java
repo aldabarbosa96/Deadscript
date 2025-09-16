@@ -8,14 +8,10 @@ public final class PlayerSystem {
     private PlayerSystem() {
     }
 
-    public static boolean tryMoveThrottled(GameState s, int dx, int dy, Renderer r) {
-        return tryMoveThrottled(s, dx, dy, r, false);
-    }
-
     public static boolean tryMoveThrottled(GameState s, int dx, int dy, Renderer r, boolean sprint) {
         long now = System.nanoTime();
 
-        double mult = sprint ? Constants.SPRINT_SPEED_MULT : 1.0;
+        double mult = energySpeedMult(s, sprint);
         long cooldown = (long) Math.max(1, (Constants.PLAYER_MOVE_COOLDOWN_NS / mult));
         if (now - s.lastPlayerStepNs < cooldown) return false;
 
@@ -23,9 +19,7 @@ public final class PlayerSystem {
         if (moved) {
             s.lastPlayerStepNs = now;
 
-            // gasto de energía por paso (doble si sprint)
-            double cost = Constants.WALK_STEP_ENERGY_COST *
-                    (sprint ? Constants.SPRINT_ENERGY_MULT : 1.0);
+            double cost = Constants.WALK_STEP_ENERGY_COST * (sprint ? Constants.SPRINT_ENERGY_MULT : 1.0);
             s.energiaAcc = clamp(s.energiaAcc - cost, 0, s.maxEnergia);
             s.energia = (int) Math.round(s.energiaAcc);
         }
@@ -91,5 +85,28 @@ public final class PlayerSystem {
         if (v < min) return min;
         if (v > max) return max;
         return v;
+    }
+
+    private static double energySpeedMult(GameState s, boolean sprint) {
+        double e = energyRatio(s);
+
+        if (sprint) {
+            if (e < 0.10) return 0.66;
+            if (e < 0.33) return 1.00;
+            if (e < 0.50) return 1.25;
+            if (e < 0.66) return 1.50;
+            return Constants.SPRINT_SPEED_MULT; // 2.0
+        } else {
+            if (e < 0.10) return 0.50;
+            if (e < 0.33) return 0.70;
+            if (e < 0.50) return 0.85;
+            return 1.00;
+        }
+    }
+
+    private static double energyRatio(GameState s) {
+        int m = Math.max(1, s.maxEnergia);
+        int v = Math.max(0, Math.min(s.energia, m));
+        return v / (double) m;
     }
 }

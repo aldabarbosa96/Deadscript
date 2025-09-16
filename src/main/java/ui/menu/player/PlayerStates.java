@@ -1,4 +1,4 @@
-package ui.player;
+package ui.menu.player;
 
 import utils.ANSI;
 

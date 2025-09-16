@@ -68,7 +68,7 @@ public class StickyMove {
             vy = stickDy;
             state.lastDx = vx;
             state.lastDy = vy;
-            return false; // Engine hará el auto-move en el loop
+            return false;
         }
 
         if (dy != 0) {

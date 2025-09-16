@@ -2,14 +2,13 @@ package render;
 
 import items.Equipment;
 import ui.menu.*;
-import ui.player.EquipmentPanel;
-import ui.player.PlayerHud;
-import ui.player.PlayerStates;
+import ui.menu.player.EquipmentPanel;
+import ui.menu.player.PlayerHud;
+import ui.menu.player.PlayerStates;
 import utils.ANSI;
 import game.GameState;
 
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 
 import static game.Constants.*;
 import static utils.EntityUtil.*;
