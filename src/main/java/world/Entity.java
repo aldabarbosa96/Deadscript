@@ -9,6 +9,7 @@ public class Entity {
     public int groupId;
     public boolean leader;
     public int offX, offY;
+    public boolean revealed;
 
     public Entity(int x, int y, char glyph, double speed) {
         this.x = x;

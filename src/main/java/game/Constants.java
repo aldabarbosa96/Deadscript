@@ -11,6 +11,7 @@ public final class Constants {
 
     // Player
     public static final long PLAYER_MOVE_COOLDOWN_NS = 180_000_000L; // ≈5.55 tiles/s
+    public static final int FOV_OUTER_EXTRA = 2;
 
     // Zombies
     public static final int MAX_ZOMBIES = 80;
@@ -42,4 +43,5 @@ public final class Constants {
     public static final int VIEW_W = 119;
     public static final int VIEW_H = 38;
     public static final int LOG_ROWS = 8;
+
 }

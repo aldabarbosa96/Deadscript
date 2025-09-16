@@ -3,10 +3,13 @@ package ui.menu;
 import utils.ANSI;
 import world.GameMap;
 
+import static game.Constants.FOV_OUTER_EXTRA;
+
 public class MapView {
     private final int top, left, viewW, viewH;
     private final int fovRadius;
     private final boolean[][] visible;
+    private final boolean[][] detected; // ← anillo periférico (no visible, pero detectado)
     private final double cellAspect;
 
     public MapView(int top, int left, int viewW, int viewH, int fovRadius, GameMap map, double cellAspect) {
@@ -17,6 +20,7 @@ public class MapView {
         this.fovRadius = Math.max(1, fovRadius);
         this.cellAspect = cellAspect <= 0 ? 2.0 : cellAspect;
         this.visible = new boolean[map.h][map.w];
+        this.detected = new boolean[map.h][map.w];
     }
 
     public void prefill() {
@@ -32,14 +36,14 @@ public class MapView {
         drawTitle();
         int base = top + 2;
 
-        computeFov(map, px, py);
+        computeFovAndPeriphery(map, px, py);
 
         int camX = Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
         int camY = Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
 
         for (int sy = 0; sy < viewH; sy++) {
             ANSI.gotoRC(base + sy, left);
-            int currentColor = -1; // -1=none, 0=reset, básicos=n, 256=100000+idx
+            int currentColor = -1;
 
             for (int sx = 0; sx < viewW; sx++) {
                 int mx = camX + sx, my = camY + sy;
@@ -55,7 +59,8 @@ public class MapView {
 
                 char tile = map.tiles[my][mx];
                 boolean vis = visible[my][mx];
-                boolean ind = map.indoor[my][mx];
+                boolean exp = map.explored[my][mx];
+                boolean det = detected[my][mx];
 
                 if (vis) {
                     map.explored[my][mx] = true;
@@ -63,7 +68,7 @@ public class MapView {
                         case '#' -> 92;
                         case '~' -> 100000 + 45;
                         case '^' -> 37;
-                        case '.' -> (ind ? 97 : 100000 + 58);
+                        case '.' -> (map.indoor[my][mx] ? 97 : 100000 + 58);
                         case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
                         case '+' -> 93;
                         default -> 100000 + 58;
@@ -74,12 +79,46 @@ public class MapView {
                     }
                     System.out.print(tile);
 
-                } else if (map.explored[my][mx]) {
+                } else if (det) {
+                    if (isInterestingTile(tile)) {
+                        if (exp) {
+                            int next = switch (tile) {
+                                case '#' -> 100000 + 22;
+                                case '~' -> 100000 + 24;
+                                case '^' -> 90;
+                                case '.' -> (map.indoor[my][mx] ? 90 : 100000 + 137);
+                                case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58;
+                                case '+' -> 90;
+                                default -> 100000 + 137;
+                            };
+                            if (next != currentColor) {
+                                applyColor(next);
+                                currentColor = next;
+                            }
+                            System.out.print(tile);
+                        } else {
+                            int next = 90;
+                            if (next != currentColor) {
+                                applyColor(next);
+                                currentColor = next;
+                            }
+                            System.out.print('?');
+                        }
+                    } else {
+                        int next = 100000 + 250;
+                        if (next != currentColor) {
+                            applyColor(next);
+                            currentColor = next;
+                        }
+                        System.out.print('.');
+                    }
+
+                } else if (exp) {
                     int next = switch (tile) {
                         case '#' -> 100000 + 22;
                         case '~' -> 100000 + 24;
                         case '^' -> 90;
-                        case '.' -> (ind ? 90 : 100000 + 137);
+                        case '.' -> (map.indoor[my][mx] ? 90 : 100000 + 137);
                         case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58;
                         case '+' -> 90;
                         default -> 100000 + 137;
@@ -110,6 +149,7 @@ public class MapView {
         }
     }
 
+
     private void drawTitle() {
         ANSI.gotoRC(top, left);
         String label = " MAPA ";
@@ -126,8 +166,13 @@ public class MapView {
         ANSI.clearToLineEnd();
     }
 
-    private void computeFov(GameMap map, int px, int py) {
-        for (int y = 0; y < map.h; y++) java.util.Arrays.fill(visible[y], false);
+    private void computeFovAndPeriphery(GameMap map, int px, int py) {
+        for (int y = 0; y < map.h; y++) {
+            java.util.Arrays.fill(visible[y], false);
+            java.util.Arrays.fill(detected[y], false);
+        }
+
+        // FOV principal
         int r = fovRadius;
         int y0 = Math.max(0, py - r), y1 = Math.min(map.h - 1, py + r);
         int x0 = Math.max(0, px - r), x1 = Math.min(map.w - 1, px + r);
@@ -139,6 +184,24 @@ public class MapView {
                 double dyAdj = dy * cellAspect;
                 if (dx * dx + dyAdj * dyAdj <= r2 && los(map, px, py, x, y)) {
                     visible[y][x] = true;
+                }
+            }
+        }
+
+        // Anillo periférico (R + extra), sólo marca detectado si NO es visible
+        int extra = Math.max(1, FOV_OUTER_EXTRA);
+        int rp = r + extra;
+        int yp0 = Math.max(0, py - rp), yp1 = Math.min(map.h - 1, py + rp);
+        int xp0 = Math.max(0, px - rp), xp1 = Math.min(map.w - 1, px + rp);
+        double rp2 = rp * (double) rp;
+
+        for (int y = yp0; y <= yp1; y++) {
+            for (int x = xp0; x <= xp1; x++) {
+                if (visible[y][x]) continue; // ya se ve de verdad
+                int dx = x - px, dy = y - py;
+                double dyAdj = dy * cellAspect;
+                if (dx * dx + dyAdj * dyAdj <= rp2 && los(map, px, py, x, y)) {
+                    detected[y][x] = true;
                 }
             }
         }
@@ -164,6 +227,14 @@ public class MapView {
         }
     }
 
+    private static boolean isInterestingTile(char t) {
+        // Terreno/estructura que merece "?" al detectarse
+        return switch (t) {
+            case '#', '^', '~', '╔', '╗', '╚', '╝', '═', '║', '+' -> true;
+            default -> false;
+        };
+    }
+
     public int getTop() {
         return top;
     }
@@ -184,6 +255,12 @@ public class MapView {
         if (y < 0 || y >= visible.length) return false;
         if (x < 0 || x >= visible[0].length) return false;
         return visible[y][x];
+    }
+
+    public boolean wasDetectedLastRender(int x, int y) {
+        if (y < 0 || y >= detected.length) return false;
+        if (x < 0 || x >= detected[0].length) return false;
+        return detected[y][x];
     }
 
     private static void applyColor(int sentinel) {

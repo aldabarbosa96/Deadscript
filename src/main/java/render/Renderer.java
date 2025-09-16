@@ -120,7 +120,6 @@ public class Renderer {
             if (s.eqSelectOpen) {
                 equipOverlay.renderSelectMenu(top, left, w, h, s.eqSelectItems, s.eqSelectSel, "EQUIPAR", s.eqSelectItems == null || s.eqSelectItems.isEmpty());
             }
-
         }
 
         msgLog.render();
@@ -133,15 +132,29 @@ public class Renderer {
     private void renderEntities(GameState s) {
         int camX = cameraX(s), camY = cameraY(s);
         int baseTop = MAP_TOP + 2;
-        for (var e : s.entities) {
-            if (!mapView.wasVisibleLastRender(e.x, e.y)) continue;
+        for (world.Entity e : s.entities) {
             int sx = e.x - camX, sy = e.y - camY;
-            if (sx >= 0 && sy >= 0 && sx < mapView.getViewW() && sy < mapView.getViewH()) {
-                ANSI.gotoRC(baseTop + sy, mapView.getLeft() + sx);
+            if (sx < 0 || sy < 0 || sx >= mapView.getViewW() || sy >= mapView.getViewH()) continue;
+
+            boolean vis = mapView.wasVisibleLastRender(e.x, e.y);
+            boolean det = mapView.wasDetectedLastRender(e.x, e.y);
+            if (!vis && !det) continue;
+
+            ANSI.gotoRC(baseTop + sy, mapView.getLeft() + sx);
+            if (vis) {
+                e.revealed = true;
                 ANSI.setFg(31);
                 System.out.print(e.glyph);
-                ANSI.resetStyle();
+            } else {
+                if (e.revealed) {
+                    ANSI.setFg(90);
+                    System.out.print(e.glyph);
+                } else {
+                    ANSI.setFg(90);
+                    System.out.print('?');
+                }
             }
+            ANSI.resetStyle();
         }
     }
 
