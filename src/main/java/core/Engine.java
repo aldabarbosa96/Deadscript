@@ -77,7 +77,7 @@ public class Engine {
             if (!running) break;
 
             long now = System.nanoTime();
-            boolean uiOpen = state.inventoryOpen || state.equipmentOpen;
+            boolean uiOpen = state.inventoryOpen || state.equipmentOpen || state.worldActionsOpen;
 
             if (!uiOpen && isStickyActive(now)) {
                 reqDx = stickDx;
@@ -482,7 +482,7 @@ public class Engine {
             case QUIT -> {
                 return true;
             }
-            default -> { /* nada */ }
+            default -> {}
         }
         return false;
     }
@@ -500,15 +500,13 @@ public class Engine {
                 dirty = true | changed;
             }
             case INVENTORY, EQUIPMENT, STATS, OPTIONS -> {
-                // Cerrar el menú si se abre otra UI
                 state.worldActionsOpen = false;
                 dirty = true;
-                // y sigue el flujo normal del atajo (no lo activamos aquí)
             }
             case QUIT -> {
                 return true;
             }
-            default -> { /* ignorar */ }
+            default -> {}
         }
         return false;
     }
@@ -553,8 +551,6 @@ public class Engine {
             default -> "-";
         };
     }
-
-
     public void shutdown() {
         if (ambient != null) ambient.close();
         renderer.shutdown();

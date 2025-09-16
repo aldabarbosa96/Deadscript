@@ -274,7 +274,6 @@ public class EquipmentView {
         int anchorTop = Math.max(baseTop + marginRows, contentBottom - marginRows - (boxH - 1));
         int anchorLeft = Math.max(baseLeft + marginCols, innerRight - marginCols - (boxW - 1));
 
-        // Marco
         ANSI.gotoRC(anchorTop, anchorLeft);
         System.out.print('┌');
         System.out.print(repeat('─', boxW - 2));
@@ -292,12 +291,10 @@ public class EquipmentView {
         System.out.print(repeat('─', boxW - 2));
         System.out.print('┘');
 
-        // Título
         String title = " ACCIONES ";
         ANSI.gotoRC(anchorTop, anchorLeft + Math.max(1, (boxW - title.length()) / 2));
         System.out.print(clip(title, Math.max(0, boxW - 2)));
 
-        // Opciones (scroll)
         int maxOpts = boxH - 2;
         int start = 0;
         if (selectedIndex >= maxOpts) start = selectedIndex - (maxOpts - 1);
@@ -331,11 +328,9 @@ public class EquipmentView {
         final int contentBottom = baseTop + rows - 1;
         final int innerRight = baseLeft + inner - 1;
 
-        // Márgenes (mismos que acciones)
         final int marginRows = 5;
-        final int marginCols = 15;
+        final int marginCols = 13;
 
-        // Tamaño de la caja
         int maxLen = 0;
         for (Item it : items) {
             String n = (it == null || it.getNombre() == null) ? "" : it.getNombre();
@@ -351,7 +346,6 @@ public class EquipmentView {
         int anchorTop = Math.max(baseTop + marginRows, contentBottom - marginRows - (boxH - 1));
 
         if (lastActionTop > 0 && lastActionLeft > 0 && lastActionW > 0 && lastActionH > 0) {
-            // Alinea borde derecho con el de acciones
             int desiredRight = lastActionLeft + lastActionW - 1;
             anchorLeft = Math.min(desiredRight - (boxW - 1), innerRight - marginCols - (boxW - 1));
             anchorLeft = Math.max(anchorLeft, baseLeft + marginCols);
@@ -365,7 +359,6 @@ public class EquipmentView {
             }
         }
 
-        // Marco
         ANSI.gotoRC(anchorTop, anchorLeft);
         System.out.print('┌');
         System.out.print(repeat('─', boxW - 2));

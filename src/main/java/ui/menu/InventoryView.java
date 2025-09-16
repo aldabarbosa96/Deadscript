@@ -238,7 +238,7 @@ public class InventoryView {
         boxW = Math.min(boxW, maxBoxW);
 
         final int marginRows = 5;
-        final int marginCols = 15;
+        final int marginCols = 13;
         int anchorTop = Math.max(baseTop + marginRows, contentBottom - marginRows - (boxH - 1));
         int anchorLeft = Math.max(baseLeft + marginCols, innerRight - marginCols - (boxW - 1));
 

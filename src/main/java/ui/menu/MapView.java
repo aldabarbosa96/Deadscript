@@ -10,7 +10,7 @@ public class MapView {
     private final int top, left, viewW, viewH;
     private final int fovRadius;
     private final boolean[][] visible;
-    private final boolean[][] detected; // ← anillo periférico (no visible, pero detectado)
+    private final boolean[][] detected;
     private final double cellAspect;
 
     public MapView(int top, int left, int viewW, int viewH, int fovRadius, GameMap map, double cellAspect) {
@@ -189,7 +189,7 @@ public class MapView {
             }
         }
 
-        // Anillo periférico (R + extra), sólo marca detectado si NO es visible
+        // Anillo periférico (R + extra), sólo marcamos detectado si NO es visible
         int extra = Math.max(1, FOV_OUTER_EXTRA);
         int rp = r + extra;
         int yp0 = Math.max(0, py - rp), yp1 = Math.min(map.h - 1, py + rp);
