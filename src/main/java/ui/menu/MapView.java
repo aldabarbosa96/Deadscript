@@ -105,7 +105,7 @@ public class MapView {
                             System.out.print('?');
                         }
                     } else {
-                        int next = 100000 + 250;
+                        int next = 100000 + 155;
                         if (next != currentColor) {
                             applyColor(next);
                             currentColor = next;
