@@ -18,8 +18,8 @@ public final class Constants {
     public static final long PLAYER_MOVE_COOLDOWN_NS = 180_000_000L; // ≈5.55 tiles/s
     public static final int FOV_OUTER_EXTRA = 2;
     public static final double SPRINT_SPEED_MULT = 2.5;
-    public static final double WALK_STEP_ENERGY_COST = 0.075;
-    public static final double SPRINT_ENERGY_MULT = 2.0;
+    public static final double WALK_STEP_ENERGY_COST = 0.025;
+    public static final double SPRINT_ENERGY_MULT = 7.5;
 
     // Zombies
     public static final int MAX_ZOMBIES = 80;

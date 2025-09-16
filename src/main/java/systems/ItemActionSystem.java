@@ -177,9 +177,6 @@ public final class ItemActionSystem {
         }
     }
 
-    /**
-     * Equipa un ítem forzando el slot destino.
-     */
     public static boolean equipToSlot(GameState s, Item it, EquipmentSlot slot, Renderer r) {
         if (s == null || it == null || slot == null) return false;
 
