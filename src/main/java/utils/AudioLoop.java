@@ -76,15 +76,39 @@ public class AudioLoop implements AutoCloseable {
         }
     }
 
-    @Override
-    public void close() {
+    public void shutdownNow() {
         stopFadeThread();
         try {
             if (clip != null) {
-                clip.stop();
-                clip.close();
+                try {
+                    clip.loop(0);
+                } catch (Exception ignore) {
+                }
+                try {
+                    clip.stop();
+                } catch (Exception ignore) {
+                }
+                try {
+                    clip.flush();
+                } catch (Exception ignore) {
+                }
+                try {
+                    clip.setFramePosition(0);
+                } catch (Exception ignore) {
+                }
+                try {
+                    clip.close();
+                } catch (Exception ignore) {
+                }
             }
-        } catch (Exception ignored) {
+        } finally {
+            clip = null;
+            gain = null;
         }
+    }
+
+    @Override
+    public void close() {
+        shutdownNow();
     }
 }

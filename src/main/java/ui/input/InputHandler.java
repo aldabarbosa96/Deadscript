@@ -52,10 +52,13 @@ public class InputHandler implements AutoCloseable {
     }
 
     private void loop() {
-        while (running) {
-            Command c = reader.readBinding(keyMap);
-            if (!running) break;
-            if (c != null) queue.offer(c);
+        try {
+            while (running) {
+                Command c = reader.readBinding(keyMap);
+                if (!running) break;
+                if (c != null) queue.offer(c);
+            }
+        } catch (Throwable ignore) {
         }
     }
 
@@ -94,14 +97,19 @@ public class InputHandler implements AutoCloseable {
     @Override
     public void close() {
         running = false;
-        if (readerThread != null) readerThread.interrupt();
         try {
-            if (terminal != null && prevAttrs != null) terminal.setAttributes(prevAttrs);
-        } catch (Exception ignored) {
-        }
+            if (terminal != null && prevAttrs != null) {
+                terminal.setAttributes(prevAttrs);
+            }
+        } catch (Exception ignored) {}
+
         try {
             if (terminal != null) terminal.close();
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
+
+        try {
+            if (readerThread != null) readerThread.join(200);
+        } catch (InterruptedException ignored) {}
     }
+
 }
