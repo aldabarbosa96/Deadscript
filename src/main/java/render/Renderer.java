@@ -12,6 +12,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 import static game.Constants.*;
+import static utils.EntityUtil.*;
 
 public class Renderer {
     private PlayerHud hud;
@@ -261,25 +262,6 @@ public class Renderer {
         inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, lines);
     }
 
-    private static world.Entity findTopEntityAt(GameState s, int x, int y) {
-        world.Entity best = null;
-        for (world.Entity e : s.entities) {
-            if (e.x == x && e.y == y) {
-                if (best == null) best = e;
-                // Prioridad sencilla: enemigo > loot > resto
-                boolean eIsZ = (e.glyph == 'Z') || (e.type == world.Entity.Type.ZOMBIE);
-                boolean bIsZ = best != null && ((best.glyph == 'Z') || (best.type == world.Entity.Type.ZOMBIE));
-                boolean eIsLoot = (e.glyph == '*') || (e.type == world.Entity.Type.LOOT);
-                boolean bIsLoot = best != null && ((best.glyph == '*') || (best.type == world.Entity.Type.LOOT));
-
-                if (eIsZ && !bIsZ) return e;        // enemigo gana siempre
-                if (!bIsZ && eIsLoot && !bIsLoot) best = e; // loot gana frente a otros
-            }
-        }
-        return best;
-    }
-
-
     public boolean wasVisibleLastRender(int x, int y) {
         return mapView.wasVisibleLastRender(x, y);
     }
@@ -322,34 +304,5 @@ public class Renderer {
         if (dy > 0) return "SO";
         if (dy == 0) return "OESTE";
         return "NO";
-    }
-
-    private static String entityName(world.Entity e) {
-        if (e == null) return "-";
-        if (e.type == world.Entity.Type.ZOMBIE || e.glyph == 'Z') return "Zombi";
-        if (e.type == world.Entity.Type.LOOT || e.glyph == '*') return "Botín";
-        return "Entidad";
-    }
-
-    private static String tileName(char t, boolean indoor) {
-        return switch (t) {
-            case '#' -> "Árbol";
-            case '~' -> "Agua";
-            case '^' -> "Roca";
-            case '+' -> "Puerta";
-            case '╔', '╗', '╚', '╝', '═', '║' -> indoor ? "Pared interior" : "Pared";
-            case '.' -> indoor ? "Suelo (interior)" : "Suelo";
-            default -> "Terreno";
-        };
-    }
-
-    private static String tileHint(char t) {
-        return switch (t) {
-            case '+' -> "Acción futura: abrir/cerrar.";
-            case '~' -> "No transitable. Posible fuente de agua.";
-            case '#' -> "Obstáculo. Cubre visión y paso.";
-            case '^' -> "Cobertura dura. No transitable.";
-            default -> "";
-        };
     }
 }

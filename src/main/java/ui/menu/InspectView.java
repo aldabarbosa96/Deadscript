@@ -3,6 +3,7 @@ package ui.menu;
 import utils.ANSI;
 
 import java.util.List;
+import static utils.UI.*;
 
 public class InspectView {
     public void render(int top, int left, int width, int height, String title, char glyph, String kind, List<String> lines) {
@@ -14,7 +15,7 @@ public class InspectView {
         ANSI.gotoRC(top, left);
         if (width >= 2) {
             System.out.print('┌');
-            System.out.print(center(" " + safe(title) + " ", inner, '─'));
+            System.out.print(centerLabel(" " + safe(title) + " ", inner, '─'));
             System.out.print('┐');
         } else {
             System.out.print(repeat('─', width));
@@ -59,23 +60,5 @@ public class InspectView {
 
     private static String safe(String s) {
         return s == null ? "" : s;
-    }
-
-    private static String repeat(char c, int n) {
-        return n <= 0 ? "" : String.valueOf(c).repeat(n);
-    }
-
-    private static String clip(String s, int max) {
-        if (s == null || max <= 0) return "";
-        if (s.length() <= max) return s;
-        return (max <= 3) ? ".".repeat(max) : s.substring(0, max - 3) + "...";
-    }
-
-    private static String center(String label, int width, char fill) {
-        label = safe(label);
-        if (label.length() >= width) return label.substring(0, Math.max(0, width));
-        int left = (width - label.length()) / 2;
-        int right = width - label.length() - left;
-        return repeat(fill, left) + label + repeat(fill, right);
     }
 }

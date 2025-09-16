@@ -4,6 +4,7 @@ import utils.ANSI;
 import world.GameMap;
 
 import static game.Constants.FOV_OUTER_EXTRA;
+import static utils.EntityUtil.isInterestingTile;
 
 public class MapView {
     private final int top, left, viewW, viewH;
@@ -225,14 +226,6 @@ public class MapView {
             }
             if (x < 0 || y < 0 || x >= map.w || y >= map.h) return false;
         }
-    }
-
-    private static boolean isInterestingTile(char t) {
-        // Terreno/estructura que merece "?" al detectarse
-        return switch (t) {
-            case '#', '^', '~', '╔', '╗', '╚', '╝', '═', '║', '+' -> true;
-            default -> false;
-        };
     }
 
     public int getTop() {

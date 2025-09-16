@@ -5,6 +5,7 @@ import utils.ANSI;
 
 import java.util.ArrayList;
 import java.util.List;
+import static utils.UI.*;
 
 public class InventoryView {
 
@@ -181,45 +182,6 @@ public class InventoryView {
             art.add(" \\____/ ");
         }
         return art;
-    }
-
-    private static String centerLabel(String label, int width, char fill) {
-        label = label == null ? "" : label;
-        if (label.length() >= width) return label.substring(0, Math.max(0, width));
-        int left = (width - label.length()) / 2;
-        int right = width - label.length() - left;
-        return repeat(fill, left) + label + repeat(fill, right);
-    }
-
-    private static String clipAscii(String s, int max) {
-        if (s == null || max <= 0) return "";
-        if (s.length() <= max) return s;
-        if (max <= 3) return ".".repeat(max);
-        return s.substring(0, max - 3) + "...";
-    }
-
-    private static String repeat(char c, int n) {
-        return (n <= 0) ? "" : String.valueOf(c).repeat(n);
-    }
-
-    private static String formatKg(double kg) {
-        return String.format("%.2f kg", kg);
-    }
-
-    private static String center(String s, int w) {
-        s = s == null ? "" : s;
-        if (w <= 0) return "";
-        if (s.length() >= w) return s.substring(0, w);
-        int l = (w - s.length()) / 2;
-        int r = w - s.length() - l;
-        return repeat(' ', l) + s + repeat(' ', r);
-    }
-
-    private static String pad(String s, int w) {
-        s = s == null ? "" : s;
-        if (w <= 0) return "";
-        if (s.length() >= w) return s.substring(0, w);
-        return s + repeat(' ', w - s.length());
     }
 
     private static List<String> wrap(String text, int w) {

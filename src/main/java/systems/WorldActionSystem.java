@@ -8,6 +8,8 @@ import world.Entity;
 
 import java.util.ArrayList;
 import java.util.List;
+import static utils.EntityUtil.findTopEntityAt;
+
 
 public final class WorldActionSystem {
     private WorldActionSystem() {
@@ -181,21 +183,5 @@ public final class WorldActionSystem {
         if (main != null) return main.getNombre();
         if (off != null) return off.getNombre();
         return "los puños";
-    }
-
-    private static Entity findTopEntityAt(GameState s, int x, int y) {
-        Entity best = null;
-        for (Entity e : s.entities) {
-            if (e.x == x && e.y == y) {
-                if (best == null) best = e;
-                boolean eIsZ = (e.glyph == 'Z') || (e.type == Entity.Type.ZOMBIE);
-                boolean bIsZ = best != null && ((best.glyph == 'Z') || (best.type == Entity.Type.ZOMBIE));
-                boolean eIsLoot = (e.glyph == '*') || (e.type == Entity.Type.LOOT);
-                boolean bIsLoot = best != null && ((best.glyph == '*') || (best.type == Entity.Type.LOOT));
-                if (eIsZ && !bIsZ) return e;
-                if (!bIsZ && eIsLoot && !bIsLoot) best = e;
-            }
-        }
-        return best;
     }
 }

@@ -6,6 +6,8 @@ import utils.ANSI;
 
 import java.util.List;
 
+import static utils.UI.*;
+
 public class EquipmentView {
     private int lastActionTop = -1, lastActionLeft = -1, lastActionW = -1, lastActionH = -1;
 
@@ -248,26 +250,6 @@ public class EquipmentView {
         return it == null ? "-" : it.getNombre();
     }
 
-    private static String centerLabel(String label, int width, char fill) {
-        label = label == null ? "" : label;
-        if (label.length() >= width) return label.substring(0, Math.max(0, width));
-        int left = (width - label.length()) / 2;
-        int right = width - label.length() - left;
-        return repeat(fill, left) + label + repeat(fill, right);
-    }
-
-    private static String clip(String s, int max) {
-        if (s == null || max <= 0) return "";
-        if (s.length() <= max) return s;
-        if (max <= 3) return ".".repeat(max);
-        return s.substring(0, max - 3) + "...";
-    }
-
-    private static String repeat(char c, int n) {
-        return (n <= 0) ? "" : String.valueOf(c).repeat(n);
-    }
-
-
     public void renderActionMenu(int top, int left, int width, int height, java.util.List<String> options, int selectedIndex) {
         if (options == null || options.isEmpty()) return;
 
@@ -432,5 +414,4 @@ public class EquipmentView {
             if (isSel) ANSI.resetStyle();
         }
     }
-
 }

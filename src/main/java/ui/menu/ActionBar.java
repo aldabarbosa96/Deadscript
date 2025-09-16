@@ -2,6 +2,8 @@ package ui.menu;
 
 import utils.ANSI;
 
+import static utils.UI.clipAscii;
+
 public class ActionBar {
     private int top;
     private int left;
@@ -31,7 +33,7 @@ public class ActionBar {
         ANSI.clearToLineEnd();
 
         String full = "  Inventario [I]   Equipo [E]   Estadísticas [S]   Mover: [Flechas]   Acción: [Espacio]   Opciones [O]   Salir [Q]";
-        if (full.length() > inner) full = clipEndAscii(full, inner);
+        full = clipAscii(full, inner);
         ANSI.gotoRC(top + 1, left);
         if (width >= 2) {
             System.out.print('│');
@@ -39,7 +41,7 @@ public class ActionBar {
             if (full.length() < inner) System.out.print(" ".repeat(inner - full.length()));
             System.out.print('│');
         } else {
-            System.out.print(clipEndAscii(full, width));
+            System.out.print(clipAscii(full, width));
         }
         ANSI.clearToLineEnd();
         ANSI.gotoRC(top + 2, left);
@@ -51,12 +53,5 @@ public class ActionBar {
             System.out.print("─".repeat(width));
         }
         ANSI.clearToLineEnd();
-    }
-
-    private static String clipEndAscii(String s, int max) {
-        if (s == null || max <= 0) return "";
-        if (s.length() <= max) return s;
-        if (max <= 3) return ".".repeat(max);
-        return s.substring(0, max - 3) + "...";
     }
 }
