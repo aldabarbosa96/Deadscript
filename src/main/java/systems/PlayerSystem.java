@@ -52,7 +52,6 @@ public final class PlayerSystem {
         return true;
     }
 
-
     public static void drainNeeds(GameState s, double dt) {
         double peso = s.equipment.pesoTotalKg(s.inventory);
         double cap = s.equipment.capacidadKg();

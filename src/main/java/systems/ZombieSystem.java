@@ -96,7 +96,7 @@ public final class ZombieSystem {
     private static boolean trySpawnGroup(GameState s, Renderer r) {
         if (s.entities.size() >= Constants.MAX_ZOMBIES) return false;
 
-        int size = 1 + s.rng.nextInt(5); // 1..5
+        int size = 1 + s.rng.nextInt(5);
         double ang = s.rng.nextDouble() * Math.PI * 2.0;
         int dist = Constants.SPAWN_RADIUS_MIN + s.rng.nextInt(Math.max(1, Constants.SPAWN_RADIUS_MAX - Constants.SPAWN_RADIUS_MIN + 1));
 
@@ -123,6 +123,10 @@ public final class ZombieSystem {
                 z.offX = s.rng.nextInt(5) - 2;
                 z.offY = s.rng.nextInt(5) - 2;
             }
+            int hp = 10 + s.rng.nextInt(6);
+            z.maxHp = hp;
+            z.hp = hp;
+
             s.entities.add(z);
 
             if (r.isNearCamera(rx, ry, s)) anyNear = true;

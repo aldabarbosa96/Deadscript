@@ -62,6 +62,8 @@ public class GameState {
     public world.Entity worldTarget = null;
     public int hidePrevX = -1, hidePrevY = -1;
 
+    public long lastPlayerAttackNs = 0L;
+
     public GameState() {
         // equipo
         equipment.setHead(Item.ropa("cap_01", "Gorra", 0.22, EquipmentSlot.HEAD, 1,1, "Gorra de tela descolorida; corta algo el frío y la llovizna."));

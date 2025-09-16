@@ -264,8 +264,13 @@ public class Engine {
             case ACTION -> {
                 if (!state.worldActionsOpen) {
                     stickUntilNs = 0;
-                    systems.WorldActionSystem.openContextActions(state, renderer);
-                    dirty = true;
+                    if (systems.CombatSystem.anyVisibleHostileInMainFov(state, renderer)) {
+                        boolean changed = systems.CombatSystem.quickAttack(state, renderer);
+                        dirty = true | changed;
+                    } else {
+                        systems.WorldActionSystem.openContextActions(state, renderer);
+                        dirty = true;
+                    }
                 }
             }
             case OPTIONS -> {

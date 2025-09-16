@@ -166,15 +166,7 @@ public final class WorldActionSystem {
                 return moved;
             }
             case "atacar" -> {
-                if (ent == null || ent.type != Entity.Type.ZOMBIE) {
-                    r.log("No hay zombi que atacar.");
-                    return false;
-                }
-                String arma = armaActualTexto(s.equipment);
-                // Por simplicidad en esta fase: abatimos al zombi.
-                s.entities.remove(ent);
-                r.log("Atacas al zombi con " + arma + " y lo abates.");
-                return true;
+                return systems.CombatSystem.quickAttack(s, r);
             }
             default -> {
                 r.log("Acción no implementada: " + action);
