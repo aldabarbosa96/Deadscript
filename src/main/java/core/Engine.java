@@ -13,12 +13,9 @@ public class Engine {
     private final GameState state = new GameState();
     private final Renderer renderer = new Renderer();
     private final Clock clock = new Clock();
-
     private AudioLoop ambient;
     private boolean running = true;
     private boolean dirty = true;
-
-    // Nuevos colaboradores
     private final StickyMove sticky = new StickyMove();
     private final InGameController inGame = new InGameController();
     private final InventoryController invCtrl = new InventoryController();

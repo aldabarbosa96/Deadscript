@@ -95,7 +95,7 @@ public final class PlayerSystem {
             if (e < 0.33) return 1.00;
             if (e < 0.50) return 1.25;
             if (e < 0.66) return 1.50;
-            return Constants.SPRINT_SPEED_MULT; // 2.0
+            return Constants.SPRINT_SPEED_MULT;
         } else {
             if (e < 0.10) return 0.50;
             if (e < 0.33) return 0.70;
