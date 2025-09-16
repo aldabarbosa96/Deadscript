@@ -9,12 +9,29 @@ public final class PlayerSystem {
     }
 
     public static boolean tryMoveThrottled(GameState s, int dx, int dy, Renderer r) {
+        return tryMoveThrottled(s, dx, dy, r, false);
+    }
+
+    public static boolean tryMoveThrottled(GameState s, int dx, int dy, Renderer r, boolean sprint) {
         long now = System.nanoTime();
-        if (now - s.lastPlayerStepNs < Constants.PLAYER_MOVE_COOLDOWN_NS) return false;
+
+        double mult = sprint ? Constants.SPRINT_SPEED_MULT : 1.0;
+        long cooldown = (long) Math.max(1, (Constants.PLAYER_MOVE_COOLDOWN_NS / mult));
+        if (now - s.lastPlayerStepNs < cooldown) return false;
+
         boolean moved = tryMove(s, dx, dy, r);
-        if (moved) s.lastPlayerStepNs = now;
+        if (moved) {
+            s.lastPlayerStepNs = now;
+
+            // gasto de energía por paso (doble si sprint)
+            double cost = Constants.WALK_STEP_ENERGY_COST *
+                    (sprint ? Constants.SPRINT_ENERGY_MULT : 1.0);
+            s.energiaAcc = clamp(s.energiaAcc - cost, 0, s.maxEnergia);
+            s.energia = (int) Math.round(s.energiaAcc);
+        }
         return moved;
     }
+
 
     private static boolean tryMove(GameState s, int dx, int dy, Renderer r) {
         int nx = s.px + dx, ny = s.py + dy;

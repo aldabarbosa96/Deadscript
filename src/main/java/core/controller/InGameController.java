@@ -44,7 +44,6 @@ public class InGameController {
                     }
                 }
             }
-
             case OPTIONS -> {
                 renderer.log("Abres el menú de opciones.");
                 return Effect.CHANGED;

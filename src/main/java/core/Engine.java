@@ -90,7 +90,7 @@ public class Engine {
             if (!uiOpen) {
                 StickyMove.Vec v = sticky.getAutoDir();
                 if (v.dx != 0 || v.dy != 0) {
-                    if (PlayerSystem.tryMoveThrottled(state, v.dx, v.dy, renderer)) dirty = true;
+                    if (PlayerSystem.tryMoveThrottled(state, v.dx, v.dy, renderer, true)) dirty = true;
                 }
             }
 
