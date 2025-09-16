@@ -32,7 +32,7 @@ public final class Constants {
 
     // Reloj
     public static final double FIXED_DT = 1.0 / 60.0;
-    public static final long RENDER_MIN_INTERVAL_NS = 200_000_000L;
+    public static final long RENDER_MIN_INTERVAL_NS = 50_000_000L;
     public static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     // Renderizado

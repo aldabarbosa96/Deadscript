@@ -112,7 +112,7 @@ public class Engine {
             }
 
             try {
-                Thread.sleep(5);
+                Thread.sleep(3);
             } catch (InterruptedException ignored) {
             }
         }
@@ -136,19 +136,26 @@ public class Engine {
         int vx = dx, vy = dy;
 
         if (isStickyActive(now)) {
+
             boolean changed = false;
             int ndx = stickDx, ndy = stickDy;
-            if (dx != 0) {
+            if (dx != 0) {        // flecha horizontal
                 ndx = dx;
+                ndy = 0;          // limpiamos el otro eje
                 changed = true;
             }
-            if (dy != 0) {
+            if (dy != 0) {        // flecha vertical
                 ndy = dy;
+                ndx = 0;          // limpiamos el otro eje
                 changed = true;
             }
-            if (changed || belongsToSticky(c)) renewSticky(now);
-            vx = ndx;
-            vy = ndy;
+            if (changed) {
+                setSticky(ndx, ndy, now);   // ¡actualiza dirección del sticky!
+            } else if (belongsToSticky(c)) {
+                renewSticky(now);           // misma componente: solo renueva
+            }
+            vx = stickDx;
+            vy = stickDy;
 
             state.lastDx = vx;
             state.lastDy = vy;
@@ -482,7 +489,8 @@ public class Engine {
             case QUIT -> {
                 return true;
             }
-            default -> {}
+            default -> {
+            }
         }
         return false;
     }
@@ -506,7 +514,8 @@ public class Engine {
             case QUIT -> {
                 return true;
             }
-            default -> {}
+            default -> {
+            }
         }
         return false;
     }
@@ -551,6 +560,7 @@ public class Engine {
             default -> "-";
         };
     }
+
     public void shutdown() {
         if (ambient != null) ambient.close();
         renderer.shutdown();
