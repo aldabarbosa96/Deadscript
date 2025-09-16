@@ -8,6 +8,7 @@ import world.Entity;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import static utils.EntityUtil.findTopEntityAt;
 
 
@@ -16,7 +17,6 @@ public final class WorldActionSystem {
     }
 
     public static void openContextActions(GameState s, Renderer r) {
-        // Determinar casilla objetivo como hace el inspector:
         int dx = s.lastDx, dy = s.lastDy;
         boolean hasDir = !(dx == 0 && dy == 0);
         int tx = s.px + (hasDir ? dx : 0);
@@ -30,7 +30,6 @@ public final class WorldActionSystem {
 
         Entity targetEnt = findTopEntityAt(s, tx, ty);
 
-        // Si no hay dirección y tampoco entidad, mirar bajo los pies (como el inspector)
         if (!hasDir && targetEnt == null) {
             Entity under = findTopEntityAt(s, s.px, s.py);
             if (under != null) {
@@ -60,7 +59,7 @@ public final class WorldActionSystem {
         int idx = Math.max(0, Math.min(s.worldActionSel, s.worldActions.size() - 1));
         String action = s.worldActions.get(idx);
         boolean changed = applyAction(s, action, r);
-        // cerrar menú
+
         s.worldActionsOpen = false;
         return changed;
     }
@@ -84,14 +83,13 @@ public final class WorldActionSystem {
             switch (t) {
                 case '.' -> out.add("Cavar");
                 case '#' -> {
-                    // Si estás escondido en ESTE árbol, muestra "Salir"; si no, "Esconderse".
                     boolean onSameTree = (s.px == tx && s.py == ty) && s.escondido;
                     if (onSameTree) out.add("Salir");
                     else out.add("Esconderse");
                     out.add("Rebuscar");
                 }
                 default -> {
-                    // Por ahora no definimos más; puedes ampliar aquí.
+                    //todo --> manejar muchas más variedad de opciones
                 }
             }
         }
@@ -140,7 +138,6 @@ public final class WorldActionSystem {
                     r.log("No estabas escondido.");
                     return false;
                 }
-                // Intentar regresar a donde estabas
                 int ex = s.hidePrevX, ey = s.hidePrevY;
                 boolean moved = false;
                 if (ex >= 0 && ey >= 0 && ex < s.map.w && ey < s.map.h && s.map.walk[ey][ex]) {
@@ -148,7 +145,7 @@ public final class WorldActionSystem {
                     s.py = ey;
                     moved = true;
                 } else {
-                    // Buscar casilla transitable adyacente
+                    // Buscamos casilla transitable adyacente
                     int[][] dirs = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
                     for (int[] d : dirs) {
                         int nx = s.px + d[0], ny = s.py + d[1];

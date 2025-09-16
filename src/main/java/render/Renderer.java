@@ -98,7 +98,7 @@ public class Renderer {
     }
 
     public void renderAll(GameState s) {
-        String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String hora = LocalTime.now().format(TS_FMT);
         hud.renderHud(1, hora, "Soleado", s.temperaturaC, s.ubicacion, s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.px, s.py, rumboTexto(s.lastDx, s.lastDy));
         states.renderStates(s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.sangrado, s.infeccionPct, s.escondido);
 

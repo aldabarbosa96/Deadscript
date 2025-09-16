@@ -9,6 +9,8 @@ import systems.ZombieSystem;
 import ui.input.InputHandler;
 import utils.AudioLoop;
 
+import static game.Constants.*;
+
 public class Engine {
     private final InputHandler input;
     private final GameState state = new GameState();
@@ -17,11 +19,6 @@ public class Engine {
     private AudioLoop ambient;
     private boolean running = true;
     private boolean dirty = true;
-    private static final long MS = 1_000_000L;
-    private static final long COMBINE_WINDOW_MS = 180;
-    private static final long STICKY_RENEW_MS = 260;
-    private static final long COMBINE_WINDOW_NS = COMBINE_WINDOW_MS * MS;
-    private static final long STICKY_RENEW_NS = STICKY_RENEW_MS * MS;
 
     private long lastUpNs = 0, lastDownNs = 0, lastLeftNs = 0, lastRightNs = 0;
 
@@ -34,7 +31,7 @@ public class Engine {
 
         try {
             ambient = new AudioLoop("/audio/forestAmbient1.wav");
-            ambient.setGainDb(-14f);
+            ambient.setGainDb(-7.5f);
             ambient.start();
         } catch (RuntimeException ex) {
             System.err.println("No se pudo iniciar audio ambiente: " + ex.getMessage());
