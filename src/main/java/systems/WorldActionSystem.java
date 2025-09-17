@@ -4,6 +4,7 @@ import game.GameState;
 import items.Equipment;
 import items.Item;
 import render.Renderer;
+import utils.AudioManager;
 import world.Entity;
 
 import java.util.ArrayList;
@@ -134,6 +135,7 @@ public final class WorldActionSystem {
                 s.inventory.add(ent.item);
                 s.entities.remove(ent);
                 r.log("Recojes: " + ent.item.getNombre() + " (guardado en la mochila).");
+                AudioManager.playUi("/audio/backpackZip1.wav");
                 return true;
             }
             case "cavar" -> {

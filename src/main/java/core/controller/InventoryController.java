@@ -6,6 +6,7 @@ import items.Item;
 import render.Renderer;
 import systems.ItemActionSystem;
 import ui.input.InputHandler;
+import utils.AudioManager;
 
 public class InventoryController {
     public Effect handle(InputHandler.Command c, GameState state, Renderer renderer, StickyMove move) {

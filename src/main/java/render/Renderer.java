@@ -1,6 +1,8 @@
 package render;
 
 import items.Equipment;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
 import ui.menu.*;
 import ui.menu.player.EquipmentPanel;
 import ui.menu.player.PlayerHud;
@@ -24,81 +26,50 @@ public class Renderer {
     private int inspectTop, inspectLeft, inspectW, inspectH;
     private final InventoryView invOverlay = new InventoryView();
     private final EquipmentView equipOverlay = new EquipmentView();
+    private Terminal term;
+    private int lastCols = -1, lastRows = -1;
 
-    public void init(GameState s) {
+    public void init(GameState s, Terminal term) {
+        this.term = term;
+
         ANSI.setEnabled(true);
         ANSI.useAltScreen(true);
         ANSI.setCursorVisible(false);
         ANSI.setWrap(false);
 
-        int equipWidth = Math.max(18, Math.min(VIEW_W, 140) - EQUIP_LEFT);
-        int headerWidth = (EQUIP_LEFT + equipWidth) - HUD_LEFT;
-
-        hud = new PlayerHud(1, HUD_LEFT, headerWidth, STATS_WIDTH);
-        states = new PlayerStates(3, STATES_LEFT, STATES_WIDTH);
-        equip = new EquipmentPanel(3, EQUIP_LEFT, equipWidth, EQUIP_ROWS);
-
-        int viewW = Math.min(headerWidth, s.map.w);
-        int viewH = Math.min(VIEW_H, s.map.h);
-        mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, s.map, 2.0);
-
-        int logTop = MAP_TOP + 2 + viewH + 1;
-        int inspectWMin = 24;
-        int proposedInspect = Math.max(inspectWMin, headerWidth / 4);
-        int logW = Math.max(32, headerWidth - proposedInspect - 1);
-        int finalInspect = Math.max(inspectWMin, headerWidth - logW - 1);
-
-        msgLog = new MessageLog(logTop, MAP_LEFT, logW, LOG_ROWS);
-        msgLog.add(String.format("Día %d: %s, %d°C, Zona: %s", 1, "Soleado", s.temperaturaC, s.ubicacion + " (Bosque)"));
-        msgLog.add(String.format("Posición inicial: (%d,%d).", s.px, s.py));
-
+        hud = null;
+        states = null;
+        equip = null;
         inspect = new InspectView();
-        inspectTop = logTop;
-        inspectLeft = MAP_LEFT + logW + 1;
-        inspectW = finalInspect;
-        inspectH = LOG_ROWS;
+        msgLog = new MessageLog(1, 1, 40, 8);
+        actionBar = new ActionBar(1, 1, 40);
 
-        int menuTop = logTop + LOG_ROWS + 1;
-        actionBar = new ActionBar(menuTop, MAP_LEFT, headerWidth);
-
+        recomputeLayout(s, true);
         ANSI.clearScreenAndHome();
-        ANSI.setScrollRegion(MAP_TOP + 2, MAP_TOP + 2 + viewH - 1);
-        mapView.prefill();
-
         renderAll(s);
     }
 
+
     public void onMapChanged(GameState s) {
-        int equipWidth = Math.max(18, Math.min(VIEW_W, 140) - EQUIP_LEFT);
-        int headerWidth = (EQUIP_LEFT + equipWidth) - HUD_LEFT;
-
-        int viewW = Math.min(headerWidth, s.map.w);
-        int viewH = Math.min(VIEW_H, s.map.h);
-        mapView = new MapView(MAP_TOP, MAP_LEFT, viewW, viewH, 18, s.map, 2.0);
-        mapView.prefill();
-
-        int logTop = MAP_TOP + 2 + viewH + 1;
-        int inspectWMin = 24;
-        int proposedInspect = Math.max(inspectWMin, headerWidth / 4);
-        int logW = Math.max(32, headerWidth - proposedInspect - 1);
-        int finalInspect = Math.max(inspectWMin, headerWidth - logW - 1);
-
-        msgLog.updateGeometry(logTop, MAP_LEFT, logW, LOG_ROWS);
-
-        inspectTop = logTop;
-        inspectLeft = MAP_LEFT + logW + 1;
-        inspectW = finalInspect;
-        inspectH = LOG_ROWS;
-
-        int menuTop = logTop + LOG_ROWS + 1;
-        actionBar.updateGeometry(menuTop, MAP_LEFT, headerWidth);
-
-        ANSI.setScrollRegion(MAP_TOP + 2, MAP_TOP + 2 + viewH - 1);
+        recomputeLayout(s, false);
     }
 
+
     public void renderAll(GameState s) {
+        if (term != null) {
+            Size sz = term.getSize();
+            int cols = Math.max(1, sz.getColumns());
+            int rows = Math.max(1, sz.getRows());
+            if (cols != lastCols || rows != lastRows) {
+                ANSI.resetScrollRegion();
+                ANSI.clearScreenAndHome();
+                recomputeLayout(s, false);
+            }
+        }
+
         String hora = LocalTime.now().format(TS_FMT);
         hud.renderHud(1, hora, "Soleado", s.temperaturaC, s.ubicacion, s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.px, s.py, rumboTexto(s.lastDx, s.lastDy));
+
         states.renderStates(s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.sangrado, s.infeccionPct, s.escondido);
 
         Equipment eq = s.equipment;
@@ -160,6 +131,7 @@ public class Renderer {
         ANSI.gotoRC(1, 1);
         ANSI.flush();
     }
+
 
     private void renderEntities(GameState s) {
         int camX = cameraX(s), camY = cameraY(s);
@@ -329,6 +301,104 @@ public class Renderer {
             if (e != null && e.type == world.Entity.Type.LOOT) return e;
         }
         return null;
+    }
+
+    private void recomputeLayout(GameState s, boolean firstTime) {
+        int cols = 120, rows = 40;
+        if (term != null) {
+            Size sz = term.getSize();
+            cols = Math.max(60, sz.getColumns());
+            rows = Math.max(24, sz.getRows());
+        }
+        lastCols = cols;
+        lastRows = rows;
+
+        int headerWidth = Math.max(40, cols - HUD_LEFT);
+
+        final int gap = GAP;
+        final int minStats = 36;
+        final int minStates = 24;
+        final int minEquip = 18;
+        int availTop = Math.max(0, headerWidth - 2 * gap);
+        int wStats = (int) Math.round(availTop * 0.42);
+        int wStates = (int) Math.round(availTop * 0.26);
+        int wEquip = availTop - wStats - wStates;
+        if (wStats < minStats || wStates < minStates || wEquip < minEquip) {
+            wStats = Math.max(minStats, wStats);
+            wStates = Math.max(minStates, wStates);
+            wEquip = Math.max(minEquip, wEquip);
+            int used = wStats + wStates + wEquip;
+            if (used > availTop) {
+                int overflow = used - availTop;
+                while (overflow > 0) {
+                    if (wStats >= wStates && wStats >= wEquip && wStats > minStats) {
+                        wStats--;
+                        overflow--;
+                        continue;
+                    }
+                    if (wStates >= wStats && wStates >= wEquip && wStates > minStates) {
+                        wStates--;
+                        overflow--;
+                        continue;
+                    }
+                    if (wEquip > minEquip) {
+                        wEquip--;
+                        overflow--;
+                        continue;
+                    }
+                    break;
+                }
+            }
+        }
+        int statsLeft = HUD_LEFT;
+        int statesLeft = statsLeft + wStats + gap;
+        int equipLeft = statesLeft + wStates + gap;
+
+        hud = new PlayerHud(1, statsLeft, headerWidth, wStats);
+        states = new PlayerStates(3, statesLeft, wStates);
+        int equipRows = Math.min(EQUIP_ROWS, Math.max(6, MAP_TOP - 4));
+        equip = new EquipmentPanel(3, equipLeft, wEquip, equipRows);
+
+        final int mapTop = MAP_TOP;
+        final int mapFrame = 2;
+        final int gapMapLog = 1;
+        final int actionBarH = 3;
+        final int minMapH = 8;
+        final int minLogH = 5;
+        int desiredLogH = Math.min(LOG_ROWS, Math.max(minLogH, rows / 6));
+        int viewH = rows - (mapTop + mapFrame + gapMapLog + desiredLogH + actionBarH);
+        if (viewH < minMapH) {
+            desiredLogH = minLogH;
+            viewH = rows - (mapTop + mapFrame + gapMapLog + desiredLogH + actionBarH);
+            if (viewH < minMapH) viewH = minMapH;
+        }
+
+        int viewW = Math.min(headerWidth, s.map.w);
+        mapView = new MapView(mapTop, MAP_LEFT, viewW, Math.min(viewH, s.map.h), 18, s.map, 2.0);
+        mapView.prefill();
+
+        int logTop = mapTop + mapFrame + viewH + gapMapLog;
+        int inspectWMin = 24;
+        int proposedInspect = Math.max(inspectWMin, headerWidth / 4);
+        int logW = Math.max(32, headerWidth - proposedInspect - 1);
+        int finalInspect = Math.max(inspectWMin, headerWidth - logW - 1);
+
+        if (msgLog == null) {
+            msgLog = new MessageLog(logTop, MAP_LEFT, logW, desiredLogH);
+        } else {
+            msgLog.updateGeometry(logTop, MAP_LEFT, logW, desiredLogH);
+        }
+
+        inspectTop = logTop;
+        inspectLeft = MAP_LEFT + logW + 1;
+        inspectW = finalInspect;
+        inspectH = desiredLogH;
+
+        int menuTop = logTop + desiredLogH + 1;
+        if (actionBar == null) actionBar = new ActionBar(menuTop, MAP_LEFT, headerWidth);
+        else actionBar.updateGeometry(menuTop, MAP_LEFT, headerWidth);
+
+        ANSI.setScrollRegion(mapTop + 2, mapTop + 2 + viewH - 1);
     }
 
 

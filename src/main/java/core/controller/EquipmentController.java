@@ -7,6 +7,7 @@ import items.Item;
 import render.Renderer;
 import systems.ItemActionSystem;
 import ui.input.InputHandler;
+import utils.AudioManager;
 
 import java.util.ArrayList;
 
@@ -33,6 +34,7 @@ public class EquipmentController {
 
                 move.reset();
                 renderer.log("Abres el inventario.");
+                AudioManager.playUi("/audio/backpackZip1.wav");
                 return Effect.CHANGED;
             }
             case UP, LEFT -> {

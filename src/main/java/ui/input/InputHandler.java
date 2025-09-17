@@ -112,4 +112,8 @@ public class InputHandler implements AutoCloseable {
         } catch (InterruptedException ignore) {
         }
     }
+
+    public Terminal getTerminal() {
+        return terminal;
+    }
 }

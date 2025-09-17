@@ -7,6 +7,7 @@ import systems.CombatSystem;
 import systems.LootSystem;
 import systems.WorldActionSystem;
 import ui.input.InputHandler;
+import utils.AudioManager;
 
 public class InGameController {
     public Effect handle(InputHandler.Command c, GameState state, Renderer renderer, StickyMove move) {
@@ -17,6 +18,7 @@ public class InGameController {
                     state.equipmentOpen = false;
                     move.reset();
                     renderer.log("Abres el inventario.");
+                    AudioManager.playUi("/audio/backpackZip1.wav");
                     return Effect.CHANGED;
                 }
             }

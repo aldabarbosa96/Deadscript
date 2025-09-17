@@ -6,14 +6,14 @@ import render.Renderer;
 import systems.PlayerSystem;
 import systems.ZombieSystem;
 import ui.input.InputHandler;
-import utils.AudioLoop;
+import utils.AudioManager;
 
 public class Engine {
     private final InputHandler input;
     private final GameState state = new GameState();
     private final Renderer renderer = new Renderer();
     private final Clock clock = new Clock();
-    private AudioLoop ambient;
+    private AudioManager ambient;
     private boolean running = true;
     private boolean dirty = true;
     private final StickyMove sticky = new StickyMove();
@@ -24,7 +24,7 @@ public class Engine {
 
     public Engine(InputHandler input) {
         this.input = input;
-        renderer.init(state);
+        renderer.init(state, input.getTerminal());
 
         try {
             systems.LootSystem.scatterInitialLoot(state, renderer);
@@ -33,12 +33,11 @@ public class Engine {
         }
 
         try {
-            ambient = new AudioLoop("/audio/forestAmbient1.wav");
-            ambient.setGainDb(-7.5f);
-            ambient.start();
+            AudioManager.startLoop("ambient", "/audio/forestAmbient1.wav", -7.5f);
         } catch (RuntimeException ex) {
             System.err.println("No se pudo iniciar audio ambiente: " + ex.getMessage());
         }
+
 
         clock.start();
         clock.onRendered();
@@ -133,7 +132,7 @@ public class Engine {
     }
 
     public void shutdown() {
-        if (ambient != null) ambient.close();
+        if (ambient != null) AudioManager.shutdown();;
         renderer.shutdown();
     }
 }
