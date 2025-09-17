@@ -200,7 +200,7 @@ public final class WorldActionSystem {
         }
     }
 
-    private static Entity pickLootNearPlayer(GameState s) {
+    public static Entity pickLootNearPlayer(GameState s) {
         int px = s.px, py = s.py;
         int dx = s.lastDx, dy = s.lastDy;
         int[][] candidates = new int[][]{{px, py}, {px + dx, py + dy}, {px + 1, py}, {px - 1, py}, {px, py + 1}, {px, py - 1}, {px + 1, py + 1}, {px + 1, py - 1}, {px - 1, py + 1}, {px - 1, py - 1}};

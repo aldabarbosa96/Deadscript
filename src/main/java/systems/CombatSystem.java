@@ -70,7 +70,7 @@ public final class CombatSystem {
         return Math.max(1, (int) Math.round(out));
     }
 
-    private static Entity pickAdjacentZombie(GameState s) {
+    public static Entity pickAdjacentZombie(GameState s) {
         int[][] dirs = new int[][]{{s.lastDx, s.lastDy}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
         for (int[] d : dirs) {
             int dx = d[0], dy = d[1];
@@ -81,6 +81,10 @@ public final class CombatSystem {
             }
         }
         return null;
+    }
+
+    public static boolean anyAdjacentZombie(GameState s) {
+        return pickAdjacentZombie(s) != null;
     }
 
     private static Item chooseBestWeapon(GameState s) {

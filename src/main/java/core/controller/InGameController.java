@@ -35,9 +35,19 @@ public class InGameController {
                 renderer.log("Abres el panel de estadísticas.");
                 return Effect.CHANGED;
             }
+
             case ACTION -> {
                 if (!state.worldActionsOpen) {
                     move.reset();
+
+                    if (CombatSystem.anyAdjacentZombie(state)) {
+                        CombatSystem.quickAttack(state, renderer);
+                        return Effect.CHANGED;
+                    }
+                    if (WorldActionSystem.pickLootNearPlayer(state) != null) {
+                        WorldActionSystem.openContextActions(state, renderer);
+                        return Effect.CHANGED;
+                    }
                     if (CombatSystem.anyVisibleHostileInMainFov(state, renderer)) {
                         CombatSystem.quickAttack(state, renderer);
                         return Effect.CHANGED;

@@ -273,8 +273,6 @@ public class Renderer {
         int px = s.px, py = s.py;
         int dx = s.lastDx, dy = s.lastDy;
 
-        // Prioridad: 1) misma casilla, 2) frente a la dirección,
-        // 3) ortogonales, 4) diagonales. Evita duplicados si (dx,dy)==(0,0).
         int[][] candidates = new int[][]{{px, py}, {px + dx, py + dy}, {px + 1, py}, {px - 1, py}, {px, py + 1}, {px, py - 1}, {px + 1, py + 1}, {px + 1, py - 1}, {px - 1, py + 1}, {px - 1, py - 1}};
 
         java.util.HashSet<Long> seen = new java.util.HashSet<>();
