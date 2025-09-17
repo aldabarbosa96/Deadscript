@@ -4,6 +4,7 @@ import core.StickyMove;
 import game.GameState;
 import render.Renderer;
 import systems.CombatSystem;
+import systems.LootSystem;
 import systems.WorldActionSystem;
 import ui.input.InputHandler;
 
@@ -51,6 +52,7 @@ public class InGameController {
             case REGENERATE -> {
                 state.resetMap();
                 renderer.onMapChanged(state);
+                LootSystem.scatterInitialLoot(state, renderer);
                 renderer.log("Nuevo mapa generado.");
                 return Effect.CHANGED;
             }

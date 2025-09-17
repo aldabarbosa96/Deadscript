@@ -25,7 +25,7 @@ public final class ZombieSystem {
 
         // Movimiento + golpes
         Map<Integer, Entity> leaders = new HashMap<>();
-        for (Entity e : s.entities) if (e.leader) leaders.put(e.groupId, e);
+        for (Entity e : s.entities)   if (e.type != Entity.Type.ZOMBIE) continue;;
 
         for (var e : s.entities) {
             int beforeX = e.x, beforeY = e.y;

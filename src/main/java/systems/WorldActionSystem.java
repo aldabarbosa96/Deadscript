@@ -76,8 +76,14 @@ public final class WorldActionSystem {
     private static List<String> buildActionsList(GameState s, int tx, int ty, Entity ent) {
         ArrayList<String> out = new ArrayList<>();
 
-        if (ent != null && ent.type == Entity.Type.ZOMBIE) {
-            out.add("Atacar");
+        if (ent != null) {
+            if (ent.type == Entity.Type.ZOMBIE) {
+                out.add("Atacar");
+            } else if (ent.type == Entity.Type.LOOT) {
+                out.add("Lootear");
+            } else {
+                // todo --> gestionar más opciones de acción
+            }
         } else {
             char t = s.map.tiles[ty][tx];
             switch (t) {
@@ -89,7 +95,6 @@ public final class WorldActionSystem {
                     out.add("Rebuscar");
                 }
                 default -> {
-                    //todo --> manejar muchas más variedad de opciones
                 }
             }
         }
@@ -111,6 +116,16 @@ public final class WorldActionSystem {
         switch (action) {
             case "cancelar" -> {
                 return false;
+            }
+            case "lootear" -> {
+                if (ent == null || ent.type != Entity.Type.LOOT || ent.item == null) {
+                    r.log("No hay nada que lootear aquí.");
+                    return false;
+                }
+                s.inventory.add(ent.item);
+                s.entities.remove(ent);
+                r.log("Recojes: " + ent.item.getNombre() + " (guardado en la mochila).");
+                return true;
             }
             case "cavar" -> {
                 r.log("Cavas el suelo con tus manos. (WIP)");

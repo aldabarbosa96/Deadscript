@@ -175,9 +175,16 @@ public class Renderer {
             ANSI.gotoRC(baseTop + sy, mapView.getLeft() + sx);
             if (vis) {
                 e.revealed = true;
-                ANSI.setFg(31);
+                // Color por tipo: Zombi rojo (31), Loot lila (256c #171 aprox)
+                if (e.type == world.Entity.Type.LOOT) {
+                    // 256-color lilac/purple ~171
+                    System.out.print("\u001B[38;5;171m");
+                } else {
+                    ANSI.setFg(31);
+                }
                 System.out.print(e.glyph);
             } else {
+                // Detectado pero no visible
                 if (e.revealed) {
                     ANSI.setFg(90);
                     System.out.print(e.glyph);

@@ -27,6 +27,12 @@ public class Engine {
         renderer.init(state);
 
         try {
+            systems.LootSystem.scatterInitialLoot(state, renderer);
+        } catch (Throwable t) {
+            System.err.println("No se pudo generar loot inicial: " + t.getMessage());
+        }
+
+        try {
             ambient = new AudioLoop("/audio/forestAmbient1.wav");
             ambient.setGainDb(-7.5f);
             ambient.start();
