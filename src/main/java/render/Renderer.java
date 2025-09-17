@@ -200,36 +200,53 @@ public class Renderer {
     private void renderInspectPanel(GameState s) {
         if (inspect == null || inspectW < 18) return;
 
-        int dx = s.lastDx, dy = s.lastDy;
-
         String title = "OBJETIVO";
         char glyph = ' ';
         String kind = "—";
         java.util.ArrayList<String> lines = new java.util.ArrayList<>();
 
-        // 1) Casilla objetivo = contigua según última dirección.
-        //    Si no hay dirección, usamos la casilla actual SOLO para mostrar entidades bajo los pies.
-        boolean hasDir = !(dx == 0 && dy == 0);
-        int tx = s.px + (hasDir ? dx : 0);
-        int ty = s.py + (hasDir ? dy : 0);
+        int tx, ty;
+        world.Entity found = null;
 
+        if (s.worldActionsOpen) {
+            tx = s.worldTx;
+            ty = s.worldTy;
+            found = s.worldTarget;
+        } else {
+            world.Entity nearLoot = findNearbyLoot(s);
+            if (nearLoot != null) {
+                tx = nearLoot.x;
+                ty = nearLoot.y;
+                found = nearLoot;
+            } else {
+                int dx = s.lastDx, dy = s.lastDy;
+                boolean hasDir = !(dx == 0 && dy == 0);
+                tx = s.px + (hasDir ? dx : 0);
+                ty = s.py + (hasDir ? dy : 0);
+
+                if (tx < 0 || ty < 0 || tx >= s.map.w || ty >= s.map.h) {
+                    lines.add("Fuera del mapa.");
+                    inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, lines);
+                    return;
+                }
+
+                found = utils.EntityUtil.findTopEntityAt(s, tx, ty);
+                if (found == null) {
+                    world.Entity under = utils.EntityUtil.findTopEntityAt(s, s.px, s.py);
+                    if (under != null) {
+                        found = under;
+                        tx = s.px;
+                        ty = s.py;
+                    }
+                }
+            }
+        }
+
+        // Bordes por seguridad
         if (tx < 0 || ty < 0 || tx >= s.map.w || ty >= s.map.h) {
             lines.add("Fuera del mapa.");
             inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, lines);
             return;
-        }
-
-        // 2) Entidad en la casilla objetivo (prevalece sobre el terreno)
-        world.Entity found = findTopEntityAt(s, tx, ty);
-
-        // 3) Si NO hay dirección y NO hay entidad en objetivo
-        if (found == null) {
-            world.Entity under = findTopEntityAt(s, s.px, s.py);
-            if (under != null) {
-                found = under;
-                tx = s.px;
-                ty = s.py;
-            }
         }
 
         boolean vis = wasVisibleLastRender(tx, ty);
@@ -242,31 +259,78 @@ public class Renderer {
                 case LOOT -> "Botín";
                 default -> "Entidad";
             };
-            String name = entityName(found);
+
+            // Nombre amigable; si es LOOT, usa el nombre del ítem
+            String name = (found.type == world.Entity.Type.LOOT && found.item != null) ? found.item.getNombre() : utils.EntityUtil.entityName(found);
+
             title = "OBJETIVO: " + name;
 
             lines.add(String.format("Pos: (%d,%d)", tx, ty));
             lines.add("Tipo: " + kind);
             lines.add("Visible: " + (vis ? "Sí" : det ? "Detectado" : "No"));
-            lines.add("Terreno: " + tileName(s.map.tiles[ty][tx], s.map.indoor[ty][tx]));
+            lines.add("Terreno: " + utils.EntityUtil.tileName(s.map.tiles[ty][tx], s.map.indoor[ty][tx]));
             lines.add("Transitable: " + (s.map.walk[ty][tx] ? "Sí" : "No"));
+
+            // Detalle extra cuando sea LOOT
+            if (found.type == world.Entity.Type.LOOT && found.item != null) {
+                var it = found.item;
+                lines.add("Objeto: " + it.getNombre());
+                lines.add(String.format("Peso: %.3f kg  Condición: %d%%", it.getPesoKg(), it.getDurabilidadPct()));
+                if (it.getWeapon() != null) {
+                    lines.add(String.format("Arma • Daño:%d  Manos:%d  Cadencia:%.2fs", it.getWeapon().danho(), it.getWeapon().manos(), it.getWeapon().cooldownSec()));
+                }
+                if (it.getArmor() != null) {
+                    lines.add(String.format("Armadura • Prot:%d  Abrigo:%d", it.getArmor().proteccion(), it.getArmor().abrigo()));
+                }
+                if (it.getContainer() != null) {
+                    lines.add(String.format("Contenedor • Capacidad: %.2f kg", it.getContainer().capacidadKg()));
+                }
+                if (it.getWearableSlot() != null) {
+                    lines.add("Slot: " + it.getWearableSlot().name());
+                }
+                String desc = it.getDescripcion();
+                if (desc != null && !desc.isBlank()) lines.add(desc);
+            }
         } else {
+            // Terreno
             char t = s.map.tiles[ty][tx];
             glyph = t;
             kind = "Terreno";
-            title = "OBJETIVO: " + tileName(t, s.map.indoor[ty][tx]);
+            title = "OBJETIVO: " + utils.EntityUtil.tileName(t, s.map.indoor[ty][tx]);
 
             lines.add(String.format("Pos: (%d,%d)", tx, ty));
             lines.add("Visible: " + (vis ? "Sí" : det ? "Detectado" : "No"));
             lines.add("Tipo: " + kind);
             lines.add("Transitable: " + (s.map.walk[ty][tx] ? "Sí" : "No"));
 
-            String extra = tileHint(t);
+            String extra = utils.EntityUtil.tileHint(t);
             if (!extra.isEmpty()) lines.add(extra);
         }
 
         inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, lines);
     }
+
+    private world.Entity findNearbyLoot(GameState s) {
+        int px = s.px, py = s.py;
+        int dx = s.lastDx, dy = s.lastDy;
+
+        // Prioridad: 1) misma casilla, 2) frente a la dirección,
+        // 3) ortogonales, 4) diagonales. Evita duplicados si (dx,dy)==(0,0).
+        int[][] candidates = new int[][]{{px, py}, {px + dx, py + dy}, {px + 1, py}, {px - 1, py}, {px, py + 1}, {px, py - 1}, {px + 1, py + 1}, {px + 1, py - 1}, {px - 1, py + 1}, {px - 1, py - 1}};
+
+        java.util.HashSet<Long> seen = new java.util.HashSet<>();
+        for (int[] c : candidates) {
+            int x = c[0], y = c[1];
+            if (x < 0 || y < 0 || x >= s.map.w || y >= s.map.h) continue;
+            long key = (((long) x) << 32) ^ (y & 0xffffffffL);
+            if (!seen.add(key)) continue;
+
+            world.Entity e = utils.EntityUtil.findTopEntityAt(s, x, y);
+            if (e != null && e.type == world.Entity.Type.LOOT) return e;
+        }
+        return null;
+    }
+
 
     public boolean wasVisibleLastRender(int x, int y) {
         return mapView.wasVisibleLastRender(x, y);

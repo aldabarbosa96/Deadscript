@@ -7,6 +7,7 @@ import render.Renderer;
 import world.Entity;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import static utils.EntityUtil.findTopEntityAt;
@@ -36,6 +37,14 @@ public final class WorldActionSystem {
                 targetEnt = under;
                 tx = s.px;
                 ty = s.py;
+            }
+        }
+        if (targetEnt == null || targetEnt.type != Entity.Type.LOOT) {
+            Entity nearLoot = pickLootNearPlayer(s);
+            if (nearLoot != null) {
+                targetEnt = nearLoot;
+                tx = nearLoot.x;
+                ty = nearLoot.y;
             }
         }
 
@@ -188,6 +197,25 @@ public final class WorldActionSystem {
             }
         }
     }
+
+    private static Entity pickLootNearPlayer(GameState s) {
+        int px = s.px, py = s.py;
+        int dx = s.lastDx, dy = s.lastDy;
+        int[][] candidates = new int[][]{{px, py}, {px + dx, py + dy}, {px + 1, py}, {px - 1, py}, {px, py + 1}, {px, py - 1}, {px + 1, py + 1}, {px + 1, py - 1}, {px - 1, py + 1}, {px - 1, py - 1}};
+
+        HashSet<Long> seen = new HashSet<>();
+        for (int[] c : candidates) {
+            int x = c[0], y = c[1];
+            if (x < 0 || y < 0 || x >= s.map.w || y >= s.map.h) continue;
+            long key = (((long) x) << 32) ^ (y & 0xffffffffL);
+            if (!seen.add(key)) continue; // evita duplicados si (dx,dy) era (0,0)
+
+            Entity e = findTopEntityAt(s, x, y);
+            if (e != null && e.type == Entity.Type.LOOT) return e;
+        }
+        return null;
+    }
+
 
     private static String armaActualTexto(Equipment eq) {
         Item main = eq.getMainHand();

@@ -23,14 +23,22 @@ public final class ZombieSystem {
             if (trySpawnGroup(s, r)) touched = true;
         }
 
-        // Movimiento + golpes
+        // Movimiento + golpes SOLO para zombis
         Map<Integer, Entity> leaders = new HashMap<>();
-        for (Entity e : s.entities)   if (e.type != Entity.Type.ZOMBIE) continue;;
+        // 1) Indexar líderes por grupo
+        for (Entity e : s.entities) {
+            if (e.type == Entity.Type.ZOMBIE && e.leader) {
+                leaders.put(e.groupId, e);
+            }
+        }
 
-        for (var e : s.entities) {
+        // 2) Actualizar cada zombi
+        for (Entity e : s.entities) {
+            if (e.type != Entity.Type.ZOMBIE) continue; // <<< CLAVE: ignorar loot u otras entidades
+
             int beforeX = e.x, beforeY = e.y;
 
-            // objetivo
+            // objetivo (seguir al líder o al jugador)
             int tx, ty;
             if (e.leader) {
                 tx = s.px;
@@ -74,7 +82,7 @@ public final class ZombieSystem {
                 if (wasOnCam || nowOnCam || wasVis || nowVis) touched = true;
             }
 
-            // ataque
+            // ataque (sólo zombis)
             if (e.attackCooldown > 0) e.attackCooldown -= dt;
             if (e.x == s.px && e.y == s.py && e.attackCooldown <= 0) {
                 int prot = Math.max(0, s.equipment.proteccionTotal());
@@ -84,7 +92,7 @@ public final class ZombieSystem {
                 e.attackCooldown = Constants.ZOMBIE_ATTACK_COOLDOWN_SEC;
                 r.log("¡Un zombi te ha golpeado!");
 
-                for (Item part : new Item[]{s.equipment.getHead(), s.equipment.getChest(), s.equipment.getHands(), s.equipment.getLegs(), s.equipment.getFeet()}) {
+                for (items.Item part : new items.Item[]{s.equipment.getHead(), s.equipment.getChest(), s.equipment.getHands(), s.equipment.getLegs(), s.equipment.getFeet()}) {
                     if (part != null && part.getArmor() != null) part.consumirDurabilidad(1 + s.rng.nextInt(2));
                 }
                 touched = true;
@@ -92,6 +100,7 @@ public final class ZombieSystem {
         }
         return touched;
     }
+
 
     private static boolean trySpawnGroup(GameState s, Renderer r) {
         if (s.entities.size() >= Constants.MAX_ZOMBIES) return false;
