@@ -88,6 +88,10 @@ public class Engine {
 
             boolean uiOpen = state.inventoryOpen || state.equipmentOpen || state.worldActionsOpen;
 
+            if (renderer.ensureLayoutUpToDate(state)) {
+                dirty = true;
+            }
+
             // 2) AUTO-MOVE (mientras haya sticky activo y no hay UI encima)
             if (!uiOpen) {
                 StickyMove.Vec v = sticky.getAutoDir();
@@ -132,7 +136,8 @@ public class Engine {
     }
 
     public void shutdown() {
-        if (ambient != null) AudioManager.shutdown();;
+        if (ambient != null) AudioManager.shutdown();
+        ;
         renderer.shutdown();
     }
 }

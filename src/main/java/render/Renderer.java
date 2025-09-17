@@ -427,6 +427,18 @@ public class Renderer {
         msgLog.add(m);
     }
 
+    public boolean ensureLayoutUpToDate(GameState s) {
+        if (term == null) return false;
+        org.jline.terminal.Size sz = term.getSize();
+        int cols = Math.max(1, sz.getColumns());
+        int rows = Math.max(1, sz.getRows());
+        if (cols != lastCols || rows != lastRows) {
+            recomputeLayout(s, false);
+            return true;
+        }
+        return false;
+    }
+
     public void shutdown() {
         ANSI.resetScrollRegion();
         ANSI.setWrap(true);
