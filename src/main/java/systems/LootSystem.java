@@ -11,25 +11,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Generación y dispersión de botín ('?') por el mapa.
- */
 public final class LootSystem {
     private LootSystem() {
     }
 
     public static void scatterInitialLoot(GameState s, Renderer r) {
-        // Limpiar posibles restos de loot (por si regeneramos)
         s.entities.removeIf(e -> e.type == Entity.Type.LOOT);
 
-        // Catálogo de ítems “generoso”
         List<Item> pool = buildLootPool();
 
-        // Cantidad objetivo según tamaño del mapa (denso pero sin saturar)
         int area = Math.max(1, s.map.w * s.map.h);
         int target = Math.min(200, Math.max(35, area / 500)); // ~0.2% del mapa, cap 200
 
-        // Posiciones ya ocupadas por entidades para evitar solapamientos
         HashSet<Long> used = new HashSet<>();
         for (var e : s.entities) used.add(key(e.x, e.y));
         used.add(key(s.px, s.py)); // no spawnear bajo el jugador
@@ -44,14 +37,12 @@ public final class LootSystem {
             // Sólo en casilla transitable y lejos del jugador
             if (!s.map.walk[y][x]) continue;
             int dx = x - s.px, dy = y - s.py;
-            if (dx * dx + dy * dy < 100) continue; // ≥ 10 tiles
+            if (dx * dx + dy * dy < 100) continue;
 
             long k = key(x, y);
             if (used.contains(k)) continue;
 
-            // Elegimos un ítem al azar de la pool
             Item it = pool.get(rng.nextInt(pool.size()));
-            // Clon sencillo (mismo ítem “instancia” está bien por ahora)
             Entity loot = Entity.loot(x, y, it);
             s.entities.add(loot);
 

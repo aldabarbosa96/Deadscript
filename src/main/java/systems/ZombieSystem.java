@@ -101,11 +101,12 @@ public final class ZombieSystem {
         return touched;
     }
 
-
     private static boolean trySpawnGroup(GameState s, Renderer r) {
-        if (s.entities.size() >= Constants.MAX_ZOMBIES) return false;
+        int curZ = countZombies(s);
+        if (curZ >= Constants.MAX_ZOMBIES) return false;
+        int capacity = Math.max(0, Constants.MAX_ZOMBIES - curZ);
+        int size = Math.min(capacity, 1 + s.rng.nextInt(5));
 
-        int size = 1 + s.rng.nextInt(5);
         double ang = s.rng.nextDouble() * Math.PI * 2.0;
         int dist = Constants.SPAWN_RADIUS_MIN + s.rng.nextInt(Math.max(1, Constants.SPAWN_RADIUS_MAX - Constants.SPAWN_RADIUS_MIN + 1));
 
@@ -116,7 +117,7 @@ public final class ZombieSystem {
         int groupId = s.nextGroupId++;
         boolean anyNear = false;
 
-        for (int i = 0; i < size && s.entities.size() < Constants.MAX_ZOMBIES; i++) {
+        for (int i = 0; i < size; i++) {
             int rx = ax + s.rng.nextInt(5) - 2;
             int ry = ay + s.rng.nextInt(5) - 2;
             if (rx < 0 || ry < 0 || rx >= s.map.w || ry >= s.map.h) continue;
@@ -137,9 +138,14 @@ public final class ZombieSystem {
             z.hp = hp;
 
             s.entities.add(z);
-
             if (r.isNearCamera(rx, ry, s)) anyNear = true;
         }
         return anyNear;
+    }
+
+    private static int countZombies(GameState s) {
+        int z = 0;
+        for (Entity e : s.entities) if (e.type == Entity.Type.ZOMBIE) z++;
+        return z;
     }
 }

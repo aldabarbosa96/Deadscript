@@ -12,9 +12,6 @@ public final class ItemActionSystem {
     private ItemActionSystem() {
     }
 
-    /**
-     * Devuelve las acciones lógicas disponibles para el ítem.
-     */
     public static List<String> actionsFor(GameState s, Item it) {
         ArrayList<String> out = new ArrayList<>();
         if (it == null) return out;
@@ -28,9 +25,6 @@ public final class ItemActionSystem {
         return out;
     }
 
-    /**
-     * Aplica una acción. Devuelve true si cambia el estado/inventario/equipo.
-     */
     public static boolean apply(GameState s, Item it, String action, Renderer r) {
         if (it == null || action == null) return false;
         action = action.trim().toLowerCase();
@@ -91,9 +85,6 @@ public final class ItemActionSystem {
         }
     }
 
-    /**
-     * Lista los ítems del inventario que pueden equiparse en un slot concreto.
-     */
     public static List<Item> equippablesForSlot(GameState s, EquipmentSlot slot) {
         ArrayList<Item> out = new ArrayList<>();
         if (s == null || slot == null) return out;
@@ -123,9 +114,6 @@ public final class ItemActionSystem {
         return out;
     }
 
-    /**
-     * Desequipa lo que haya en un slot y lo devuelve al inventario.
-     */
     public static boolean unequipSlot(GameState s, EquipmentSlot slot, Renderer r) {
         if (s == null || slot == null) return false;
 
@@ -268,7 +256,6 @@ public final class ItemActionSystem {
         }
         return false;
     }
-
 
     private static boolean isEquippable(Item it) {
         // Armaduras/ropa/contenedores usan wearableSlot/armor/container.
