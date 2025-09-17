@@ -1,8 +1,8 @@
 package game;
 
 import items.Equipment;
-import items.EquipmentSlot;
 import items.Item;
+import items.Items;
 import world.Entity;
 import world.GameMap;
 
@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.HashMap;
+import java.util.Map;
 
 public class GameState {
     public GameMap map = GameMap.randomBalanced(800, 600);
@@ -30,6 +32,7 @@ public class GameState {
     public double suenoAcc = sueno;
     public double energiaAcc = energia;
     public long lastPlayerStepNs = 0L;
+
     public final List<Entity> entities = new ArrayList<>();
     public final Random rng = new Random();
     public double spawnTimer = 0.0;
@@ -61,30 +64,30 @@ public class GameState {
     public int worldTx = 0, worldTy = 0;
     public world.Entity worldTarget = null;
     public int hidePrevX = -1, hidePrevY = -1;
-
     public long lastPlayerAttackNs = 0L;
+    public final Map<String, Integer> worldSpawnedByItem = new HashMap<>();
 
     public GameState() {
-        // equipo
-        equipment.setHead(Item.ropa("cap_01", "Gorra", 0.22, EquipmentSlot.HEAD, 1,1, "Gorra de tela descolorida; corta algo el frío y la llovizna."));
-        equipment.setBackpack(Item.mochila("bag_01", "Mochila de tela", 0.77, 20.0, "Mochila de lona sencilla con cremalleras gastadas; suficiente para lo básico."));
-        equipment.setMainHand(Item.arma("knife_01", "Navaja", 0.125, 4, 0.7, 1, "Navaja plegable simple; útil para tareas y defensa cercana."));
-        equipment.setFeet(Item.ropa("shoe_01", "Zapatillas", 0.25, EquipmentSlot.FEET, 2,1, "Zapatillas de estar por casa de la Hello Kitty."));
+        // Equipo inicial (no consume cupos de loot)
+        equipment.setHead(Items.create("cap_01"));
+        equipment.setBackpack(Items.create("bag_01"));
+        equipment.setMainHand(Items.create("knife_01"));
+        equipment.setFeet(Items.create("shoe_01"));
 
-        // inventario
-        inventory.add(Item.consumible("water_01", "Botella de agua (0.5 L)", 0.50, 0, 50, "Botella de plástico de medio litro. *Agua potable*."));
-        inventory.add(Item.consumible("beans_01", "Lata de judías", 0.35, 30, 0, "Lata de alubias en salsa. Se necesita abrelatas o similar para poder abrirse."));
-        inventory.add(Item.curacion("bandage_01", "Venda improvisada", 0.02, 20, "Tira de tela limpia y rasgada; detiene sangrados. *No esterilizada*."));
-        inventory.add(Item.arma("knife_02", "Cuchillo de cocina", 0.13, 5, 1, 1, "Cuchillo de cocina afilado; útil para cortar alimentos, en especial carne."));
-        inventory.add(Item.misc("lighter_01", "Encendedor", 0.005, "Mechero de plástico; pequeña fuente de fuego. *No recargable*."));
-        inventory.add(Item.misc("rope_01", "Cuerda (5 m)", 1.00, "Cuerda de nylon de cinco metros, resistencia media; útil para atar o asegurar."));
-        inventory.add(Item.consumible("bar_01", "Barrita energética (chocolate)", 0.008, 15, 0, "Barrita de chocolate compacta y muy calórica; recupera +15% de hambre."));
-        inventory.add(Item.consumible("bar_02", "Barrita energética (frutos)", 0.008, 20, 0, "Barrita de frutos secos y miel; recupera +20% de hambre."));
-        inventory.add(Item.misc("map_01", "Mapa arrugado", 0.02, "Mapa viejo de la zona con anotaciones a bolígrafo y bordes desgastados."));
-        inventory.add(Item.misc("canteen_01", "Cantimplora", 0.20, "Cantimplora térmica metálica ligera. *Vacía*."));
-        inventory.add(Item.misc("battery_aa_4", "Pila AAA x4", 0.05, "Paquete improvisado de cuatro pilas alcalinas; carga óptima."));
-        inventory.add(Item.ropa("blanket_01", "Manta térmica", 0.40, EquipmentSlot.TORSO, 1,2, "Manta de emergencia aluminizada; retiene calor y hace ruido al moverse."));
-        inventory.add(Item.armadura("gloves_01", "Guantes de trabajo", 0.25, EquipmentSlot.HANDS, 1, 1, "Guantes de cuero con refuerzos; amortiguan golpes y cortaduras leves."));
+        // Inventario inicial (no consume cupos de loot)
+        inventory.add(Items.create("water_01"));
+        inventory.add(Items.create("beans_01"));
+        inventory.add(Items.create("bandage_01"));
+        inventory.add(Items.create("knife_02"));
+        inventory.add(Items.create("lighter_01"));
+        inventory.add(Items.create("rope_01"));
+        inventory.add(Items.create("bar_01"));
+        inventory.add(Items.create("bar_02"));
+        inventory.add(Items.create("map_01"));
+        inventory.add(Items.create("canteen_01"));
+        inventory.add(Items.create("battery_aa_4"));
+        inventory.add(Items.create("blanket_01"));
+        inventory.add(Items.create("gloves_01"));
     }
 
     public void resetMap() {
@@ -97,5 +100,7 @@ public class GameState {
         hidePrevY = -1;
         entities.clear();
         spawnTimer = 0.0;
+        nextGroupId = 1;
+        worldSpawnedByItem.clear();
     }
 }

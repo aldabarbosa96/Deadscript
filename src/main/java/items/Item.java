@@ -73,14 +73,10 @@ public class Item {
         return new Item(id, nombre, ItemCategory.MISC, pesoKg, 100, 100, null, null, null, null, null, null, descripcion);
     }
 
-    /**
-     * Versión con efectos de hambre/sed.
-     */
     public static Item consumible(String id, String nombre, double pesoKg, int hambrePct, int sedPct, String descripcion) {
         return new Item(id, nombre, ItemCategory.CONSUMABLE, pesoKg, 100, 100, null, null, null, null, new ConsumableAttr(hambrePct, sedPct), null, descripcion);
     }
 
-    // (Compat, si lo usas en algún sitio; no tiene efecto al consumir)
     public static Item consumible(String id, String nombre, double pesoKg, String descripcion) {
         return new Item(id, nombre, ItemCategory.CONSUMABLE, pesoKg, 100, 100, null, null, null, null, null, null, descripcion);
     }
@@ -101,14 +97,9 @@ public class Item {
         return new Item(id, nombre, ItemCategory.CONTAINER, pesoKg, 100, 100, EquipmentSlot.BACKPACK, null, null, new ContainerAttr(capacidadKg), null, null, descripcion);
     }
 
-    /**
-     * Curación por % de salud.
-     */
     public static Item curacion(String id, String nombre, double pesoKg, int saludPct, String descripcion) {
         return new Item(id, nombre, ItemCategory.HEALING, pesoKg, 100, 100, null, null, null, null, null, new HealingAttr(saludPct), descripcion);
     }
-
-    // Getters
 
     public String getId() {
         return id;
