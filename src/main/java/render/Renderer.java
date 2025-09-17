@@ -49,24 +49,11 @@ public class Renderer {
         renderAll(s);
     }
 
-
     public void onMapChanged(GameState s) {
         recomputeLayout(s, false);
     }
 
-
     public void renderAll(GameState s) {
-        if (term != null) {
-            Size sz = term.getSize();
-            int cols = Math.max(1, sz.getColumns());
-            int rows = Math.max(1, sz.getRows());
-            if (cols != lastCols || rows != lastRows) {
-                ANSI.resetScrollRegion();
-                ANSI.clearScreenAndHome();
-                recomputeLayout(s, false);
-            }
-        }
-
         String hora = LocalTime.now().format(TS_FMT);
         hud.renderHud(1, hora, "Soleado", s.temperaturaC, s.ubicacion, s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.px, s.py, rumboTexto(s.lastDx, s.lastDy));
 
@@ -401,7 +388,6 @@ public class Renderer {
         ANSI.setScrollRegion(mapTop + 2, mapTop + 2 + viewH - 1);
     }
 
-
     public boolean wasVisibleLastRender(int x, int y) {
         return mapView.wasVisibleLastRender(x, y);
     }
@@ -433,6 +419,8 @@ public class Renderer {
         int cols = Math.max(1, sz.getColumns());
         int rows = Math.max(1, sz.getRows());
         if (cols != lastCols || rows != lastRows) {
+            ANSI.resetScrollRegion();
+            ANSI.clearScreenAndHome();
             recomputeLayout(s, false);
             return true;
         }

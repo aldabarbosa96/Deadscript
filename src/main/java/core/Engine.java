@@ -136,8 +136,7 @@ public class Engine {
     }
 
     public void shutdown() {
-        if (ambient != null) AudioManager.shutdown();
-        ;
+        AudioManager.shutdown();
         renderer.shutdown();
     }
 }
