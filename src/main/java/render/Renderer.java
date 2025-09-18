@@ -26,6 +26,7 @@ public class Renderer {
     private int inspectTop, inspectLeft, inspectW, inspectH;
     private final InventoryView invOverlay = new InventoryView();
     private final EquipmentView equipOverlay = new EquipmentView();
+    private final StatsView statsOverlay = new StatsView();
     private Terminal term;
     private int lastCols = -1, lastRows = -1;
 
@@ -73,7 +74,7 @@ public class Renderer {
 
         equip.render(arma, off, cabeza, pecho, manos, piernas, pies, mochila, 0, 0, peso, capacidad);
 
-        if (!s.inventoryOpen && !s.equipmentOpen) {
+        if (!s.inventoryOpen && !s.equipmentOpen && !s.statsOpen){
             mapView.render(s.map, s.px, s.py);
             renderEntities(s);
         }
@@ -111,6 +112,14 @@ public class Renderer {
             invOverlay.renderActionMenu(top, left, w, h, s.worldActions, s.worldActionSel);
         }
 
+        if (s.statsOpen) {
+            int top = MAP_TOP + 2;
+            int left = mapView.getLeft();
+            int w = mapView.getViewW();
+            int h = mapView.getViewH();
+            statsOverlay.render(top, left, w, h, s);
+        }
+
         msgLog.render();
         renderInspectPanel(s);
         actionBar.render();
@@ -118,7 +127,6 @@ public class Renderer {
         ANSI.gotoRC(1, 1);
         ANSI.flush();
     }
-
 
     private void renderEntities(GameState s) {
         int camX = cameraX(s), camY = cameraY(s);

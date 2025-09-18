@@ -21,6 +21,7 @@ public class Engine {
     private final InventoryController invCtrl = new InventoryController();
     private final EquipmentController eqCtrl = new EquipmentController();
     private final WorldActionController worldCtrl = new WorldActionController();
+    private final StatsController statsCtrl = new StatsController();
 
     public Engine(InputHandler input) {
         this.input = input;
@@ -56,6 +57,7 @@ public class Engine {
                         break;
                     }
                     if (e == Effect.CHANGED) dirty = true;
+
                 } else if (state.equipmentOpen) {
                     Effect e = eqCtrl.handle(c, state, renderer, sticky);
                     if (e == Effect.QUIT) {
@@ -63,6 +65,7 @@ public class Engine {
                         break;
                     }
                     if (e == Effect.CHANGED) dirty = true;
+
                 } else if (state.worldActionsOpen) {
                     Effect e = worldCtrl.handle(c, state, renderer);
                     if (e == Effect.QUIT) {
@@ -70,6 +73,16 @@ public class Engine {
                         break;
                     }
                     if (e == Effect.CHANGED) dirty = true;
+
+                    // >>> AÑADIDO: panel de estadísticas
+                } else if (state.statsOpen) {
+                    Effect e = statsCtrl.handle(c, state, renderer);
+                    if (e == Effect.QUIT) {
+                        running = false;
+                        break;
+                    }
+                    if (e == Effect.CHANGED) dirty = true;
+
                 } else {
                     if (isArrow(c)) {
                         boolean moved = sticky.onArrow(c, state, renderer);
@@ -86,7 +99,7 @@ public class Engine {
             }
             if (!running) break;
 
-            boolean uiOpen = state.inventoryOpen || state.equipmentOpen || state.worldActionsOpen;
+            boolean uiOpen = state.inventoryOpen || state.equipmentOpen || state.worldActionsOpen || state.statsOpen;
 
             if (renderer.ensureLayoutUpToDate(state)) {
                 dirty = true;

@@ -33,10 +33,16 @@ public class InGameController {
                 }
             }
             case STATS -> {
-                renderer.log("Abres el panel de estadísticas.");
-                return Effect.CHANGED;
+                if (!state.statsOpen) {
+                    state.inventoryOpen = false;
+                    state.equipmentOpen = false;
+                    state.worldActionsOpen = false;
+                    state.statsOpen = true;
+                    move.reset();
+                    renderer.log("Abres el panel de estadísticas.");
+                    return Effect.CHANGED;
+                }
             }
-
             case ACTION -> {
                 if (!state.worldActionsOpen) {
                     move.reset();

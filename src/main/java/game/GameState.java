@@ -6,19 +6,15 @@ import items.Items;
 import world.Entity;
 import world.GameMap;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class GameState {
-    public GameMap map = GameMap.randomBalanced(800, 600);
+    public GameMap map = GameMap.randomBalanced(800, 650);
     public int px = map.w / 2, py = map.h / 2;
     public int lastDx = 0, lastDy = 0;
     public String ubicacion = "Goodsummer";
     public int temperaturaC = 18;
+    public int tempCorporalC = 37;
     public int salud = 100, maxSalud = 100;
     public int energia = 100, maxEnergia = 100;
     public int hambre = 100, maxHambre = 100;
@@ -67,6 +63,53 @@ public class GameState {
     public long lastPlayerAttackNs = 0L;
     public final Map<String, Integer> worldSpawnedByItem = new HashMap<>();
 
+    public boolean statsOpen = false;
+    public int frio = 12;
+    public int miedo = 0;
+    public int aburrimiento = 8;
+    public int malestar = 0;
+    public int dolor = 0;
+    public int radiacionPct = 0;
+    public int statsCol = 0;
+    public int statsSelBasic = 0;
+    public int statsSelSkill = 0;
+    public int statsSelBody = 0;
+
+    public enum SkillGroup {FISICO, COMBATE, CRAFTEO, SUPERVIVENCIA}
+
+    public static final class Skill {
+        public final String id, nombre;
+        public final SkillGroup grupo;
+        public int nivel;
+        public double xp;
+
+        public Skill(String id, String nombre, SkillGroup g, int nivel, double xp) {
+            this.id = id;
+            this.nombre = nombre;
+            this.grupo = g;
+            this.nivel = Math.max(0, Math.min(10, nivel));
+            this.xp = Math.max(0, Math.min(1, xp));
+        }
+    }
+
+    public final Map<SkillGroup, List<Skill>> skills = new EnumMap<>(SkillGroup.class);
+
+    public enum BodyPart {CABEZA, TORSO, BRAZO_IZQ, BRAZO_DER, MANOS, PIERNA_IZQ, PIERNA_DER, PIES}
+
+    public static final class Injury {
+        public final String nombre;
+        public final int severidad;
+
+        public Injury(String n, int s) {
+            nombre = n;
+            severidad = Math.max(1, Math.min(100, s));
+        }
+    }
+
+    public final Map<BodyPart, List<Injury>> injuries = new EnumMap<>(BodyPart.class);
+    public int statsBodySel = 0;
+
+
     public GameState() {
         // Equipo inicial (no consume cupos de loot)
         equipment.setHead(Items.create("cap_01"));
@@ -88,6 +131,42 @@ public class GameState {
         inventory.add(Items.create("battery_aa_4"));
         inventory.add(Items.create("blanket_01"));
         inventory.add(Items.create("gloves_01"));
+
+        for (SkillGroup g : SkillGroup.values()) skills.put(g, new ArrayList<>());
+
+        skills.get(SkillGroup.FISICO).add(new Skill("fitness", "Forma física", SkillGroup.FISICO, 2, 0.35));
+        skills.get(SkillGroup.FISICO).add(new Skill("strength", "Fuerza", SkillGroup.FISICO, 1, 0.60));
+        skills.get(SkillGroup.FISICO).add(new Skill("sprint", "Sprint", SkillGroup.FISICO, 1, 0.10));
+        skills.get(SkillGroup.FISICO).add(new Skill("agility", "Agilidad", SkillGroup.FISICO, 0, 0.55));
+        skills.get(SkillGroup.FISICO).add(new Skill("stealth", "Sigilo", SkillGroup.FISICO, 0, 0.15));
+
+        skills.get(SkillGroup.COMBATE).add(new Skill("melee_s", "Arma corta (cont.)", SkillGroup.COMBATE, 2, 0.20));
+        skills.get(SkillGroup.COMBATE).add(new Skill("melee_l", "Arma larga (cont.)", SkillGroup.COMBATE, 1, 0.70));
+        skills.get(SkillGroup.COMBATE).add(new Skill("blade_s", "Arma corta (hoja)", SkillGroup.COMBATE, 2, 0.40));
+        skills.get(SkillGroup.COMBATE).add(new Skill("blade_l", "Arma larga (hoja)", SkillGroup.COMBATE, 0, 0.05));
+        skills.get(SkillGroup.COMBATE).add(new Skill("gun_s", "Arma de fuego (corta)", SkillGroup.COMBATE, 0, 0.00));
+        skills.get(SkillGroup.COMBATE).add(new Skill("gun_l", "Arma de fuego (larga)", SkillGroup.COMBATE, 0, 0.00));
+        skills.get(SkillGroup.COMBATE).add(new Skill("reload", "Recarga", SkillGroup.COMBATE, 0, 0.00));
+        skills.get(SkillGroup.COMBATE).add(new Skill("maint", "Mantenimiento", SkillGroup.COMBATE, 1, 0.25));
+
+        skills.get(SkillGroup.CRAFTEO).add(new Skill("carp", "Carpintería", SkillGroup.CRAFTEO, 0, 0.10));
+        skills.get(SkillGroup.CRAFTEO).add(new Skill("elec", "Electricista", SkillGroup.CRAFTEO, 0, 0.00));
+        skills.get(SkillGroup.CRAFTEO).add(new Skill("font", "Fontanería", SkillGroup.CRAFTEO, 0, 0.00));
+        skills.get(SkillGroup.CRAFTEO).add(new Skill("mech", "Mecánico", SkillGroup.CRAFTEO, 0, 0.00));
+        skills.get(SkillGroup.CRAFTEO).add(new Skill("cook", "Cocina", SkillGroup.CRAFTEO, 1, 0.30));
+        skills.get(SkillGroup.CRAFTEO).add(new Skill("med", "Primeros auxilios", SkillGroup.CRAFTEO, 0, 0.00));
+        skills.get(SkillGroup.CRAFTEO).add(new Skill("farm", "Granjero", SkillGroup.CRAFTEO, 0, 0.00));
+        skills.get(SkillGroup.CRAFTEO).add(new Skill("agri", "Agricultor", SkillGroup.CRAFTEO, 0, 0.00));
+        skills.get(SkillGroup.CRAFTEO).add(new Skill("tail", "Sastre", SkillGroup.CRAFTEO, 0, 0.00));
+
+        skills.get(SkillGroup.SUPERVIVENCIA).add(new Skill("fish", "Pesca", SkillGroup.SUPERVIVENCIA, 0, 0.00));
+        skills.get(SkillGroup.SUPERVIVENCIA).add(new Skill("hunt", "Caza", SkillGroup.SUPERVIVENCIA, 0, 0.00));
+        skills.get(SkillGroup.SUPERVIVENCIA).add(new Skill("pros", "Prospección", SkillGroup.SUPERVIVENCIA, 0, 0.00));
+
+        for (BodyPart p : BodyPart.values()) injuries.put(p, new ArrayList<>());
+        // testing injuries todo--> borrar en producción
+        injuries.get(BodyPart.BRAZO_IZQ).add(new Injury("Corte superficial", 18));
+
     }
 
     public void resetMap() {
