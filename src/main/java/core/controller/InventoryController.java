@@ -25,6 +25,16 @@ public class InventoryController {
                 state.eqSelectOpen = false;
                 move.reset();
                 renderer.log("Abres el equipo.");
+                AudioManager.playUi("/audio/equipment.wav");
+                return Effect.CHANGED;
+            }
+            case STATS -> {
+                state.inventoryOpen = false;
+                state.invActionsOpen = false;
+                state.statsOpen = true;
+                move.reset();
+                renderer.log("Abres el panel de estadísticas.");
+                AudioManager.playUi("/audio/statisticsMenuSound.wav");
                 return Effect.CHANGED;
             }
             case UP -> {

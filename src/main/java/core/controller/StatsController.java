@@ -3,6 +3,7 @@ package core.controller;
 import game.GameState;
 import render.Renderer;
 import ui.input.InputHandler;
+import utils.AudioManager;
 
 public class StatsController {
     public Effect handle(InputHandler.Command c, GameState s, Renderer r) {
@@ -16,12 +17,14 @@ public class StatsController {
                 s.statsOpen = false;
                 s.inventoryOpen = true;
                 r.log("Abres el inventario.");
+                AudioManager.playUi("/audio/backpackZip1.wav");
                 return Effect.CHANGED;
             }
             case EQUIPMENT -> {
                 s.statsOpen = false;
                 s.equipmentOpen = true;
                 r.log("Abres el equipo.");
+                AudioManager.playUi("/audio/equipment.wav");
                 return Effect.CHANGED;
             }
 

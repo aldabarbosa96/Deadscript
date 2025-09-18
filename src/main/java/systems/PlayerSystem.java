@@ -26,7 +26,6 @@ public final class PlayerSystem {
         return moved;
     }
 
-
     private static boolean tryMove(GameState s, int dx, int dy, Renderer r) {
         int nx = s.px + dx, ny = s.py + dy;
         if (nx < 0 || ny < 0 || nx >= s.map.w || ny >= s.map.h) {

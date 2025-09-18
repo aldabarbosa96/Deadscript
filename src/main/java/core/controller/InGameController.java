@@ -40,6 +40,7 @@ public class InGameController {
                     state.statsOpen = true;
                     move.reset();
                     renderer.log("Abres el panel de estadísticas.");
+                    AudioManager.playUi("/audio/statisticsMenuSound.wav");
                     return Effect.CHANGED;
                 }
             }

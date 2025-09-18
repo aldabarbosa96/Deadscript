@@ -37,6 +37,16 @@ public class EquipmentController {
                 AudioManager.playUi("/audio/backpackZip1.wav");
                 return Effect.CHANGED;
             }
+            case STATS -> {
+                state.equipmentOpen = false;
+                state.eqActionsOpen = false;
+                state.eqSelectOpen = false;
+                state.statsOpen = true;
+                move.reset();
+                renderer.log("Abres el panel de estadísticas.");
+                AudioManager.playUi("/audio/statisticsMenuSound.wav");
+                return Effect.CHANGED;
+            }
             case UP, LEFT -> {
                 if (state.eqSelectOpen) {
                     if (state.eqSelectItems != null && !state.eqSelectItems.isEmpty()) {
