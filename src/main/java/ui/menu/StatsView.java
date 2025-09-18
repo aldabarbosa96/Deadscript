@@ -420,16 +420,16 @@ public class StatsView {
         if (injSel) ANSI.setFg(91);
         else ANSI.resetStyle();
         switch (bp) {
-            case CABEZA -> put(cx - 6, top + 0, "«");
-            case TORSO -> put(cx + 2, top + 7, "»");
-            case BRAZO_IZQ -> put(cx - 8, top + 6, "«");
-            case BRAZO_DER -> put(cx + 8, top + 6, "»");
+            case CABEZA -> put(cx - 6, top + 0, "»");
+            case TORSO -> put(cx + 2, top + 7, "«");
+            case BRAZO_IZQ -> put(cx - 8, top + 6, "»");
+            case BRAZO_DER -> put(cx + 8, top + 6, "«");
             case MANOS -> {
                 put(cx - 8, top + 6, "«");
                 put(cx + 8, top + 6, "»");
             }
-            case PIERNA_IZQ -> put(cx - 3, top + 12, "«");
-            case PIERNA_DER -> put(cx + 4, top + 12, "»");
+            case PIERNA_IZQ -> put(cx - 4, top + 12, "»");
+            case PIERNA_DER -> put(cx + 4, top + 12, "«");
             case PIES -> {
                 put(cx - 6, top + 14, "«");
                 put(cx + 6, top + 14, "»");
