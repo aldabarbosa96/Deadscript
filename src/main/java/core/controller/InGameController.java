@@ -28,6 +28,7 @@ public class InGameController {
                     state.inventoryOpen = false;
                     move.reset();
                     renderer.log("Abres el equipo.");
+                    AudioManager.playUi("/audio/equipment.wav");
                     return Effect.CHANGED;
                 }
             }

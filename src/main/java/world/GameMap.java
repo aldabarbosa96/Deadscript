@@ -87,7 +87,7 @@ public class GameMap {
             placedTrees += placed;
         }
 
-        // decoración (SÍ río/rocas/cabañas, NO caminos)
+        // decoración
         addRiver(m, rng, cx, cy, safeRadius);
         addRockClusters(m, rng, 10, 28, safeRadius);
         addCabins(m, rng, 2 + rng.nextInt(3), safeRadius);
@@ -296,70 +296,95 @@ public class GameMap {
 
     // rocas
     private static void addRockClusters(GameMap m, Random rng, int minC, int maxC, int safeRadius) {
-        int clusters = minC + rng.nextInt(Math.max(1, maxC - minC + 1));
-        for (int i = 0; i < clusters; i++) {
+        int want = minC + rng.nextInt(Math.max(1, maxC - minC + 1));
+
+        int placedClusters = 0;
+        int attempts = 0;
+        int maxAttempts = want * 50; // margen generoso
+
+        while (placedClusters < want && attempts++ < maxAttempts) {
             int rx = 2 + rng.nextInt(Math.max(1, m.w - 4));
             int ry = 2 + rng.nextInt(Math.max(1, m.h - 4));
+
+            // Evitar centro seguro y agua en el seed
             if (dist2(rx, ry, m.w / 2, m.h / 2) <= (safeRadius + 2) * (safeRadius + 2)) continue;
+            if (m.tiles[ry][rx] == '~') continue;
+
             int size = 6 + rng.nextInt(18);
+            int rocksPlaced = 0;
+
             for (int k = 0; k < size; k++) {
                 int x = rx + rng.nextInt(5) - 2;
                 int y = ry + rng.nextInt(5) - 2;
-                if (!inBounds(m, x, y) || m.tiles[y][x] == '~') continue;
+                if (!inBounds(m, x, y)) continue;
+                if (m.tiles[y][x] == '~') continue;
+                if (dist2(x, y, m.w / 2, m.h / 2) <= (safeRadius + 2) * (safeRadius + 2)) continue;
+
                 setRock(m, x, y);
+                rocksPlaced++;
+            }
+
+            // Solo contamos clústeres efectivos
+            if (rocksPlaced >= 3) placedClusters++;
+        }
+
+        // Fallback mínimo si no quedó ninguna roca (hiper raro, pero garantizamos)
+        if (placedClusters == 0) {
+            for (int y = 2; y < m.h - 2; y++) {
+                for (int x = 2; x < m.w - 2; x++) {
+                    if (m.tiles[y][x] != '~' && dist2(x, y, m.w / 2, m.h / 2) > (safeRadius + 2) * (safeRadius + 2)) {
+                        setRock(m, x, y);
+                        if (inBounds(m, x + 1, y) && m.tiles[y][x + 1] != '~') setRock(m, x + 1, y);
+                        if (inBounds(m, x, y + 1) && m.tiles[y + 1][x] != '~') setRock(m, x, y + 1);
+                        return;
+                    }
+                }
             }
         }
     }
 
     // cabañas
     private static void addCabins(GameMap m, Random rng, int count, int safeRadius) {
-        int tries = count * 12, placed = 0;
-        while (placed < count && tries-- > 0) {
+        // Intento aleatorio con más margen de reintentos
+        int target = Math.max(1, count); // garantizamos al menos 1 en el diseño deseado
+        int tries = target * 60;         // sube margen de reintentos
+        int placed = 0;
+
+        while (placed < target && tries-- > 0) {
             int wCab = 6 + rng.nextInt(6);  // 6..11
             int hCab = 4 + rng.nextInt(5);  // 4..8
             int x0 = 2 + rng.nextInt(Math.max(1, m.w - 2 - wCab - 2));
             int y0 = 2 + rng.nextInt(Math.max(1, m.h - 2 - hCab - 2));
             int x1 = x0 + wCab - 1, y1 = y0 + hCab - 1;
 
-            if (dist2((x0 + x1) / 2, (y0 + y1) / 2, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) continue;
+            int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+            if (dist2(cx, cy, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) continue;
 
-            boolean ok = true;
+            // Requisito: sin agua en un halo 1-tile alrededor
+            if (!areaClearOfWater(m, x0 - 1, y0 - 1, x1 + 1, y1 + 1)) continue;
+
+            buildCabin(m, x0, y0, x1, y1);
+            placed++;
+        }
+
+        // Fallback determinista: si por cualquier motivo no se colocó ninguna, forzamos 1
+        if (placed == 0) {
             outer:
-            for (int y = y0 - 1; y <= y1 + 1; y++) {
-                for (int x = x0 - 1; x <= x1 + 1; x++) {
-                    if (!inBounds(m, x, y) || m.tiles[y][x] == '~') {
-                        ok = false;
-                        break outer;
+            for (int hCab = 4; hCab <= 8; hCab++) {
+                for (int wCab = 6; wCab <= 11; wCab++) {
+                    for (int y0 = 2; y0 <= m.h - 2 - hCab; y0++) {
+                        for (int x0 = 2; x0 <= m.w - 2 - wCab; x0++) {
+                            int x1 = x0 + wCab - 1, y1 = y0 + hCab - 1;
+                            int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+                            if (dist2(cx, cy, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) continue;
+                            if (!areaClearOfWater(m, x0 - 1, y0 - 1, x1 + 1, y1 + 1)) continue;
+
+                            buildCabin(m, x0, y0, x1, y1);
+                            break outer;
+                        }
                     }
                 }
             }
-            if (!ok) continue;
-
-            for (int y = y0 + 1; y <= y1 - 1; y++)
-                for (int x = x0 + 1; x <= x1 - 1; x++) {
-                    setFloor(m, x, y);
-                    m.indoor[y][x] = true;
-                }
-
-            setCabinWall(m, x0, y0, '╔');
-            setCabinWall(m, x1, y0, '╗');
-            setCabinWall(m, x0, y1, '╚');
-            setCabinWall(m, x1, y1, '╝');
-            for (int x = x0 + 1; x <= x1 - 1; x++) {
-                setCabinWall(m, x, y0, '═');
-                setCabinWall(m, x, y1, '═');
-            }
-            for (int y = y0 + 1; y <= y1 - 1; y++) {
-                setCabinWall(m, x0, y, '║');
-                setCabinWall(m, x1, y, '║');
-            }
-
-            if (wCab >= hCab) {
-                setDoor(m, (x0 + x1) / 2, y1);
-            } else {
-                setDoor(m, x1, (y0 + y1) / 2);
-            }
-            placed++;
         }
     }
 
@@ -378,5 +403,39 @@ public class GameMap {
         double u = rng.nextDouble(), t = (u < 0.2) ? Math.pow(rng.nextDouble(), 2.4) : (u < 0.85) ? rng.nextDouble() : 1.0 - Math.pow(rng.nextDouble(), 2.0);
         int v = a + (int) Math.round(t * (b - a));
         return Math.min(b, Math.max(a, v));
+    }
+    private static boolean areaClearOfWater(GameMap m, int x0, int y0, int x1, int y1) {
+        for (int y = y0; y <= y1; y++) {
+            for (int x = x0; x <= x1; x++) {
+                if (!inBounds(m, x, y) || m.tiles[y][x] == '~') return false;
+            }
+        }
+        return true;
+    }
+
+    private static void buildCabin(GameMap m, int x0, int y0, int x1, int y1) {
+        // Interior
+        for (int y = y0 + 1; y <= y1 - 1; y++) {
+            for (int x = x0 + 1; x <= x1 - 1; x++) {
+                setFloor(m, x, y);
+                m.indoor[y][x] = true;
+            }
+        }
+        // Paredes
+        setCabinWall(m, x0, y0, '╔');
+        setCabinWall(m, x1, y0, '╗');
+        setCabinWall(m, x0, y1, '╚');
+        setCabinWall(m, x1, y1, '╝');
+        for (int x = x0 + 1; x <= x1 - 1; x++) {
+            setCabinWall(m, x, y0, '═');
+            setCabinWall(m, x, y1, '═');
+        }
+        for (int y = y0 + 1; y <= y1 - 1; y++) {
+            setCabinWall(m, x0, y, '║');
+            setCabinWall(m, x1, y, '║');
+        }
+        // Puerta
+        if ((x1 - x0 + 1) >= (y1 - y0 + 1)) setDoor(m, (x0 + x1) / 2, y1);
+        else setDoor(m, x1, (y0 + y1) / 2);
     }
 }

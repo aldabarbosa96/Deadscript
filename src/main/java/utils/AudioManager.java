@@ -11,7 +11,7 @@ public final class AudioManager {
     }
 
     private static final long UI_COOLDOWN_NS = 120_000_000L; // 120 ms
-    private static final float UI_GAIN_DB = -6.0f;
+    private static final float UI_GAIN_DB = -20.0f;
 
     private static final ConcurrentHashMap<String, Clip> SFX = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Long> SFXLAST = new ConcurrentHashMap<>();
