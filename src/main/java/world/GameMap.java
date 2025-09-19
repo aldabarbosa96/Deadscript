@@ -328,7 +328,7 @@ public class GameMap {
             if (rocksPlaced >= 3) placedClusters++;
         }
 
-        // Fallback mínimo si no quedó ninguna roca (hiper raro, pero garantizamos)
+        // Fallback mínimo si no quedó ninguna roca (hiper raro, pero nos aseguramos)
         if (placedClusters == 0) {
             for (int y = 2; y < m.h - 2; y++) {
                 for (int x = 2; x < m.w - 2; x++) {
@@ -345,14 +345,13 @@ public class GameMap {
 
     // cabañas
     private static void addCabins(GameMap m, Random rng, int count, int safeRadius) {
-        // Intento aleatorio con más margen de reintentos
-        int target = Math.max(1, count); // garantizamos al menos 1 en el diseño deseado
-        int tries = target * 60;         // sube margen de reintentos
+        int target = Math.max(1, count);
+        int tries = target * 60;
         int placed = 0;
 
         while (placed < target && tries-- > 0) {
-            int wCab = 6 + rng.nextInt(6);  // 6..11
-            int hCab = 4 + rng.nextInt(5);  // 4..8
+            int wCab = 6 + rng.nextInt(6);
+            int hCab = 4 + rng.nextInt(5);
             int x0 = 2 + rng.nextInt(Math.max(1, m.w - 2 - wCab - 2));
             int y0 = 2 + rng.nextInt(Math.max(1, m.h - 2 - hCab - 2));
             int x1 = x0 + wCab - 1, y1 = y0 + hCab - 1;
@@ -404,6 +403,7 @@ public class GameMap {
         int v = a + (int) Math.round(t * (b - a));
         return Math.min(b, Math.max(a, v));
     }
+
     private static boolean areaClearOfWater(GameMap m, int x0, int y0, int x1, int y1) {
         for (int y = y0; y <= y1; y++) {
             for (int x = x0; x <= x1; x++) {

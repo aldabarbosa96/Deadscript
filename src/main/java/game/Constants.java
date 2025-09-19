@@ -6,8 +6,6 @@ public final class Constants {
     private Constants() {
     }
     // Mundo
-    public static final int WORLD_W = 1200;
-    public static final int WORLD_H = 800;
     public static final long MS = 1_000_000L;
     public static final long COMBINE_WINDOW_MS = 180;
     public static final long STICKY_RENEW_MS = 260;
@@ -43,13 +41,9 @@ public final class Constants {
     public static final int GAP = 2;
     public static final int STATES_LEFT = 48;
     public static final int STATES_WIDTH = 30;
-    public static final int STATS_WIDTH = STATES_LEFT - HUD_LEFT - GAP;
-    public static final int EQUIP_LEFT = STATES_LEFT + STATES_WIDTH + GAP;
     public static final int EQUIP_ROWS = 12;
     public static final int MAP_TOP = 16;
     public static final int MAP_LEFT = 1;
-    public static final int VIEW_W = 119;
-    public static final int VIEW_H = 38;
     public static final int LOG_ROWS = 8;
 
 }

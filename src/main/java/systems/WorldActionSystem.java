@@ -1,18 +1,14 @@
 package systems;
 
 import game.GameState;
-import items.Equipment;
-import items.Item;
 import render.Renderer;
 import utils.AudioManager;
 import world.Entity;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
 import static utils.EntityUtil.findTopEntityAt;
-
 
 public final class WorldActionSystem {
     private WorldActionSystem() {
@@ -216,14 +212,5 @@ public final class WorldActionSystem {
             if (e != null && e.type == Entity.Type.LOOT) return e;
         }
         return null;
-    }
-
-
-    private static String armaActualTexto(Equipment eq) {
-        Item main = eq.getMainHand();
-        Item off = eq.getOffHand();
-        if (main != null) return main.getNombre();
-        if (off != null) return off.getNombre();
-        return "los puños";
     }
 }

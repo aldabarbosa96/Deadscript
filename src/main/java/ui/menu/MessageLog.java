@@ -1,9 +1,7 @@
 package ui.menu;
 
 import utils.ANSI;
-
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -117,7 +115,7 @@ public class MessageLog {
                 int idx = 0;
                 while (idx < w.length()) {
                     int take = Math.min(avail, w.length() - idx);
-                    if (line.length() == 0) {
+                    if (line.isEmpty()) {
                         line.append(w, idx, idx + take);
                     } else if (line.length() + 1 + take <= avail) {
                         line.append(' ').append(w, idx, idx + take);

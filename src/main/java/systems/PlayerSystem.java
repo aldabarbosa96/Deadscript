@@ -3,10 +3,13 @@ package systems;
 import game.GameState;
 import game.Constants;
 import render.Renderer;
+import utils.AudioManager; // <<< añade este import
 
 public final class PlayerSystem {
     private PlayerSystem() {
     }
+
+    private static int lastStepIdx = -1;
 
     public static boolean tryMoveThrottled(GameState s, int dx, int dy, Renderer r, boolean sprint) {
         long now = System.nanoTime();
@@ -22,6 +25,8 @@ public final class PlayerSystem {
             double cost = Constants.WALK_STEP_ENERGY_COST * (sprint ? Constants.SPRINT_ENERGY_MULT : 1.0);
             s.energiaAcc = clamp(s.energiaAcc - cost, 0, s.maxEnergia);
             s.energia = (int) Math.round(s.energiaAcc);
+
+            tryPlayFootstep(s);
         }
         return moved;
     }
@@ -79,6 +84,23 @@ public final class PlayerSystem {
         s.energia = (int) Math.round(s.energiaAcc);
     }
 
+    private static void tryPlayFootstep(GameState s) {
+        if (s.inventoryOpen || s.equipmentOpen || s.statsOpen || s.worldActionsOpen) return;
+
+        final String step1 = "/audio/footstepsForest1.wav";
+        final String step2 = "/audio/footstepsForest2.wav";
+
+        int idx = s.rng.nextBoolean() ? 0 : 1;
+        if (idx == lastStepIdx) idx ^= 1;
+        lastStepIdx = idx;
+
+        String path = (idx == 0) ? step1 : step2;
+
+        try {
+            AudioManager.playFootstep(path);
+        } catch (Throwable ignored) {
+        }
+    }
 
     private static double clamp(double v, double min, double max) {
         if (v < min) return min;

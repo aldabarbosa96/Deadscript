@@ -9,11 +9,8 @@ import ui.menu.player.PlayerHud;
 import ui.menu.player.PlayerStates;
 import utils.ANSI;
 import game.GameState;
-
 import java.time.LocalTime;
-
 import static game.Constants.*;
-import static utils.EntityUtil.*;
 
 public class Renderer {
     private PlayerHud hud;

@@ -1,4 +1,3 @@
-// FILE: src/main/java/systems/LootSystem.java
 package systems;
 
 import game.GameState;
@@ -18,16 +17,15 @@ public final class LootSystem {
         s.entities.removeIf(e -> e.type == Entity.Type.LOOT);
 
         int area = Math.max(1, s.map.w * s.map.h);
-        int target = Math.min(200, Math.max(35, area / 500)); // ~0.2% del mapa, cap 200
+        int target = Math.min(200, Math.max(35, area / 500));
 
         HashSet<Long> used = new HashSet<>();
         for (var e : s.entities) used.add(key(e.x, e.y));
-        used.add(key(s.px, s.py)); // no spawnear bajo el jugador
+        used.add(key(s.px, s.py)); // no spawneamos bajo el jugador
 
         Random rng = s.rng;
         int placed = 0, tries = 0, maxTries = target * 30;
 
-        // Si no queda loot disponible por cupos, salimos pronto.
         if (!Items.anyLootRemaining(s.worldSpawnedByItem)) {
             if (r != null) r.log("No queda loot disponible (cupos agotados).");
             return;

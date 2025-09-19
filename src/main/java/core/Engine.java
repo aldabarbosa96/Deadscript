@@ -74,7 +74,6 @@ public class Engine {
                     }
                     if (e == Effect.CHANGED) dirty = true;
 
-                    // >>> AÑADIDO: panel de estadísticas
                 } else if (state.statsOpen) {
                     Effect e = statsCtrl.handle(c, state, renderer);
                     if (e == Effect.QUIT) {

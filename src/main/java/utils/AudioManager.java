@@ -12,13 +12,17 @@ public final class AudioManager {
 
     private static final long UI_COOLDOWN_NS = 120_000_000L; // 120 ms
     private static final float UI_GAIN_DB = -20.0f;
-
     private static final ConcurrentHashMap<String, Clip> SFX = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Long> SFXLAST = new ConcurrentHashMap<>();
-
     private static final ConcurrentHashMap<String, Clip> LOOPS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, FloatControl> LOOPGAIN = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Thread> LOOPFADES = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Clip[]> SFX_POOLS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Integer> POOL_IDX = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Long> GROUPLAST = new ConcurrentHashMap<>();
+    private static final float FOOTSTEP_GAIN_DB = -11.0f;
+    private static final long FOOTSTEP_GROUP_COOLDOWN_NS = 90_000_000L; // 90 ms
+    private static final int FOOTSTEP_VOICES = 4;
 
     public static void playUi(String resourcePath) {
         playSfx(resourcePath, true, UI_GAIN_DB, UI_COOLDOWN_NS);
@@ -47,6 +51,48 @@ public final class AudioManager {
         }
     }
 
+    private static void playSfxPooled(String groupKey, String resourcePath, float gainDb, long groupCooldownNs, int voices) {
+        long now = System.nanoTime();
+        if (groupCooldownNs > 0) {
+            Long last = GROUPLAST.get(groupKey);
+            if (last != null && now - last < groupCooldownNs) return;
+            GROUPLAST.put(groupKey, now);
+        }
+
+        Clip[] pool = SFX_POOLS.computeIfAbsent(resourcePath, k -> {
+            int n = Math.max(1, voices);
+            Clip[] arr = new Clip[n];
+            for (int i = 0; i < n; i++) arr[i] = loadClipPcm16(k);
+            return arr;
+        });
+        if (pool == null || pool.length == 0) return;
+
+        Clip clip = null;
+        for (Clip c : pool) {
+            if (c != null && !c.isActive()) {
+                clip = c;
+                break;
+            }
+        }
+        if (clip == null) {
+            int idx = POOL_IDX.merge(resourcePath, 1, (a, b) -> (a + b) % pool.length);
+            clip = pool[idx];
+        }
+        if (clip == null) return;
+
+        synchronized (clip) {
+            try {
+                // Reinicia suavemente la voz elegida
+                if (clip.isActive()) clip.stop();
+                clip.setFramePosition(0);
+                setGain(clip, gainDb);
+                clip.start();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+
     public static void startLoop(String name, String resourcePath, float gainDb) {
         Clip prev = LOOPS.get(name);
         if (prev == null) {
@@ -61,7 +107,7 @@ public final class AudioManager {
             c.loop(Clip.LOOP_CONTINUOUSLY);
             if (!c.isActive()) c.start();
         } else {
-            // si ya existe, solo ajusta gain y asegura activo
+            // si ya existe, solo ajusta gain y aseguramos activo
             setLoopGainDb(name, gainDb);
             if (!prev.isActive()) {
                 prev.setLoopPoints(0, -1);
@@ -76,35 +122,6 @@ public final class AudioManager {
         if (g == null) return;
         db = Math.max(g.getMinimum(), Math.min(g.getMaximum(), db));
         g.setValue(db);
-    }
-
-    public static void fadeLoopToDb(String name, float targetDb, long millis) {
-        FloatControl g = LOOPGAIN.get(name);
-        Clip c = LOOPS.get(name);
-        if (g == null || c == null) return;
-
-        Thread old = LOOPFADES.get(name);
-        if (old != null) old.interrupt();
-
-        Thread t = new Thread(() -> {
-            float start = g.getValue();
-            int steps = Math.max(1, (int) (millis / 20));
-            for (int i = 1; i <= steps; i++) {
-                float v = start + (targetDb - start) * (i / (float) steps);
-                try {
-                    v = Math.max(g.getMinimum(), Math.min(g.getMaximum(), v));
-                    g.setValue(v);
-                    Thread.sleep(20);
-                } catch (InterruptedException ie) {
-                    break;
-                } catch (IllegalArgumentException ignored) {
-                    break;
-                }
-            }
-        }, "AudioFade-" + name);
-        t.setDaemon(true);
-        LOOPFADES.put(name, t);
-        t.start();
     }
 
     public static void stopLoop(String name) {
@@ -165,6 +182,10 @@ public final class AudioManager {
         }
     }
 
+    public static void playFootstep(String resourcePath) {
+        playSfxPooled("footsteps", resourcePath, FOOTSTEP_GAIN_DB, FOOTSTEP_GROUP_COOLDOWN_NS, FOOTSTEP_VOICES);
+    }
+
     public static void shutdown() {
         // loops
         for (String k : LOOPS.keySet().toArray(new String[0])) stopLoop(k);
@@ -176,5 +197,8 @@ public final class AudioManager {
             }
         SFX.clear();
         SFXLAST.clear();
+        SFX_POOLS.clear();
+        POOL_IDX.clear();
+        GROUPLAST.clear();
     }
 }

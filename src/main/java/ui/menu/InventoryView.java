@@ -2,7 +2,6 @@ package ui.menu;
 
 import items.Item;
 import utils.ANSI;
-
 import java.util.ArrayList;
 import java.util.List;
 import static utils.UI.*;
@@ -25,19 +24,14 @@ public class InventoryView {
         }
 
         final int baseTop = top + 1;
-        final int baseLeft = left + 1;
-
         final int blankTopRows = 1;
-
         final int leftPad = 1;
         final int contentW = Math.max(0, inner - leftPad);
-
         final int n = items == null ? 0 : items.size();
         int sel = Math.max(0, Math.min(selectedIndex, Math.max(0, n - 1)));
         int listRows = Math.max(0, contentRows);
         int visibleRowsForItems = Math.max(0, listRows - blankTopRows);
         int start = Math.max(0, Math.min(sel - visibleRowsForItems / 2, Math.max(0, n - visibleRowsForItems)));
-
         int listW = Math.max(18, (int) Math.round(contentW * 0.58));
         int gap = 1;
         int detailW = Math.max(0, contentW - listW - gap);
@@ -118,16 +112,13 @@ public class InventoryView {
         out.add(center("[" + it.getNombre() + "]", w));
         out.add("");
 
-        // arte ASCII
         List<String> art = asciiArtFor(it);
         for (String line : art) out.add(center(line, w));
 
-        // atributos básicos
         out.add(pad("Peso: " + formatKg(it.getPesoKg()), w));
         out.add(pad("Condición: " + it.getDurabilidadPct() + "%", w));
         out.add(pad("Tipo: " + categoriaTexto(it.getCategoria()), w));
 
-        // atributos específicos
         if (it.getWeapon() != null) {
             out.add(pad("Daño: " + it.getWeapon().danho() + "   Manos: " + it.getWeapon().manos(), w));
             out.add(pad(String.format("Cadencia: %.2fs", it.getWeapon().cooldownSec()), w));

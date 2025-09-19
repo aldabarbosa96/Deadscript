@@ -8,8 +8,8 @@ public final class Items {
 
     public static final class Def {
         public final String id;
-        public final int weight;     // 0 => nunca se sortea como loot
-        public final int maxWorld;   // tope total a spawnear en el mundo (por sesión)
+        public final int weight;
+        public final int maxWorld;
         private final Supplier<Item> factory;
 
         private Def(String id, int weight, int maxWorld, Supplier<Item> factory) {

@@ -20,7 +20,7 @@ public final class ItemActionSystem {
         if (it.getHealing() != null) out.add("Usar");
         if (isEquippable(it)) out.add("Equipar");
 
-        // (futuro) out.add("Soltar"), "Inspeccionar", "Asignar acceso rápido", etc.
+        // todo--> out.add("Soltar"), "Inspeccionar", "Asignar acceso rápido", crafteo etc.
         out.add("Cancelar");
         return out;
     }
@@ -298,9 +298,9 @@ public final class ItemActionSystem {
                     swapped = s.equipment.getBackpack();
                     s.equipment.setBackpack(it);
                 }
-                default -> { /* MAIN/OFF no aplican aquí */ }
+                default -> {
+                }
             }
-            // quitar del inventario y devolver lo previamente equipado (si existe)
             if (s.inventory.remove(it)) {
                 if (swapped != null) s.inventory.add(swapped);
                 r.log("Te equipas: " + it.getNombre() + (swapped != null ? " (guardas " + swapped.getNombre() + " en la mochila)" : ""));
@@ -324,7 +324,7 @@ public final class ItemActionSystem {
                     changed = true;
                 }
             } else {
-                // mano principal por defecto; si está ocupada con arma a 1 mano y hay off libre, úsala
+                // mano principal por defecto; si está ocupada con arma a 1 mano y hay off libre, se usa
                 boolean canUseOff = (prevMain != null && prevMain.getWeapon() != null && prevMain.getWeapon().manos() == 1 && prevOff == null);
                 if (s.inventory.remove(it)) {
                     if (canUseOff) {

@@ -46,11 +46,6 @@ public final class ANSI {
         System.out.print("\u001B[" + row + ";" + col + "H");
     }
 
-    public static void clearLine() {
-        if (!enabled) return;
-        System.out.print("\u001B[2K");
-    }
-
     public static void clearToLineEnd() {
         if (!enabled) return;
         System.out.print("\u001B[K");
@@ -66,17 +61,8 @@ public final class ANSI {
         System.out.print("\u001B[1m");
     }
 
-    public static void boldOff() {
-        if (!enabled) return;
-        System.out.print("\u001B[22m");
-    }
 
     public static void setFg(int colorCode) {
-        if (!enabled) return;
-        System.out.print("\u001B[" + colorCode + "m");
-    }
-
-    public static void setBg(int colorCode) {
         if (!enabled) return;
         System.out.print("\u001B[" + colorCode + "m");
     }

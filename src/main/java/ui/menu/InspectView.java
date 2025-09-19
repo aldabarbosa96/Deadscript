@@ -1,9 +1,7 @@
 package ui.menu;
 
 import utils.ANSI;
-
 import java.util.List;
-
 import static utils.UI.*;
 
 public class InspectView {
@@ -41,7 +39,6 @@ public class InspectView {
             if (width >= 2) System.out.print('│');
         }
 
-        // Marco inferior
         ANSI.gotoRC(top + 1 + rows, left);
         if (width >= 2) {
             System.out.print('└');

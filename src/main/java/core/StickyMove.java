@@ -92,8 +92,6 @@ public class StickyMove {
                 return false;
             }
         }
-
-        // Paso único inmediato si no hay sticky
         state.lastDx = vx;
         state.lastDy = vy;
         return PlayerSystem.tryMoveThrottled(state, vx, vy, renderer, false);

@@ -258,7 +258,7 @@ public class EquipmentView {
         final int baseTop = top + 1;
         final int baseLeft = left + 1;
 
-        // Geometría del panel interior
+        // Geometría panel interior
         final int contentBottom = baseTop + rows - 1;
         final int innerRight = baseLeft + inner - 1;
         int maxLen = 0;

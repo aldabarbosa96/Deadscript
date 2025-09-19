@@ -2,10 +2,8 @@ package systems;
 
 import game.Constants;
 import game.GameState;
-import items.Item;
 import render.Renderer;
 import world.Entity;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,7 +21,7 @@ public final class ZombieSystem {
             if (trySpawnGroup(s, r)) touched = true;
         }
 
-        // Movimiento + golpes SOLO para zombis
+        // Movimiento + golpes solo para zombis
         Map<Integer, Entity> leaders = new HashMap<>();
         // 1) Indexar líderes por grupo
         for (Entity e : s.entities) {
@@ -34,7 +32,7 @@ public final class ZombieSystem {
 
         // 2) Actualizar cada zombi
         for (Entity e : s.entities) {
-            if (e.type != Entity.Type.ZOMBIE) continue; // <<< CLAVE: ignorar loot u otras entidades
+            if (e.type != Entity.Type.ZOMBIE) continue; //  ignoramos loot u otras entidades
 
             int beforeX = e.x, beforeY = e.y;
 
@@ -82,7 +80,7 @@ public final class ZombieSystem {
                 if (wasOnCam || nowOnCam || wasVis || nowVis) touched = true;
             }
 
-            // ataque (sólo zombis)
+            // ataque
             if (e.attackCooldown > 0) e.attackCooldown -= dt;
             if (e.x == s.px && e.y == s.py && e.attackCooldown <= 0) {
                 int prot = Math.max(0, s.equipment.proteccionTotal());

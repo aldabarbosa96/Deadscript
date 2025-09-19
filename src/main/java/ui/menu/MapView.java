@@ -228,10 +228,6 @@ public class MapView {
         }
     }
 
-    public int getTop() {
-        return top;
-    }
-
     public int getLeft() {
         return left;
     }

@@ -56,7 +56,6 @@ public class StatsView {
         }
 
         int colL = baseLeft;
-        int colC = baseLeft + wL + colGap;
         int colR = baseLeft + wL + colGap + wC + colGap;
 
         int contentTop = baseTop + 1;
@@ -463,7 +462,7 @@ public class StatsView {
                 }
             }
         }
-        if (line.length() > 0) out.add(line.toString());
+        if (!line.isEmpty()) out.add(line.toString());
         return out;
     }
 

@@ -73,7 +73,6 @@ public class GameState {
     public int statsCol = 0;
     public int statsSelBasic = 0;
     public int statsSelSkill = 0;
-    public int statsSelBody = 0;
 
     public enum SkillGroup {FISICO, COMBATE, CRAFTEO, SUPERVIVENCIA}
 
