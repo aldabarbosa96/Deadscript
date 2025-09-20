@@ -9,7 +9,9 @@ import ui.menu.player.PlayerHud;
 import ui.menu.player.PlayerStates;
 import utils.ANSI;
 import game.GameState;
+
 import java.time.LocalTime;
+
 import static game.Constants.*;
 
 public class Renderer {
@@ -71,9 +73,14 @@ public class Renderer {
 
         equip.render(arma, off, cabeza, pecho, manos, piernas, pies, mochila, 0, 0, peso, capacidad);
 
-        if (!s.inventoryOpen && !s.equipmentOpen && !s.statsOpen){
-            mapView.render(s.map, s.px, s.py);
-            renderEntities(s);
+        if (!s.inventoryOpen && !s.equipmentOpen && !s.statsOpen) {
+            java.util.HashMap<Long, world.Entity> overlay = new java.util.HashMap<>();
+            for (world.Entity e : s.entities) {
+                long k = (((long) e.x) << 32) ^ (e.y & 0xffffffffL);
+                overlay.put(k, e);
+            }
+            mapView.render(s.map, s.px, s.py, overlay);
+            // elimina la llamada separada a renderEntities(s);
         }
 
         if (s.inventoryOpen) {
@@ -123,42 +130,6 @@ public class Renderer {
 
         ANSI.gotoRC(1, 1);
         ANSI.flush();
-    }
-
-    private void renderEntities(GameState s) {
-        int camX = cameraX(s), camY = cameraY(s);
-        int baseTop = MAP_TOP + 2;
-        for (world.Entity e : s.entities) {
-            int sx = e.x - camX, sy = e.y - camY;
-            if (sx < 0 || sy < 0 || sx >= mapView.getViewW() || sy >= mapView.getViewH()) continue;
-
-            boolean vis = mapView.wasVisibleLastRender(e.x, e.y);
-            boolean det = mapView.wasDetectedLastRender(e.x, e.y);
-            if (!vis && !det) continue;
-
-            ANSI.gotoRC(baseTop + sy, mapView.getLeft() + sx);
-            if (vis) {
-                e.revealed = true;
-                // Color por tipo: Zombi rojo (31), Loot lila (256c #171 aprox)
-                if (e.type == world.Entity.Type.LOOT) {
-                    // 256-color lilac/purple ~171
-                    System.out.print("\u001B[38;5;171m");
-                } else {
-                    ANSI.setFg(31);
-                }
-                System.out.print(e.glyph);
-            } else {
-                // Detectado pero no visible
-                if (e.revealed) {
-                    ANSI.setFg(90);
-                    System.out.print(e.glyph);
-                } else {
-                    ANSI.setFg(90);
-                    System.out.print('?');
-                }
-            }
-            ANSI.resetStyle();
-        }
     }
 
     private void renderInspectPanel(GameState s) {

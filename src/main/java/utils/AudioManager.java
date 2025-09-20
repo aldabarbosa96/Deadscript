@@ -20,6 +20,7 @@ public final class AudioManager {
     private static final ConcurrentHashMap<String, Clip[]> SFX_POOLS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Integer> POOL_IDX = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Long> GROUPLAST = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Boolean> SFX_FAILED = new ConcurrentHashMap<>();
     private static final float FOOTSTEP_GAIN_DB = -11.0f;
     private static final long FOOTSTEP_GROUP_COOLDOWN_NS = 90_000_000L; // 90 ms
     private static final int FOOTSTEP_VOICES = 4;
@@ -40,8 +41,17 @@ public final class AudioManager {
             SFXLAST.put(resourcePath, now);
         }
 
-        Clip clip = SFX.computeIfAbsent(resourcePath, AudioManager::loadClipPcm16);
-        if (clip == null) return;
+        if (SFX_FAILED.getOrDefault(resourcePath, false)) return; // evita reintentos/prints
+
+        Clip clip = SFX.get(resourcePath);
+        if (clip == null) {
+            clip = loadClipPcm16(resourcePath);
+            if (clip == null) {
+                SFX_FAILED.put(resourcePath, true);
+                return;
+            }
+            SFX.put(resourcePath, clip);
+        }
 
         synchronized (clip) {
             if (noOverlap && clip.isActive()) clip.stop();
@@ -168,7 +178,6 @@ public final class AudioManager {
                 return clip;
             }
         } catch (Exception e) {
-            System.err.println("Audio load error: " + resourcePath + " -> " + e);
             return null;
         }
     }

@@ -33,7 +33,7 @@ public class MapView {
         }
     }
 
-    public void render(GameMap map, int px, int py) {
+    public void render(GameMap map, int px, int py, java.util.Map<Long, world.Entity> overlay) {
         drawTitle();
         int base = top + 2;
 
@@ -49,107 +49,123 @@ public class MapView {
             for (int sx = 0; sx < viewW; sx++) {
                 int mx = camX + sx, my = camY + sy;
 
-                if (mx < 0 || my < 0 || mx >= map.w || my >= map.h) {
-                    if (currentColor != 0) {
-                        ANSI.resetStyle();
-                        currentColor = 0;
-                    }
-                    System.out.print(' ');
-                    continue;
-                }
+                char ch = ' ';
+                int nextColor = 0;
 
-                char tile = map.tiles[my][mx];
-                boolean vis = visible[my][mx];
-                boolean exp = map.explored[my][mx];
-                boolean det = detected[my][mx];
+                if (mx >= 0 && my >= 0 && mx < map.w && my < map.h) {
+                    boolean vis = visible[my][mx];
+                    boolean det = detected[my][mx];
+                    boolean exp = map.explored[my][mx];
 
-                if (vis) {
-                    map.explored[my][mx] = true;
-                    int next = switch (tile) {
-                        case '#' -> 92;
-                        case '~' -> 100000 + 45;
-                        case '^' -> 37;
-                        case '.' -> (map.indoor[my][mx] ? 97 : 100000 + 58);
-                        case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
-                        case '+' -> 93;
-                        default -> 100000 + 58;
-                    };
-                    if (next != currentColor) {
-                        applyColor(next);
-                        currentColor = next;
-                    }
-                    System.out.print(tile);
-
-                } else if (det) {
-                    if (isInterestingTile(tile)) {
-                        if (exp) {
-                            int next = switch (tile) {
-                                case '#' -> 100000 + 22;
-                                case '~' -> 100000 + 24;
-                                case '^' -> 90;
-                                case '.' -> (map.indoor[my][mx] ? 90 : 100000 + 137);
-                                case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58;
-                                case '+' -> 90;
-                                default -> 100000 + 137;
-                            };
-                            if (next != currentColor) {
-                                applyColor(next);
-                                currentColor = next;
-                            }
-                            System.out.print(tile);
-                        } else {
-                            int next = 90;
-                            if (next != currentColor) {
-                                applyColor(next);
-                                currentColor = next;
-                            }
-                            System.out.print('?');
+                    if (mx == px && my == py) {
+                        if (overlay != null) {
+                            long k = (((long) mx) << 32) ^ (my & 0xffffffffL);
+                            world.Entity eHere = overlay.get(k);
+                            if (eHere != null) eHere.revealed = true;
                         }
+                        ch = '@';
+                        nextColor = 36;
                     } else {
-                        int next = 100000 + 155;
-                        if (next != currentColor) {
-                            applyColor(next);
-                            currentColor = next;
+                        world.Entity ent = null;
+                        if (overlay != null) {
+                            long k = (((long) mx) << 32) ^ (my & 0xffffffffL);
+                            ent = overlay.get(k);
                         }
-                        System.out.print('.');
-                    }
 
-                } else if (exp) {
-                    int next = switch (tile) {
-                        case '#' -> 100000 + 22;
-                        case '~' -> 100000 + 24;
-                        case '^' -> 90;
-                        case '.' -> (map.indoor[my][mx] ? 90 : 100000 + 137);
-                        case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58;
-                        case '+' -> 90;
-                        default -> 100000 + 137;
-                    };
-                    if (next != currentColor) {
-                        applyColor(next);
-                        currentColor = next;
-                    }
-                    System.out.print(tile);
+                        boolean drewEntity = false;
+                        if (ent != null) {
+                            if (vis) {
+                                ent.revealed = true;
+                                ch = ent.glyph;
+                                nextColor = (ent.type == world.Entity.Type.LOOT) ? 100000 + 171 : 31;
+                                drewEntity = true;
+                            } else if (det) {
+                                if (ent.type == world.Entity.Type.LOOT) {
+                                    if (ent.revealed) {
+                                        ch = ent.glyph;
+                                        nextColor = 100000 + 139;
+                                    } else {
+                                        ch = '?';
+                                        nextColor = 90;
+                                    }
+                                    drewEntity = true;
+                                } else {
+                                    ch = ent.revealed ? ent.glyph : '?';
+                                    nextColor = 90;
+                                    drewEntity = true;
+                                }
+                            } else {
+                                if (ent.type == world.Entity.Type.LOOT && ent.revealed) {
+                                    ch = ent.glyph;
+                                    nextColor = 100000 + 139;
+                                    drewEntity = true;
+                                }
+                            }
+                        }
 
-                } else {
-                    if (currentColor != 0) {
-                        ANSI.resetStyle();
-                        currentColor = 0;
+                        if (!drewEntity) {
+                            char tile = map.tiles[my][mx];
+                            if (vis) {
+                                map.explored[my][mx] = true;
+                                nextColor = switch (tile) {
+                                    case '#' -> 92;
+                                    case '~' -> 100000 + 45;
+                                    case '^' -> 37;
+                                    case '.' -> (map.indoor[my][mx] ? 97 : 100000 + 58);
+                                    case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
+                                    case '+' -> 93;
+                                    default -> 100000 + 58;
+                                };
+                                ch = tile;
+                            } else if (det) {
+                                if (isInterestingTile(tile)) {
+                                    if (exp) {
+                                        nextColor = switch (tile) {
+                                            case '#' -> 100000 + 22;
+                                            case '~' -> 100000 + 24;
+                                            case '^' -> 90;
+                                            case '.' -> (map.indoor[my][mx] ? 90 : 100000 + 137);
+                                            case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58;
+                                            case '+' -> 90;
+                                            default -> 100000 + 137;
+                                        };
+                                        ch = tile;
+                                    } else {
+                                        ch = '?';
+                                        nextColor = 90;
+                                    }
+                                } else {
+                                    ch = '.';
+                                    nextColor = 100000 + 155;
+                                }
+                            } else if (exp) {
+                                nextColor = switch (tile) {
+                                    case '#' -> 100000 + 22;
+                                    case '~' -> 100000 + 24;
+                                    case '^' -> 90;
+                                    case '.' -> (map.indoor[my][mx] ? 90 : 100000 + 137);
+                                    case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 58;
+                                    case '+' -> 90;
+                                    default -> 100000 + 137;
+                                };
+                                ch = tile;
+                            } else {
+                                ch = ' ';
+                                nextColor = 0;
+                            }
+                        }
                     }
-                    System.out.print(' ');
                 }
+
+                if (nextColor != currentColor) {
+                    applyColor(nextColor);
+                    currentColor = nextColor;
+                }
+                System.out.print(ch);
             }
             ANSI.resetStyle();
         }
-
-        int sxPlayer = px - camX, syPlayer = py - camY;
-        if (sxPlayer >= 0 && sxPlayer < viewW && syPlayer >= 0 && syPlayer < viewH) {
-            ANSI.gotoRC(base + syPlayer, left + sxPlayer);
-            ANSI.setFg(36);
-            System.out.print('@');
-            ANSI.resetStyle();
-        }
     }
-
 
     private void drawTitle() {
         ANSI.gotoRC(top, left);
