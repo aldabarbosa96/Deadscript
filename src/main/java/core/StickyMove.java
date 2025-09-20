@@ -49,49 +49,41 @@ public class StickyMove {
         int vx = dx, vy = dy;
 
         if (isActive()) {
-            boolean changed = false;
             int ndx = stickDx, ndy = stickDy;
             if (dx != 0) {
                 ndx = dx;
-                ndy = 0;
-                changed = true;
+                if (!recentV(now, COMBINE_WINDOW_NS)) ndy = 0;
             }
             if (dy != 0) {
                 ndy = dy;
-                ndx = 0;
-                changed = true;
+                if (!recentH(now, COMBINE_WINDOW_NS)) ndx = 0;
             }
+            boolean changed = (ndx != stickDx) || (ndy != stickDy);
             if (changed) setSticky(ndx, ndy, now);
-            else if (belongsToSticky(c)) renewSticky(now);
-
-            vx = stickDx;
-            vy = stickDy;
-            state.lastDx = vx;
-            state.lastDy = vy;
+            else renewSticky(now);
+            state.lastDx = stickDx;
+            state.lastDy = stickDy;
             return false;
         }
 
         if (dy != 0) {
             int recentHx = recentHorizontalDir(now);
             if (recentHx != 0) {
-                vx = recentHx;
-                vy = dy;
-                setSticky(vx, vy, now);
-                state.lastDx = vx;
-                state.lastDy = vy;
+                setSticky(recentHx, dy, now);
+                state.lastDx = stickDx;
+                state.lastDy = stickDy;
                 return false;
             }
         } else if (dx != 0) {
             int recentVy = recentVerticalDir(now);
             if (recentVy != 0) {
-                vx = dx;
-                vy = recentVy;
-                setSticky(vx, vy, now);
-                state.lastDx = vx;
-                state.lastDy = vy;
+                setSticky(dx, recentVy, now);
+                state.lastDx = stickDx;
+                state.lastDy = stickDy;
                 return false;
             }
         }
+
         state.lastDx = vx;
         state.lastDy = vy;
         return PlayerSystem.tryMoveThrottled(state, vx, vy, renderer, false);
@@ -115,6 +107,14 @@ public class StickyMove {
         if (now - lastUpNs <= COMBINE_WINDOW_NS) return -1;
         if (now - lastDownNs <= COMBINE_WINDOW_NS) return 1;
         return 0;
+    }
+
+    private boolean recentH(long now, long winNs) {
+        return (now - lastRightNs <= winNs) || (now - lastLeftNs <= winNs);
+    }
+
+    private boolean recentV(long now, long winNs) {
+        return (now - lastUpNs <= winNs) || (now - lastDownNs <= winNs);
     }
 
     private boolean belongsToSticky(InputHandler.Command c) {
