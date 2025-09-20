@@ -89,8 +89,8 @@ public class GameMap {
 
         // decoración
         addRiver(m, rng, cx, cy, safeRadius);
-        addRockClusters(m, rng, 10, 28, safeRadius);
-        addCabins(m, rng, 2 + rng.nextInt(3), safeRadius);
+        addCabins(m, rng, 2 + rng.nextInt(3), safeRadius); // primero cabañas
+        addRocks(m, rng, Math.max(8, (w * h) / 270), Math.max(12, (w * h) / 200), 1, 7, safeRadius);
 
         return m;
     }
@@ -295,53 +295,79 @@ public class GameMap {
     }
 
     // rocas
-    private static void addRockClusters(GameMap m, Random rng, int minC, int maxC, int safeRadius) {
-        int want = minC + rng.nextInt(Math.max(1, maxC - minC + 1));
+    private static void addRocks(GameMap m, Random rng, int minGroups, int maxGroups, int sizeMin, int sizeMax, int safeRadius) {
+        // saneo parámetros
+        sizeMin = Math.max(1, sizeMin);
+        sizeMax = Math.max(sizeMin, sizeMax);
+        minGroups = Math.max(1, minGroups);
+        maxGroups = Math.max(minGroups, maxGroups);
 
-        int placedClusters = 0;
-        int attempts = 0;
-        int maxAttempts = want * 50; // margen generoso
+        int groups = minGroups + rng.nextInt(maxGroups - minGroups + 1);
+        int placedGroups = 0;
+        int attempts = groups * 30; // margen de intentos
+        int margin = 1;
+        int cx = m.w / 2, cy = m.h / 2;
+        int safe2 = (safeRadius + 1) * (safeRadius + 1);
 
-        while (placedClusters < want && attempts++ < maxAttempts) {
-            int rx = 2 + rng.nextInt(Math.max(1, m.w - 4));
-            int ry = 2 + rng.nextInt(Math.max(1, m.h - 4));
+        while (placedGroups < groups && attempts-- > 0) {
+            // semilla en interior, sobre suelo libre
+            int x = margin + rng.nextInt(Math.max(1, m.w - 2 * margin));
+            int y = margin + rng.nextInt(Math.max(1, m.h - 2 * margin));
+            if (!inInterior(m, x, y, margin)) continue;
+            if (m.tiles[y][x] != '.') continue;       // no agua/árbol/pared
+            if (m.indoor[y][x]) continue;             // no interiores
+            if (dist2(x, y, cx, cy) <= safe2) continue;
 
-            // Evitar centro seguro y agua en el seed
-            if (dist2(rx, ry, m.w / 2, m.h / 2) <= (safeRadius + 2) * (safeRadius + 2)) continue;
-            if (m.tiles[ry][rx] == '~') continue;
-
-            int size = 6 + rng.nextInt(18);
-            int rocksPlaced = 0;
-
-            for (int k = 0; k < size; k++) {
-                int x = rx + rng.nextInt(5) - 2;
-                int y = ry + rng.nextInt(5) - 2;
-                if (!inBounds(m, x, y)) continue;
-                if (m.tiles[y][x] == '~') continue;
-                if (dist2(x, y, m.w / 2, m.h / 2) <= (safeRadius + 2) * (safeRadius + 2)) continue;
-
-                setRock(m, x, y);
-                rocksPlaced++;
-            }
-
-            // Solo contamos clústeres efectivos
-            if (rocksPlaced >= 3) placedClusters++;
+            int target = sizeMin + rng.nextInt(sizeMax - sizeMin + 1);
+            int got = sprinkleRockMicroBlob(m, rng, x, y, target, cx, cy, safe2);
+            if (got > 0) placedGroups++;
         }
 
-        // Fallback mínimo si no quedó ninguna roca (hiper raro, pero nos aseguramos)
-        if (placedClusters == 0) {
-            for (int y = 2; y < m.h - 2; y++) {
-                for (int x = 2; x < m.w - 2; x++) {
-                    if (m.tiles[y][x] != '~' && dist2(x, y, m.w / 2, m.h / 2) > (safeRadius + 2) * (safeRadius + 2)) {
+        // fallback mínimo por si acaso
+        if (placedGroups == 0) {
+            for (int y = 1; y < m.h - 1; y++)
+                for (int x = 1; x < m.w - 1; x++) {
+                    if (m.tiles[y][x] == '.' && !m.indoor[y][x] && dist2(x, y, cx, cy) > safe2) {
                         setRock(m, x, y);
-                        if (inBounds(m, x + 1, y) && m.tiles[y][x + 1] != '~') setRock(m, x + 1, y);
-                        if (inBounds(m, x, y + 1) && m.tiles[y + 1][x] != '~') setRock(m, x, y + 1);
                         return;
                     }
                 }
-            }
         }
     }
+
+    private static int sprinkleRockMicroBlob(GameMap m, Random rng, int sx, int sy, int target, int cx, int cy, int safe2) {
+        int placed = 0, steps = 0;
+        ArrayDeque<int[]> q = new ArrayDeque<>();
+        boolean[][] seen = new boolean[m.h][m.w];
+        q.add(new int[]{sx, sy});
+        seen[sy][sx] = true;
+
+        // 8 direcciones para formar grupitos compactos
+        int[][] d8 = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+
+        while (!q.isEmpty() && placed < target && steps < target * 12) {
+            steps++;
+            int[] cur = q.pollFirst();
+            int x = cur[0], y = cur[1];
+
+            if (m.tiles[y][x] == '.' && !m.indoor[y][x] && dist2(x, y, cx, cy) > safe2) {
+                setRock(m, x, y);
+                placed++;
+            }
+
+            // expansión moderada (≈40%) para mantener grupos pequeños y orgánicos
+            for (int[] d : d8) {
+                if (rng.nextDouble() > 0.25) continue;
+                int nx = x + d[0], ny = y + d[1];
+                if (!inBounds(m, nx, ny) || seen[ny][nx]) continue;
+                if (m.tiles[ny][nx] != '.' || m.indoor[ny][nx]) continue;
+                seen[ny][nx] = true;
+                q.addLast(new int[]{nx, ny});
+            }
+        }
+        return placed;
+    }
+
 
     // cabañas
     private static void addCabins(GameMap m, Random rng, int count, int safeRadius) {
