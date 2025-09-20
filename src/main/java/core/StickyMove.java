@@ -86,7 +86,7 @@ public class StickyMove {
 
         state.lastDx = vx;
         state.lastDy = vy;
-        return PlayerSystem.tryMoveThrottled(state, vx, vy, renderer, false);
+        return PlayerSystem.tryMoveThrottled(state, vx, vy, renderer, true);
     }
 
     private static int axisDx(InputHandler.Command c) {
@@ -115,13 +115,6 @@ public class StickyMove {
 
     private boolean recentV(long now, long winNs) {
         return (now - lastUpNs <= winNs) || (now - lastDownNs <= winNs);
-    }
-
-    private boolean belongsToSticky(InputHandler.Command c) {
-        int dx = axisDx(c), dy = axisDy(c);
-        if (dx != 0 && stickDx == dx) return true;
-        if (dy != 0 && stickDy == dy) return true;
-        return false;
     }
 
     private void setSticky(int dx, int dy, long now) {
