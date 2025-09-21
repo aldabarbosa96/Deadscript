@@ -3,12 +3,38 @@ package systems;
 import game.Constants;
 import game.GameState;
 import render.Renderer;
+import utils.AudioManager;
 import world.Entity;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 public final class ZombieSystem {
     private ZombieSystem() {
+    }
+
+    // --- Estado de rugidos por-zombi (se limpia solo al GC si mueren/desaparecen) ---
+    private static final WeakHashMap<Entity, RoarState> ROARS = new WeakHashMap<>();
+
+    private static final class RoarState {
+        double timerSec; // cuenta atrás hasta el próximo rugido
+
+        RoarState(double t) {
+            this.timerSec = t;
+        }
+    }
+
+    // Intervalo entre rugidos de un zombi (en segundos). Ajusta a gusto.
+    private static double nextInterval(GameState s) {
+        // 1.6s .. 4.4s (dispersión suficiente para que no suenen “a la vez”)
+        return 1.6 + s.rng.nextDouble() * 2.8;
+    }
+
+    // Retardo inicial cuando un zombi pasa a ser visible (para desincronizar)
+    private static double initialDelay(GameState s) {
+        // 0.2s .. 1.4s
+        return 0.2 + s.rng.nextDouble() * 1.2;
     }
 
     public static boolean update(GameState s, Renderer r, double dt) {
@@ -21,22 +47,21 @@ public final class ZombieSystem {
             if (trySpawnGroup(s, r)) touched = true;
         }
 
-        // Movimiento + golpes solo para zombis
+        // Indexar líderes por grupo para offsets
         Map<Integer, Entity> leaders = new HashMap<>();
-        // 1) Indexar líderes por grupo
         for (Entity e : s.entities) {
             if (e.type == Entity.Type.ZOMBIE && e.leader) {
                 leaders.put(e.groupId, e);
             }
         }
 
-        // 2) Actualizar cada zombi
+        // Actualizar zombis
         for (Entity e : s.entities) {
-            if (e.type != Entity.Type.ZOMBIE) continue; //  ignoramos loot u otras entidades
+            if (e.type != Entity.Type.ZOMBIE) continue;
 
             int beforeX = e.x, beforeY = e.y;
 
-            // objetivo (seguir al líder o al jugador)
+            // Objetivo (jugador o líder)
             int tx, ty;
             if (e.leader) {
                 tx = s.px;
@@ -80,7 +105,7 @@ public final class ZombieSystem {
                 if (wasOnCam || nowOnCam || wasVis || nowVis) touched = true;
             }
 
-            // ataque
+            // Ataque
             if (e.attackCooldown > 0) e.attackCooldown -= dt;
             if (e.x == s.px && e.y == s.py && e.attackCooldown <= 0) {
                 int prot = Math.max(0, s.equipment.proteccionTotal());
@@ -95,7 +120,32 @@ public final class ZombieSystem {
                 }
                 touched = true;
             }
+
+            // --- Audio por-zombi: bucle independiente mientras sea visible ---
+            boolean visible = r.wasVisibleLastRender(e.x, e.y);
+            if (visible) {
+                RoarState st = ROARS.get(e);
+                if (st == null) {
+                    st = new RoarState(initialDelay(s));
+                    ROARS.put(e, st);
+                }
+                st.timerSec -= dt;
+                if (st.timerSec <= 0.0) {
+                    // Elección puramente aleatoria: puede repetirse el mismo consecutivamente
+                    String path = s.rng.nextBoolean() ? "/audio/zombieRoar1.wav" : "/audio/zombieRoar2.wav";
+                    try {
+                        // Usamos el canal de SFX/UI existente
+                        AudioManager.playUi(path);
+                    } catch (Throwable ignored) {
+                    }
+                    st.timerSec = nextInterval(s);
+                }
+            } else {
+                // Al dejar de ser visible, paramos su “bucle lógico”
+                ROARS.remove(e);
+            }
         }
+
         return touched;
     }
 

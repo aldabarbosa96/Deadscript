@@ -2,6 +2,7 @@ package world;
 
 import java.util.*;
 
+// TODO --> refactorizar clase completa pronto
 public class GameMap {
     public final int w, h;
     public final char[][] tiles;
@@ -88,8 +89,13 @@ public class GameMap {
         }
 
         // decoración
+        int area = w * h;
+        int groups = Math.max(12, area / 16000) + rng.nextInt(6);
+        int singles = Math.max(22, area / 12000) + rng.nextInt(10);
         addRiver(m, rng, cx, cy, safeRadius);
-        addCabins(m, rng, 2 + rng.nextInt(3), safeRadius); // primero cabañas
+        addCabinClusters(m, rng, groups, safeRadius);
+        addCabins(m, rng, singles, safeRadius);
+        punchDoorsBetweenTouchingInteriors(m, rng);
         addRocks(m, rng, Math.max(8, (w * h) / 270), Math.max(12, (w * h) / 200), 1, 7, safeRadius);
 
         return m;
@@ -376,8 +382,8 @@ public class GameMap {
         int placed = 0;
 
         while (placed < target && tries-- > 0) {
-            int wCab = 6 + rng.nextInt(6);
-            int hCab = 4 + rng.nextInt(5);
+            int wCab = 6 + rng.nextInt(9);
+            int hCab = 4 + rng.nextInt(8);
             int x0 = 2 + rng.nextInt(Math.max(1, m.w - 2 - wCab - 2));
             int y0 = 2 + rng.nextInt(Math.max(1, m.h - 2 - hCab - 2));
             int x1 = x0 + wCab - 1, y1 = y0 + hCab - 1;
@@ -395,8 +401,8 @@ public class GameMap {
         // Fallback determinista: si por cualquier motivo no se colocó ninguna, forzamos 1
         if (placed == 0) {
             outer:
-            for (int hCab = 4; hCab <= 8; hCab++) {
-                for (int wCab = 6; wCab <= 11; wCab++) {
+            for (int hCab = 5; hCab <= 12; hCab++) {
+                for (int wCab = 8; wCab <= 16; wCab++) {
                     for (int y0 = 2; y0 <= m.h - 2 - hCab; y0++) {
                         for (int x0 = 2; x0 <= m.w - 2 - wCab; x0++) {
                             int x1 = x0 + wCab - 1, y1 = y0 + hCab - 1;
@@ -413,7 +419,344 @@ public class GameMap {
         }
     }
 
-    // helpers
+    private static void drawCabinShell(GameMap m, int x0, int y0, int x1, int y1) {
+        // Interior
+        for (int y = y0 + 1; y <= y1 - 1; y++) {
+            for (int x = x0 + 1; x <= x1 - 1; x++) {
+                setFloor(m, x, y);
+                m.indoor[y][x] = true;
+            }
+        }
+        // Paredes
+        setCabinWall(m, x0, y0, '╔');
+        setCabinWall(m, x1, y0, '╗');
+        setCabinWall(m, x0, y1, '╚');
+        setCabinWall(m, x1, y1, '╝');
+        for (int x = x0 + 1; x <= x1 - 1; x++) {
+            setCabinWall(m, x, y0, '═');
+            setCabinWall(m, x, y1, '═');
+        }
+        for (int y = y0 + 1; y <= y1 - 1; y++) {
+            setCabinWall(m, x0, y, '║');
+            setCabinWall(m, x1, y, '║');
+        }
+    }
+
+    private static boolean areaBuildableForCabin(GameMap m, int x0, int y0, int x1, int y1) {
+        for (int y = y0; y <= y1; y++) {
+            for (int x = x0; x <= x1; x++) {
+                if (!inBounds(m, x, y)) return false;
+                char t = m.tiles[y][x];
+                if (t == '~' || t == '^') return false; // agua/roca
+                if (t == '╔' || t == '╗' || t == '╚' || t == '╝' || t == '═' || t == '║' || t == '+')
+                    return false; // ya hay casa
+            }
+        }
+        return true;
+    }
+
+    private static final class RectI {
+        final int x0, y0, x1, y1;
+
+        RectI(int x0, int y0, int x1, int y1) {
+            this.x0 = x0;
+            this.y0 = y0;
+            this.x1 = x1;
+            this.y1 = y1;
+        }
+
+        int w() {
+            return x1 - x0 + 1;
+        }
+
+        int h() {
+            return y1 - y0 + 1;
+        }
+    }
+
+    private static boolean areaBuildableForAttachment(GameMap m, int x0, int y0, int x1, int y1, int side) {
+        for (int y = y0 - 1; y <= y1 + 1; y++) {
+            for (int x = x0 - 1; x <= x1 + 1; x++) {
+                if (!inBounds(m, x, y)) return false;
+
+                char t = m.tiles[y][x];
+                if (t == '~' || t == '^') return false; // nunca sobre agua/roca
+
+                boolean inRect = (x >= x0 && x <= x1 && y >= y0 && y <= y1);
+
+                // halo adyacente al lado COMPARTIDO (permitido)
+                boolean sharedHalo = (side == 0 && x == x0 - 1) ||   // derecha → halo a la izquierda del nuevo
+                        (side == 1 && x == x1 + 1) ||   // izquierda → halo a la derecha del nuevo
+                        (side == 2 && y == y0 - 1) ||   // abajo → halo arriba del nuevo
+                        (side == 3 && y == y1 + 1);     // arriba → halo abajo del nuevo
+                if (!inRect && sharedHalo) continue;
+
+                boolean wallish = (t == '╔' || t == '╗' || t == '╚' || t == '╝' || t == '═' || t == '║' || t == '+');
+
+                // dentro del rectángulo no podemos pisar paredes/puertas existentes
+                if (inRect && wallish) return false;
+
+                // en el resto del halo (no compartido) no podemos tocar interiores/paredes
+                if (!inRect && (wallish || m.indoor[y][x])) return false;
+            }
+        }
+        return true;
+    }
+
+
+    private static RectI boundsOf(java.util.List<RectI> rs) {
+        int x0 = Integer.MAX_VALUE, y0 = Integer.MAX_VALUE, x1 = Integer.MIN_VALUE, y1 = Integer.MIN_VALUE;
+        for (RectI r : rs) {
+            x0 = Math.min(x0, r.x0);
+            y0 = Math.min(y0, r.y0);
+            x1 = Math.max(x1, r.x1);
+            y1 = Math.max(y1, r.y1);
+        }
+        return new RectI(x0, y0, x1, y1);
+    }
+
+    // --- NUEVO: abre una puerta entre dos módulos adyacentes que comparten pared ---
+    private static void openSharedDoor(GameMap m, RectI a, RectI b, Random rng) {
+        // vertical compartida
+        if (a.x1 == b.x0 || b.x1 == a.x0) {
+            int x = (a.x1 == b.x0) ? a.x1 : b.x1;
+            int yStart = Math.max(a.y0 + 1, b.y0 + 1);
+            int yEnd = Math.min(a.y1 - 1, b.y1 - 1);
+            if (yStart <= yEnd) {
+                int y = yStart + rng.nextInt(Math.max(1, yEnd - yStart + 1));
+                setDoor(m, x, y);
+                // asegura suelo a ambos lados
+                if (inBounds(m, x - 1, y)) {
+                    setFloor(m, x - 1, y);
+                    m.indoor[y][x - 1] = true;
+                }
+                if (inBounds(m, x + 1, y)) {
+                    setFloor(m, x + 1, y);
+                    m.indoor[y][x + 1] = true;
+                }
+            }
+        }
+        // horizontal compartida
+        if (a.y1 == b.y0 || b.y1 == a.y0) {
+            int y = (a.y1 == b.y0) ? a.y1 : b.y1;
+            int xStart = Math.max(a.x0 + 1, b.x0 + 1);
+            int xEnd = Math.min(a.x1 - 1, b.x1 - 1);
+            if (xStart <= xEnd) {
+                int x = xStart + rng.nextInt(Math.max(1, xEnd - xStart + 1));
+                setDoor(m, x, y);
+                if (inBounds(m, x, y - 1)) {
+                    setFloor(m, x, y - 1);
+                    m.indoor[y - 1][x] = true;
+                }
+                if (inBounds(m, x, y + 1)) {
+                    setFloor(m, x, y + 1);
+                    m.indoor[y + 1][x] = true;
+                }
+            }
+        }
+    }
+
+    // --- NUEVO: añade 1–2 puertas exteriores en la envolvente de la casa compuesta ---
+    private static void addExteriorDoorsOnBounding(GameMap m, java.util.List<RectI> rooms, Random rng) {
+        RectI bb = boundsOf(rooms);
+        int doors = 1 + rng.nextInt(2);
+        for (int d = 0; d < doors; d++) {
+            int side = rng.nextInt(4); // 0 top,1 right,2 bottom,3 left
+            switch (side) {
+                case 0 -> {
+                    if (bb.w() >= 4) {
+                        int x = bb.x0 + 2 + rng.nextInt(Math.max(1, bb.w() - 3));
+                        int y = bb.y0;
+                        setDoor(m, x, y);
+                        if (inBounds(m, x, y + 1)) {
+                            setFloor(m, x, y + 1);
+                            m.indoor[y + 1][x] = true;
+                        }
+                    }
+                }
+                case 1 -> {
+                    if (bb.h() >= 4) {
+                        int x = bb.x1;
+                        int y = bb.y0 + 2 + rng.nextInt(Math.max(1, bb.h() - 3));
+                        setDoor(m, x, y);
+                        if (inBounds(m, x - 1, y)) {
+                            setFloor(m, x - 1, y);
+                            m.indoor[y][x - 1] = true;
+                        }
+                    }
+                }
+                case 2 -> {
+                    if (bb.w() >= 4) {
+                        int x = bb.x0 + 2 + rng.nextInt(Math.max(1, bb.w() - 3));
+                        int y = bb.y1;
+                        setDoor(m, x, y);
+                        if (inBounds(m, x, y - 1)) {
+                            setFloor(m, x, y - 1);
+                            m.indoor[y - 1][x] = true;
+                        }
+                    }
+                }
+                default -> {
+                    if (bb.h() >= 4) {
+                        int x = bb.x0;
+                        int y = bb.y0 + 2 + rng.nextInt(Math.max(1, bb.h() - 3));
+                        setDoor(m, x, y);
+                        if (inBounds(m, x + 1, y)) {
+                            setFloor(m, x + 1, y);
+                            m.indoor[y][x + 1] = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean tryAttachModule(GameMap m, Random rng, java.util.List<RectI> rooms, int safeRadius) {
+        RectI base = rooms.get(rng.nextInt(rooms.size()));
+
+        // módulos más grandes
+        int wCab = 8 + rng.nextInt(9);  // 8..16
+        int hCab = 5 + rng.nextInt(8);  // 5..12
+
+        int side = rng.nextInt(4);
+        int minOverlap = 3;
+
+        // más reintentos para encontrar hueco
+        for (int tries = 0; tries < 12; tries++) {
+            int x0, y0, x1, y1;
+
+            if (side == 0) { // derecha (comparte x0 con base.x1)
+                x0 = base.x1;
+                x1 = x0 + wCab - 1;
+                int yTop = Math.max(2, base.y0 - hCab + minOverlap);
+                int yBot = Math.min(m.h - 3 - hCab, base.y1 - minOverlap + 1);
+                if (yTop > yBot) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+                y0 = yTop + rng.nextInt(Math.max(1, yBot - yTop + 1));
+                y1 = y0 + hCab - 1;
+
+                int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+                if (dist2(cx, cy, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+                if (!areaBuildableForAttachment(m, x0, y0, x1, y1, 0)) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+
+            } else if (side == 1) { // izquierda (comparte x1 con base.x0)
+                x1 = base.x0;
+                x0 = x1 - wCab + 1;
+                int yTop = Math.max(2, base.y0 - hCab + minOverlap);
+                int yBot = Math.min(m.h - 3 - hCab, base.y1 - minOverlap + 1);
+                if (yTop > yBot) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+                y0 = yTop + rng.nextInt(Math.max(1, yBot - yTop + 1));
+                y1 = y0 + hCab - 1;
+
+                int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+                if (dist2(cx, cy, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+                if (!areaBuildableForAttachment(m, x0, y0, x1, y1, 1)) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+
+            } else if (side == 2) { // abajo (comparte y0 con base.y1)
+                y0 = base.y1;
+                y1 = y0 + hCab - 1;
+                int xLeft = Math.max(2, base.x0 - wCab + minOverlap);
+                int xRight = Math.min(m.w - 3 - wCab, base.x1 - minOverlap + 1);
+                if (xLeft > xRight) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+                x0 = xLeft + rng.nextInt(Math.max(1, xRight - xLeft + 1));
+                x1 = x0 + wCab - 1;
+
+                int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+                if (dist2(cx, cy, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+                if (!areaBuildableForAttachment(m, x0, y0, x1, y1, 2)) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+
+            } else { // arriba (comparte y1 con base.y0)
+                y1 = base.y0;
+                y0 = y1 - hCab + 1;
+                int xLeft = Math.max(2, base.x0 - wCab + minOverlap);
+                int xRight = Math.min(m.w - 3 - wCab, base.x1 - minOverlap + 1);
+                if (xLeft > xRight) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+                x0 = xLeft + rng.nextInt(Math.max(1, xRight - xLeft + 1));
+                x1 = x0 + wCab - 1;
+
+                int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+                if (dist2(cx, cy, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+                if (!areaBuildableForAttachment(m, x0, y0, x1, y1, 3)) {
+                    side = (side + 1) % 4;
+                    continue;
+                }
+            }
+
+            // Dibuja y conecta
+            drawCabinShell(m, x0, y0, x1, y1);
+            RectI neo = new RectI(x0, y0, x1, y1);
+            rooms.add(neo);
+            openSharedDoor(m, base, neo, rng);
+            return true;
+        }
+        return false;
+    }
+
+
+    private static void addCabinClusters(GameMap m, Random rng, int groups, int safeRadius) {
+        int placed = 0;
+        int attempts = groups * 40;
+
+        while (placed < groups && attempts-- > 0) {
+            int modules = 2 + rng.nextInt(5);
+
+            int wCab = 6 + rng.nextInt(6);
+            int hCab = 4 + rng.nextInt(5);
+            int x0 = 2 + rng.nextInt(Math.max(1, m.w - 2 - wCab - 2));
+            int y0 = 2 + rng.nextInt(Math.max(1, m.h - 2 - hCab - 2));
+            int x1 = x0 + wCab - 1, y1 = y0 + hCab - 1;
+
+            int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+            if (dist2(cx, cy, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) continue;
+            if (!areaBuildableForCabin(m, x0 - 1, y0 - 1, x1 + 1, y1 + 1)) continue;
+
+            java.util.ArrayList<RectI> rooms = new java.util.ArrayList<>();
+            drawCabinShell(m, x0, y0, x1, y1);
+            RectI first = new RectI(x0, y0, x1, y1);
+            rooms.add(first);
+
+            for (int k = 1; k < modules; k++) {
+                if (!tryAttachModule(m, rng, rooms, safeRadius)) break;
+            }
+
+            addExteriorDoorsOnBounding(m, rooms, rng);
+
+            placed++;
+        }
+    }
+
     private static int[] pickAndRemove(ArrayDeque<int[]> dq, int index) {
         int size = dq.size();
         int[][] arr = new int[size][2];
@@ -439,28 +782,41 @@ public class GameMap {
         return true;
     }
 
-    private static void buildCabin(GameMap m, int x0, int y0, int x1, int y1) {
-        // Interior
-        for (int y = y0 + 1; y <= y1 - 1; y++) {
-            for (int x = x0 + 1; x <= x1 - 1; x++) {
-                setFloor(m, x, y);
-                m.indoor[y][x] = true;
+    private static void punchDoorsBetweenTouchingInteriors(GameMap m, Random rng) {
+        // Segmentos verticales (pared '║'): interiores a izquierda y derecha
+        for (int x = 1; x < m.w - 1; x++) {
+            int y = 1;
+            while (y < m.h - 1) {
+                if (m.tiles[y][x] == '║' && m.indoor[y][x - 1] && m.indoor[y][x + 1]) {
+                    int y0 = y;
+                    while (y < m.h - 1 && m.tiles[y][x] == '║' && m.indoor[y][x - 1] && m.indoor[y][x + 1]) y++;
+                    int y1 = y - 1;
+                    int yy = y0 + rng.nextInt(y1 - y0 + 1);
+                    setDoor(m, x, yy);
+                } else {
+                    y++;
+                }
             }
         }
-        // Paredes
-        setCabinWall(m, x0, y0, '╔');
-        setCabinWall(m, x1, y0, '╗');
-        setCabinWall(m, x0, y1, '╚');
-        setCabinWall(m, x1, y1, '╝');
-        for (int x = x0 + 1; x <= x1 - 1; x++) {
-            setCabinWall(m, x, y0, '═');
-            setCabinWall(m, x, y1, '═');
+        // Segmentos horizontales (pared '═'): interiores arriba y abajo
+        for (int y = 1; y < m.h - 1; y++) {
+            int x = 1;
+            while (x < m.w - 1) {
+                if (m.tiles[y][x] == '═' && m.indoor[y - 1][x] && m.indoor[y + 1][x]) {
+                    int x0 = x;
+                    while (x < m.w - 1 && m.tiles[y][x] == '═' && m.indoor[y - 1][x] && m.indoor[y + 1][x]) x++;
+                    int x1 = x - 1;
+                    int xx = x0 + rng.nextInt(x1 - x0 + 1);
+                    setDoor(m, xx, y);
+                } else {
+                    x++;
+                }
+            }
         }
-        for (int y = y0 + 1; y <= y1 - 1; y++) {
-            setCabinWall(m, x0, y, '║');
-            setCabinWall(m, x1, y, '║');
-        }
-        // Puerta
+    }
+
+    private static void buildCabin(GameMap m, int x0, int y0, int x1, int y1) {
+        drawCabinShell(m, x0, y0, x1, y1);
         if ((x1 - x0 + 1) >= (y1 - y0 + 1)) setDoor(m, (x0 + x1) / 2, y1);
         else setDoor(m, x1, (y0 + y1) / 2);
     }
