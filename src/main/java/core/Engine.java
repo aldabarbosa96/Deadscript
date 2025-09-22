@@ -137,7 +137,7 @@ public class Engine {
             }
 
             try {
-                Thread.sleep(3);
+                Thread.sleep(2);
             } catch (InterruptedException ignored) {
             }
         }
