@@ -11,6 +11,8 @@ public final class Constants {
     public static final long STICKY_RENEW_MS = 260;
     public static final long COMBINE_WINDOW_NS = COMBINE_WINDOW_MS * MS;
     public static final long STICKY_RENEW_NS = STICKY_RENEW_MS * MS;
+    public static boolean UPPER_OVERLAY_ACTIVE = false;
+
 
     // Player
     public static final long PLAYER_MOVE_COOLDOWN_NS = 180_000_000L; // ≈5.55 tiles/s

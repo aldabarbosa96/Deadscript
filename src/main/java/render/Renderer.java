@@ -28,6 +28,7 @@ public class Renderer {
     private final StatsView statsOverlay = new StatsView();
     private Terminal term;
     private int lastCols = -1, lastRows = -1;
+    private Integer pendingAnchorSX = null, pendingAnchorSY = null;
 
     public void init(GameState s, Terminal term) {
         this.term = term;
@@ -50,7 +51,16 @@ public class Renderer {
     }
 
     public void onMapChanged(GameState s) {
+        ANSI.resetScrollRegion();
+        ANSI.clearScreenAndHome();
         recomputeLayout(s, false);
+
+        // Si hay un anclaje pendiente (ver paso 3), aplícalo:
+        if (pendingAnchorSX != null && pendingAnchorSY != null) {
+            mapView.anchorOnceKeepingPlayerAt(pendingAnchorSX, pendingAnchorSY, s.px, s.py, s.map);
+            pendingAnchorSX = null;
+            pendingAnchorSY = null;
+        }
     }
 
     public void renderAll(GameState s) {
@@ -149,10 +159,16 @@ public class Renderer {
             found = s.worldTarget;
         } else {
             world.Entity nearLoot = findNearbyLoot(s);
+            int[] nearStair = (nearLoot == null) ? findNearbyStair(s) : null;
+
             if (nearLoot != null) {
                 tx = nearLoot.x;
                 ty = nearLoot.y;
                 found = nearLoot;
+            } else if (nearStair != null) {
+                tx = nearStair[0];
+                ty = nearStair[1];
+                found = null;
             } else {
                 int dx = s.lastDx, dy = s.lastDy;
                 boolean hasDir = !(dx == 0 && dy == 0);
@@ -264,6 +280,24 @@ public class Renderer {
         return null;
     }
 
+    private int[] findNearbyStair(GameState s) {
+        int px = s.px, py = s.py;
+        int dx = s.lastDx, dy = s.lastDy;
+
+        int[][] candidates = new int[][]{{px, py}, {px + dx, py + dy}, {px + 1, py}, {px - 1, py}, {px, py + 1}, {px, py - 1}, {px + 1, py + 1}, {px + 1, py - 1}, {px - 1, py + 1}, {px - 1, py - 1}};
+
+        java.util.HashSet<Long> seen = new java.util.HashSet<>();
+        for (int[] c : candidates) {
+            int x = c[0], y = c[1];
+            if (x < 0 || y < 0 || x >= s.map.w || y >= s.map.h) continue;
+            long key = (((long) x) << 32) ^ (y & 0xffffffffL);
+            if (!seen.add(key)) continue;
+            if (s.map.tiles[y][x] == 'S' && s.map.hasStairAt(x, y)) return new int[]{x, y};
+        }
+        return null;
+    }
+
+
     private void recomputeLayout(GameState s, boolean firstTime) {
         int cols = 120, rows = 40;
         if (term != null) {
@@ -334,9 +368,11 @@ public class Renderer {
             if (viewH < minMapH) viewH = minMapH;
         }
 
-        int viewW = Math.min(headerWidth, s.map.w);
-        mapView = new MapView(mapTop, MAP_LEFT, viewW, Math.min(viewH, s.map.h), 18, s.map, 2.0);
+        int viewW = headerWidth;
+        int mapViewH = viewH;
+        mapView = new MapView(mapTop, MAP_LEFT, viewW, mapViewH, 18, s.map, 2.0);
         mapView.prefill();
+        mapView.setCenterSmallMaps(true);
 
         int logTop = mapTop + mapFrame + viewH + gapMapLog;
         int inspectWMin = 24;
@@ -419,4 +455,23 @@ public class Renderer {
         if (dy == 0) return "OESTE";
         return "NO";
     }
+
+    public void requestAnchorAtPlayer(game.GameState s) {
+        int camX = cameraX(s);
+        int camY = cameraY(s);
+
+        int sx = s.px - camX;
+        int sy = s.py - camY;
+
+        int ox = 0, oy = 0;
+        if (mapView != null) {
+            // Si el mapa actual es más pequeño que la vista, está centrado: añade ese offset real de pantalla
+            ox = Math.max(0, (mapView.getViewW() - s.map.w) / 2);
+            oy = Math.max(0, (mapView.getViewH() - s.map.h) / 2);
+        }
+
+        pendingAnchorSX = sx + ox;
+        pendingAnchorSY = sy + oy;
+    }
+
 }

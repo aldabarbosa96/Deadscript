@@ -34,27 +34,29 @@ public final class EntityUtil {
         return switch (t) {
             case '#' -> "Árbol";
             case '~' -> "Agua";
-            case '^' -> "Roca";
+            case '█' -> "Roca";
             case '+' -> "Puerta";
+            case 'S' -> "Escalera";
             case '╔', '╗', '╚', '╝', '═', '║' -> indoor ? "Pared interior" : "Pared";
-            case '.' -> indoor ? "Suelo (interior)" : "Suelo";
+            case '▓' -> indoor ? "Suelo (interior)" : "Suelo";
             default -> "Terreno";
         };
     }
 
     public static String tileHint(char t) {
         return switch (t) {
+            case 'S' -> "Pulsa [Espacio] para subir o bajar";
             case '+' -> "Acción futura: abrir/cerrar.";
             case '~' -> "No transitable. Posible fuente de agua.";
             case '#' -> "Obstáculo. Cubre visión y paso.";
-            case '^' -> "Cobertura dura. No transitable.";
+            case '█' -> "Cobertura dura. No transitable.";
             default -> "";
         };
     }
 
     public static boolean isInterestingTile(char t) {
         return switch (t) {
-            case '#', '^', '~', '╔', '╗', '╚', '╝', '═', '║', '+' -> true;
+            case '#', '█', '~', '╔', '╗', '╚', '╝', '═', '║', '+', 'S' -> true;
             default -> false;
         };
     }

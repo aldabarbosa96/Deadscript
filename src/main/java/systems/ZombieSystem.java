@@ -25,15 +25,12 @@ public final class ZombieSystem {
         }
     }
 
-    // Intervalo entre rugidos de un zombi (en segundos). Ajusta a gusto.
     private static double nextInterval(GameState s) {
         // 1.6s .. 4.4s (dispersión suficiente para que no suenen “a la vez”)
         return 1.6 + s.rng.nextDouble() * 2.8;
     }
 
-    // Retardo inicial cuando un zombi pasa a ser visible (para desincronizar)
     private static double initialDelay(GameState s) {
-        // 0.2s .. 1.4s
         return 0.2 + s.rng.nextDouble() * 1.2;
     }
 

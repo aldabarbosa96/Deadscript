@@ -11,7 +11,6 @@ public class GameMap {
     public final boolean[][] explored;
     public final boolean[][] indoor;
 
-
     public GameMap(int w, int h) {
         this.w = w;
         this.h = h;
@@ -20,7 +19,6 @@ public class GameMap {
         this.transp = new boolean[h][w];
         this.explored = new boolean[h][w];
         this.indoor = new boolean[h][w];
-
     }
 
     public static GameMap randomBalanced(int w, int h) {
@@ -101,6 +99,28 @@ public class GameMap {
         return m;
     }
 
+    public static final class Stair {
+        public final int x, y;
+        public Link up;   // opcional
+        public Link down; // opcional
+
+        public Stair(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public static final class Link {
+            public final GameMap map; // mapa destino
+            public final int x, y;    // posición destino
+
+            public Link(GameMap map, int x, int y) {
+                this.map = map;
+                this.x = x;
+                this.y = y;
+            }
+        }
+    }
+
     // tiles
     private static void setTree(GameMap m, int x, int y) {
         m.tiles[y][x] = '#';
@@ -109,7 +129,7 @@ public class GameMap {
     }
 
     private static void setFloor(GameMap m, int x, int y) {
-        m.tiles[y][x] = '.';
+        m.tiles[y][x] = '▓';
         m.walk[y][x] = true;
         m.transp[y][x] = true;
     }
@@ -121,7 +141,7 @@ public class GameMap {
     }
 
     private static void setRock(GameMap m, int x, int y) {
-        m.tiles[y][x] = '^';
+        m.tiles[y][x] = '█';
         m.walk[y][x] = false;
         m.transp[y][x] = false;
     }
@@ -320,7 +340,7 @@ public class GameMap {
             int x = margin + rng.nextInt(Math.max(1, m.w - 2 * margin));
             int y = margin + rng.nextInt(Math.max(1, m.h - 2 * margin));
             if (!inInterior(m, x, y, margin)) continue;
-            if (m.tiles[y][x] != '.') continue;       // no agua/árbol/pared
+            if (m.tiles[y][x] != '▓') continue;       // no agua/árbol/pared
             if (m.indoor[y][x]) continue;             // no interiores
             if (dist2(x, y, cx, cy) <= safe2) continue;
 
@@ -333,7 +353,7 @@ public class GameMap {
         if (placedGroups == 0) {
             for (int y = 1; y < m.h - 1; y++)
                 for (int x = 1; x < m.w - 1; x++) {
-                    if (m.tiles[y][x] == '.' && !m.indoor[y][x] && dist2(x, y, cx, cy) > safe2) {
+                    if (m.tiles[y][x] == '▓' && !m.indoor[y][x] && dist2(x, y, cx, cy) > safe2) {
                         setRock(m, x, y);
                         return;
                     }
@@ -356,7 +376,7 @@ public class GameMap {
             int[] cur = q.pollFirst();
             int x = cur[0], y = cur[1];
 
-            if (m.tiles[y][x] == '.' && !m.indoor[y][x] && dist2(x, y, cx, cy) > safe2) {
+            if (m.tiles[y][x] == '▓' && !m.indoor[y][x] && dist2(x, y, cx, cy) > safe2) {
                 setRock(m, x, y);
                 placed++;
             }
@@ -366,7 +386,7 @@ public class GameMap {
                 if (rng.nextDouble() > 0.25) continue;
                 int nx = x + d[0], ny = y + d[1];
                 if (!inBounds(m, nx, ny) || seen[ny][nx]) continue;
-                if (m.tiles[ny][nx] != '.' || m.indoor[ny][nx]) continue;
+                if (m.tiles[ny][nx] != '▓' || m.indoor[ny][nx]) continue;
                 seen[ny][nx] = true;
                 q.addLast(new int[]{nx, ny});
             }
@@ -395,6 +415,7 @@ public class GameMap {
             if (!areaClearOfWater(m, x0 - 1, y0 - 1, x1 + 1, y1 + 1)) continue;
 
             buildCabin(m, x0, y0, x1, y1);
+            m.maybePlaceStairsInHouse(rng, new RectI(x0, y0, x1, y1));
             placed++;
         }
 
@@ -447,7 +468,7 @@ public class GameMap {
             for (int x = x0; x <= x1; x++) {
                 if (!inBounds(m, x, y)) return false;
                 char t = m.tiles[y][x];
-                if (t == '~' || t == '^') return false; // agua/roca
+                if (t == '~' || t == '█') return false; // agua/roca
                 if (t == '╔' || t == '╗' || t == '╚' || t == '╝' || t == '═' || t == '║' || t == '+')
                     return false; // ya hay casa
             }
@@ -480,7 +501,7 @@ public class GameMap {
                 if (!inBounds(m, x, y)) return false;
 
                 char t = m.tiles[y][x];
-                if (t == '~' || t == '^') return false; // nunca sobre agua/roca
+                if (t == '~' || t == '█') return false; // nunca sobre agua/roca
 
                 boolean inRect = (x >= x0 && x <= x1 && y >= y0 && y <= y1);
 
@@ -752,9 +773,64 @@ public class GameMap {
             }
 
             addExteriorDoorsOnBounding(m, rooms, rng);
-
+            RectI bb = boundsOf(rooms);
+            m.maybePlaceStairsInHouse(rng, bb);
             placed++;
         }
+    }
+
+    private final java.util.Map<Long, Stair> stairs = new java.util.HashMap<>();
+
+    private static long stairKey(int x, int y) {
+        return (((long) y) << 32) ^ (x & 0xffffffffL);
+    }
+
+    public boolean hasStairAt(int x, int y) {
+        return stairs.containsKey(stairKey(x, y));
+    }
+
+    public Stair getStairAt(int x, int y) {
+        return stairs.get(stairKey(x, y));
+    }
+
+    public void placeStair(int x, int y) {
+        tiles[y][x] = 'S';
+        walk[y][x] = true;
+        transp[y][x] = true;
+        stairs.put(stairKey(x, y), new Stair(x, y));
+    }
+
+    public void linkStairUp(int x, int y, GameMap target, int tx, int ty) {
+        Stair s = getStairAt(x, y);
+        if (s != null) s.up = new Stair.Link(target, tx, ty);
+    }
+
+    public void linkStairDown(int x, int y, GameMap target, int tx, int ty) {
+        Stair s = getStairAt(x, y);
+        if (s != null) s.down = new Stair.Link(target, tx, ty);
+    }
+
+    public static void drawRectHouseShell(GameMap m, int x0, int y0, int x1, int y1) {
+        for (int y = y0 + 1; y <= y1 - 1; y++) {
+            for (int x = x0 + 1; x <= x1 - 1; x++) {
+                setFloor(m, x, y);
+                m.indoor[y][x] = true;
+            }
+        }
+        setCabinWall(m, x0, y0, '╔');
+        setCabinWall(m, x1, y0, '╗');
+        setCabinWall(m, x0, y1, '╚');
+        setCabinWall(m, x1, y1, '╝');
+        for (int x = x0 + 1; x <= x1 - 1; x++) {
+            setCabinWall(m, x, y0, '═');
+            setCabinWall(m, x, y1, '═');
+        }
+        for (int y = y0 + 1; y <= y1 - 1; y++) {
+            setCabinWall(m, x0, y, '║');
+            setCabinWall(m, x1, y, '║');
+        }
+        // Puerta exterior simple (opcional)
+        setDoor(m, (x0 + x1) / 2, y1);
     }
 
     private static int[] pickAndRemove(ArrayDeque<int[]> dq, int index) {
@@ -819,5 +895,127 @@ public class GameMap {
         drawCabinShell(m, x0, y0, x1, y1);
         if ((x1 - x0 + 1) >= (y1 - y0 + 1)) setDoor(m, (x0 + x1) / 2, y1);
         else setDoor(m, x1, (y0 + y1) / 2);
+    }
+
+    private void maybePlaceStairsInHouse(Random rng, RectI bb) {
+        if (rng == null) return;
+        // 35% de probabilidad de poner escaleras en esta casa
+        if (rng.nextDouble() > 0.35) return;
+
+        // Elige una casilla interior cercana al centro que sea suelo interior '.'
+        int cx = (bb.x0 + bb.x1) / 2, cy = (bb.y0 + bb.y1) / 2;
+        int bestX = -1, bestY = -1, bestD2 = Integer.MAX_VALUE;
+        for (int y = bb.y0 + 1; y <= bb.y1 - 1; y++) {
+            for (int x = bb.x0 + 1; x <= bb.x1 - 1; x++) {
+                if (tiles[y][x] == '▓' && indoor[y][x]) {
+                    int d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+                    if (d2 < bestD2) {
+                        bestD2 = d2;
+                        bestX = x;
+                        bestY = y;
+                    }
+                }
+            }
+        }
+        if (bestX < 0) return; // no hay interior utilizable
+
+        // Coloca escalera en la planta actual
+        placeStair(bestX, bestY);
+
+        boolean makeUp = rng.nextBoolean();          // ~50% segunda planta
+        boolean makeDown = rng.nextDouble() < 0.45;    // ~45% sótano
+
+        if (!makeUp && !makeDown) {
+            // elige una de forma aleatoria (o fija sótano si prefieres)
+            makeDown = rng.nextBoolean() ? true : false;
+            makeUp = !makeDown;
+        }
+
+        int interiorW = bb.x1 - bb.x0 - 1;
+        int interiorH = bb.y1 - bb.y0 - 1;
+        int relX = bestX - (bb.x0 + 1);
+        int relY = bestY - (bb.y0 + 1);
+
+        if (makeUp) {
+            GameMap up = makeUpperFloorVariant(interiorW, interiorH, rng);
+            int tx = 1 + Math.max(0, Math.min(relX, up.w - 2));
+            int ty = 1 + Math.max(0, Math.min(relY, up.h - 2));
+            up.placeStair(tx, ty);
+            up.linkStairDown(tx, ty, this, bestX, bestY); // desde arriba puedes bajar
+            linkStairUp(bestX, bestY, up, tx, ty);        // desde aquí puedes subir
+        }
+        if (makeDown) {
+            GameMap down = makeBasement(interiorW, interiorH, rng);
+            int tx = 1 + Math.max(0, Math.min(relX, down.w - 2));
+            int ty = 1 + Math.max(0, Math.min(relY, down.h - 2));
+            down.placeStair(tx, ty);
+            down.linkStairUp(tx, ty, this, bestX, bestY); // desde abajo puedes subir
+            linkStairDown(bestX, bestY, down, tx, ty);    // desde aquí puedes bajar
+        }
+    }
+
+    public static GameMap makeUpperFloorVariant(int baseInteriorW, int baseInteriorH, java.util.Random rng) {
+        int shrinkW = Math.min(3, Math.max(0, baseInteriorW - 3));
+        int shrinkH = Math.min(3, Math.max(0, baseInteriorH - 3));
+        int w = Math.max(3, baseInteriorW - (shrinkW == 0 ? 1 : 1 + rng.nextInt(shrinkW)));
+        int h = Math.max(3, baseInteriorH - (shrinkH == 0 ? 1 : 1 + rng.nextInt(shrinkH)));
+
+        GameMap m = new GameMap(w + 2, h + 2);
+
+        // Base suelo
+        for (int y = 0; y < m.h; y++)
+            for (int x = 0; x < m.w; x++)
+                setFloor(m, x, y);
+
+        // Envolvente + interior SIN puerta exterior
+        drawCabinShell(m, 0, 0, m.w - 1, m.h - 1);
+
+        // Tabique vertical con hueco (sin puerta)
+        if (w >= 6) {
+            int vx = 1 + w / 2 + (rng.nextBoolean() ? -1 : 1) * (rng.nextInt(Math.max(1, w / 4)));
+            vx = Math.max(2, Math.min(m.w - 3, vx));
+            for (int y = 1; y <= h; y++) setCabinWall(m, vx, y, '║');
+            int dy = 1 + rng.nextInt(Math.max(1, h));
+            setFloor(m, vx, dy);
+            m.indoor[dy][vx] = true;
+        }
+
+        // Tabique horizontal opcional con hueco (sin puerta)
+        if (h >= 5 && rng.nextBoolean()) {
+            int hy = 1 + h / 2 + (rng.nextBoolean() ? -1 : 1) * (rng.nextInt(Math.max(1, h / 4)));
+            hy = Math.max(2, Math.min(m.h - 3, hy));
+            for (int x = 1; x <= w; x++) setCabinWall(m, x, hy, '═');
+            int dx = 1 + rng.nextInt(Math.max(1, w));
+            setFloor(m, dx, hy);
+            m.indoor[hy][dx] = true;
+        }
+
+        return m;
+    }
+
+    public static GameMap makeBasement(int baseInteriorW, int baseInteriorH, java.util.Random rng) {
+        // Sótano más grande tipo garaje
+        int addW = 2 + rng.nextInt(4);  // +2..+5
+        int addH = 1 + rng.nextInt(3);  // +1..+3
+        int w = Math.max(4, baseInteriorW + addW);
+        int h = Math.max(4, baseInteriorH + addH);
+
+        GameMap m = new GameMap(w + 2, h + 2);
+        for (int y = 0; y < m.h; y++)
+            for (int x = 0; x < m.w; x++)
+                setFloor(m, x, y);
+
+        // Caja grande
+        drawRectHouseShell(m, 0, 0, m.w - 1, m.h - 1);
+
+        // “Pilares” para ambientar (rocas como columnas)
+        int pillars = Math.max(2, (w * h) / 80);
+        for (int i = 0; i < pillars; i++) {
+            int x = 2 + rng.nextInt(Math.max(1, w - 2));
+            int y = 2 + rng.nextInt(Math.max(1, h - 2));
+            setRock(m, x, y);
+        }
+
+        return m;
     }
 }

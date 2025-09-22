@@ -18,6 +18,10 @@ public class MapView {
     private static final int ROOF_COLOR = 100000 + 16;
     private static final int WALL_DIM = 100000 + 240;
     private final boolean[][] roofSeen;
+    private boolean centerSmallMaps = false;
+    private int lastCamX = 0, lastCamY = 0;
+    private boolean pendingAnchor = false;
+    private int anchorCamX = 0, anchorCamY = 0;
 
     public MapView(int top, int left, int viewW, int viewH, int fovRadius, GameMap map, double cellAspect) {
         this.top = Math.max(1, top);
@@ -43,23 +47,38 @@ public class MapView {
     public void render(GameMap map, int px, int py, java.util.Map<Long, world.Entity> overlay) {
         drawTitle();
         int base = top + 2;
-
-        // 1) FOV con oclusión (visible/detected)
         computeFovAndPeriphery(map, px, py);
-        // 2) Disco de luz sin oclusión para el tejado
         boolean[][] inDisc = computeLightDisc(map, px, py);
-        // 3) Qué interior queda expuesto (tu estancia + LOS real a interior)
         boolean[][] exposedIndoor = computeExposedIndoor(map, visible, px, py);
 
-        int camX = Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
-        int camY = Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
+        int camX, camY;
+        if (centerSmallMaps) {
+            camX = (map.w <= viewW) ? 0 : Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
+            camY = (map.h <= viewH) ? 0 : Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
+        } else {
+            camX = Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
+            camY = Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
+        }
+
+        if (pendingAnchor) {
+            camX = anchorCamX;
+            camY = anchorCamY;
+            pendingAnchor = false;
+        }
+
+        int ox = 0, oy = 0;
+        if (centerSmallMaps) {
+            if (map.w < viewW) ox = (viewW - map.w) / 2;
+            if (map.h < viewH) oy = (viewH - map.h) / 2;
+        }
 
         for (int sy = 0; sy < viewH; sy++) {
             ANSI.gotoRC(base + sy, left);
             int currentColor = -1;
 
             for (int sx = 0; sx < viewW; sx++) {
-                int mx = camX + sx, my = camY + sy;
+                int mx = (sx - ox) + camX;
+                int my = (sy - oy) + camY;
 
                 char ch = ' ';
                 int nextColor = 0;
@@ -78,19 +97,17 @@ public class MapView {
                         ch = '@';
                         nextColor = 36;
                     } else {
-                        // Datos de casilla
                         char tile = map.tiles[my][mx];
                         boolean indoor = map.indoor[my][mx];
-                        boolean isIndoorFloor = (tile == '.' && indoor);
+                        boolean isIndoorFloor = (tile == '▓' && indoor);
 
-                        // Memorizamos que ESTE techo ha sido visto si el suelo interior cae en el disco
                         if (isIndoorFloor && inDisc[my][mx]) {
                             roofSeen[my][mx] = true;
                         }
 
-                        boolean exposed = isIndoorFloor && exposedIndoor[my][mx]; // interior realmente visible ahora
-                        boolean roofNow = isIndoorFloor && !exposed && inDisc[my][mx];        // tejado actual (en disco)
-                        boolean roofDim = isIndoorFloor && !exposed && !inDisc[my][mx] && roofSeen[my][mx]; // tejado atenuado memorizado
+                        boolean exposed = isIndoorFloor && exposedIndoor[my][mx];
+                        boolean roofNow = isIndoorFloor && !exposed && inDisc[my][mx];
+                        boolean roofDim = isIndoorFloor && !exposed && !inDisc[my][mx] && roofSeen[my][mx];
 
                         world.Entity ent = null;
                         if (overlay != null) {
@@ -136,8 +153,8 @@ public class MapView {
                                 nextColor = switch (tile) {
                                     case '#' -> 92;
                                     case '~' -> 100000 + 45;
-                                    case '^' -> 37;
-                                    case '.' -> (indoor ? 97 : 100000 + 58);
+                                    case '█' -> 97;
+                                    case '▓' -> (indoor ? 97 : 100000 + 252);
                                     case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
                                     case '+' -> 93;
                                     default -> 100000 + 58;
@@ -149,8 +166,8 @@ public class MapView {
                                         nextColor = switch (tile) {
                                             case '#' -> 100000 + 22;
                                             case '~' -> 100000 + 24;
-                                            case '^' -> 90;
-                                            case '.' -> (indoor ? 90 : 100000 + 137);
+                                            case '█' -> 90;
+                                            case '▓' -> (indoor ? 90 : 100000 + 254);
                                             case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
                                             case '+' -> 90;
                                             default -> 100000 + 137;
@@ -160,16 +177,16 @@ public class MapView {
                                         nextColor = 90;
                                     }
                                 } else {
-                                    ch = '.';
-                                    nextColor = 100000 + 155;
+                                    ch = '▓';
+                                    nextColor = 100000 + 254;
                                 }
                             } else if (exp) {
                                 ch = tile;
                                 nextColor = switch (tile) {
                                     case '#' -> 100000 + 22;
                                     case '~' -> 100000 + 24;
-                                    case '^' -> 90;
-                                    case '.' -> (indoor ? 90 : 100000 + 137);
+                                    case '█' -> 233;
+                                    case '▓' -> (indoor ? 90 : 100000 + 246);
                                     case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
                                     case '+' -> 90;
                                     default -> 100000 + 137;
@@ -265,23 +282,6 @@ public class MapView {
         }
         return inDisc;
     }
-    private boolean[][] computeOuterRing(GameMap map, int px, int py, boolean[][] innerDisc) {
-        boolean[][] ring = new boolean[map.h][map.w];
-        int r = fovRadius + Math.max(1, FOV_OUTER_EXTRA);
-        int y0 = Math.max(0, py - r), y1 = Math.min(map.h - 1, py + r);
-        int x0 = Math.max(0, px - r), x1 = Math.min(map.w - 1, px + r);
-        double r2 = r * (double) r;
-        for (int y = y0; y <= y1; y++) {
-            for (int x = x0; x <= x1; x++) {
-                int dx = x - px, dy = y - py;
-                double dyAdj = dy * cellAspect;
-                if (dx*dx + dyAdj*dyAdj <= r2 && !innerDisc[y][x]) {
-                    ring[y][x] = true;
-                }
-            }
-        }
-        return ring;
-    }
 
     private static boolean[][] computeExposedIndoor(GameMap m, boolean[][] visible, int px, int py) {
         boolean[][] exposed = new boolean[m.h][m.w];
@@ -367,5 +367,24 @@ public class MapView {
         } else {
             ANSI.setFg(sentinel);
         }
+    }
+
+    public void anchorOnceKeepingPlayerAt(int sx, int sy, int px, int py, GameMap map) {
+        int sxClamped = Math.max(0, Math.min(sx, viewW - 1));
+        int syClamped = Math.max(0, Math.min(sy, viewH - 1));
+
+        int camX = px - sxClamped;
+        int camY = py - syClamped;
+
+        camX = Math.max(0, Math.min(camX, Math.max(0, map.w - viewW)));
+        camY = Math.max(0, Math.min(camY, Math.max(0, map.h - viewH)));
+
+        this.anchorCamX = camX;
+        this.anchorCamY = camY;
+        this.pendingAnchor = true;
+    }
+
+    public void setCenterSmallMaps(boolean v) {
+        this.centerSmallMaps = v;
     }
 }
