@@ -210,20 +210,25 @@ public class MapView {
 
                         if (!drewEntity) {
                             // --- VISIBILIDAD ESTRICTA PARA ROCAS '█' ---
+                            // Usamos strictVis solo para dibujar con colores de "visible",
+                            // pero la marca de 'explored' la hacemos con 'vis' normal para no
+                            // quedarnos eternamente en '?' en la periferia.
                             boolean strictVis = vis;
-                            if (strictVis && tile == '█') {
-                                // Cinturón y tirantes: reconfirma que está en disco y con LOS actual
-                                if (!inDisc(mx, my, px, py) || !los(map, px, py, mx, my)) {
-                                    strictVis = false;
-                                }
+                            if (tile == '█') {
+                                strictVis = vis;
+                            }
+
+                            // Marcar explorado si realmente está en vis este frame (independiente de strictVis)
+                            if (vis) {
+                                map.explored[my][mx] = true;
+                                exp = true; // usamos el estado actualizado en este mismo frame
                             }
 
                             if (roofNow || roofDim) {
                                 ch = ROOF_CHAR;
                                 nextColor = ROOF_COLOR;
+
                             } else if (strictVis) {
-                                // Marcamos explorado solo si es visible de verdad
-                                map.explored[my][mx] = true;
                                 ch = tile;
                                 nextColor = switch (tile) {
                                     case '#' -> 92;
@@ -234,6 +239,7 @@ public class MapView {
                                     case '+' -> 93;
                                     default -> 100000 + 58;
                                 };
+
                             } else if (det) {
                                 if (isInterestingTile(tile)) {
                                     if (exp) {
@@ -241,8 +247,8 @@ public class MapView {
                                         nextColor = switch (tile) {
                                             case '#' -> 100000 + 22;
                                             case '~' -> 100000 + 24;
-                                            case '█' -> 90;
-                                            case '▓' -> (indoor ? 90 : 100000 + 254);
+                                            case '█' -> 97;
+                                            case '▓' -> (indoor ? 90 : 100000 + 248);
                                             case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
                                             case '+' -> 90;
                                             default -> 100000 + 137;
@@ -253,19 +259,21 @@ public class MapView {
                                     }
                                 } else {
                                     ch = '▓';
-                                    nextColor = 100000 + 254;
+                                    nextColor = indoor ? 90 : 100000 + 248; // todo --> valorar 254 para FOV exterior visible
                                 }
+
                             } else if (exp) {
                                 ch = tile;
                                 nextColor = switch (tile) {
                                     case '#' -> 100000 + 22;
                                     case '~' -> 100000 + 24;
-                                    case '█' -> 233;
+                                    case '█' -> 100000 + 250;
                                     case '▓' -> (indoor ? 90 : 100000 + 246);
                                     case '╔', '╗', '╚', '╝', '═', '║' -> 100000 + 94;
                                     case '+' -> 90;
                                     default -> 100000 + 137;
                                 };
+
                             } else {
                                 ch = ' ';
                                 nextColor = 0;
@@ -419,6 +427,27 @@ public class MapView {
         while (true) {
             if (x == x1 && y == y1) return true;
             if (!(x == x0 && y == y0) && !map.transp[y][x]) return false;
+            e2 = 2 * err;
+            if (e2 >= dy) {
+                err += dy;
+                x += sx;
+            }
+            if (e2 <= dx) {
+                err += dx;
+                y += sy;
+            }
+            if (x < 0 || y < 0 || x >= map.w || y >= map.h) return false;
+        }
+    }
+
+    private boolean losIncludingTarget(GameMap map, int x0, int y0, int x1, int y1) {
+        int dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+        int dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+        int err = dx + dy, e2, x = x0, y = y0;
+        while (true) {
+            // Si no es la casilla de origen y no es transparente, corta SIEMPRE (incluye el objetivo)
+            if (!(x == x0 && y == y0) && !map.transp[y][x]) return false;
+            if (x == x1 && y == y1) return true;
             e2 = 2 * err;
             if (e2 >= dy) {
                 err += dy;
