@@ -10,7 +10,6 @@ import ui.menu.player.PlayerStates;
 import utils.ANSI;
 import game.GameState;
 import world.Entity;
-
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,7 +55,7 @@ public class Renderer {
         msgLog = new MessageLog(1, 1, 40, 8);
         actionBar = new ActionBar(1, 1, 40);
 
-        recomputeLayout(s, true);
+        recomputeLayout(s);
         ANSI.clearScreenAndHome();
         renderAll(s);
     }
@@ -64,7 +63,7 @@ public class Renderer {
     public void onMapChanged(GameState s) {
         ANSI.resetScrollRegion();
         ANSI.clearScreenAndHome();
-        recomputeLayout(s, false);
+        recomputeLayout(s);
 
         // Si hay un anclaje pendiente (ver paso 3), aplícalo:
         if (pendingAnchorSX != null && pendingAnchorSY != null) {
@@ -333,7 +332,7 @@ public class Renderer {
     }
 
 
-    private void recomputeLayout(GameState s, boolean firstTime) {
+    private void recomputeLayout(GameState s) {
         int cols = 120, rows = 40;
         if (term != null) {
             Size sz = term.getSize();
@@ -473,7 +472,7 @@ public class Renderer {
         if (cols != lastCols || rows != lastRows) {
             ANSI.resetScrollRegion();
             ANSI.clearScreenAndHome();
-            recomputeLayout(s, false);
+            recomputeLayout(s);
             return true;
         }
         return false;

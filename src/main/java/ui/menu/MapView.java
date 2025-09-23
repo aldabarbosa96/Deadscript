@@ -440,27 +440,6 @@ public class MapView {
         }
     }
 
-    private boolean losIncludingTarget(GameMap map, int x0, int y0, int x1, int y1) {
-        int dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-        int dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-        int err = dx + dy, e2, x = x0, y = y0;
-        while (true) {
-            // Si no es la casilla de origen y no es transparente, corta SIEMPRE (incluye el objetivo)
-            if (!(x == x0 && y == y0) && !map.transp[y][x]) return false;
-            if (x == x1 && y == y1) return true;
-            e2 = 2 * err;
-            if (e2 >= dy) {
-                err += dy;
-                x += sx;
-            }
-            if (e2 <= dx) {
-                err += dx;
-                y += sy;
-            }
-            if (x < 0 || y < 0 || x >= map.w || y >= map.h) return false;
-        }
-    }
-
     public int getLeft() {
         return left;
     }

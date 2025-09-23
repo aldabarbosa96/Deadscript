@@ -1,6 +1,7 @@
 package world.builders;
 
 import world.GameMap;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -34,8 +35,6 @@ public final class HouseBuilder {
             paintWall(m, x0, y, '║');
             paintWall(m, x1, y, '║');
         }
-        // Puerta exterior simple (opcional) como en la versión original
-        paintDoor(m, (x0 + x1) / 2, y1);
     }
 
     private void addCabins(GameMap m, Random rng, int count, int safeRadius) {
@@ -44,8 +43,8 @@ public final class HouseBuilder {
         int placed = 0;
 
         while (placed < target && tries-- > 0) {
-            int wCab = 6 + rng.nextInt(9);
-            int hCab = 4 + rng.nextInt(8);
+            int wCab = 8 + rng.nextInt(11);
+            int hCab = 6 + rng.nextInt(9);
             int x0 = 2 + rng.nextInt(Math.max(1, m.w - 2 - wCab - 2));
             int y0 = 2 + rng.nextInt(Math.max(1, m.h - 2 - hCab - 2));
             int x1 = x0 + wCab - 1, y1 = y0 + hCab - 1;
@@ -65,8 +64,8 @@ public final class HouseBuilder {
         // Fallback determinista: si no se colocó ninguna, forzamos 1
         if (placed == 0) {
             outer:
-            for (int hCab = 5; hCab <= 12; hCab++) {
-                for (int wCab = 8; wCab <= 16; wCab++) {
+            for (int hCab = 7; hCab <= 14; hCab++) {
+                for (int wCab = 10; wCab <= 18; wCab++) {
                     for (int y0 = 2; y0 <= m.h - 2 - hCab; y0++) {
                         for (int x0 = 2; x0 <= m.w - 2 - wCab; x0++) {
                             int x1 = x0 + wCab - 1, y1 = y0 + hCab - 1;
@@ -91,8 +90,8 @@ public final class HouseBuilder {
         while (placed < groups && attempts-- > 0) {
             int modules = 2 + rng.nextInt(5);
 
-            int wCab = 6 + rng.nextInt(6);
-            int hCab = 4 + rng.nextInt(5);
+            int wCab = 8 + rng.nextInt(8);
+            int hCab = 6 + rng.nextInt(7);
             int x0 = 2 + rng.nextInt(Math.max(1, m.w - 2 - wCab - 2));
             int y0 = 2 + rng.nextInt(Math.max(1, m.h - 2 - hCab - 2));
             int x1 = x0 + wCab - 1, y1 = y0 + hCab - 1;
@@ -141,8 +140,8 @@ public final class HouseBuilder {
     private boolean tryAttachModule(GameMap m, Random rng, List<RectI> rooms, int safeRadius) {
         RectI base = rooms.get(rng.nextInt(rooms.size()));
 
-        int wCab = 8 + rng.nextInt(9);  // 8..16
-        int hCab = 5 + rng.nextInt(8);  // 5..12
+        int wCab = 10 + rng.nextInt(11);  // 8..16
+        int hCab = 7 + rng.nextInt(10);  // 5..12
 
         int side = rng.nextInt(4);
         int minOverlap = 3;
@@ -384,55 +383,133 @@ public final class HouseBuilder {
         if (rng == null) return;
         if (rng.nextDouble() > 0.35) return;
 
-        int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+        // Elegir par de celdas en una esquina del INTERIOR
+        int[] pair = pickCornerDoubleStair(m, x0, y0, x1, y1, rng);
+        if (pair == null) return;
 
-        int bestX = -1, bestY = -1, bestD2 = Integer.MAX_VALUE;
-        for (int y = y0 + 1; y <= y1 - 1; y++) {
-            for (int x = x0 + 1; x <= x1 - 1; x++) {
-                if (m.tiles[y][x] == '▓' && m.indoor[y][x]) {
-                    int dx = x - cx, dy = y - cy;
-                    int d2 = dx * dx + dy * dy;
-                    if (d2 < bestD2) {
-                        bestD2 = d2;
-                        bestX = x;
-                        bestY = y;
-                    }
-                }
-            }
-        }
-        if (bestX < 0) return;
+        int ax = pair[0], ay = pair[1];
+        int bx = pair[2], by = pair[3];
 
-        // Coloca escalera en la planta actual
-        m.placeStair(bestX, bestY);
+        // Coloca las DOS celdas de escalera en la planta actual
+        m.placeStair(ax, ay);
+        m.placeStair(bx, by);
 
         boolean makeUp = rng.nextBoolean();          // ~50% segunda planta
         boolean makeDown = rng.nextDouble() < 0.45;  // ~45% sótano
-        if (!makeUp && !makeDown) {
+        if (!makeUp && !makeDown) {                  // garantiza al menos una
             makeDown = rng.nextBoolean();
             makeUp = !makeDown;
         }
 
         int interiorW = x1 - x0 - 1;
         int interiorH = y1 - y0 - 1;
-        int relX = bestX - (x0 + 1);
-        int relY = bestY - (y0 + 1);
+
+        // offsets relativos al interior [0..interiorW-1/0..interiorH-1]
+        int relX1 = ax - (x0 + 1), relY1 = ay - (y0 + 1);
+        int relX2 = bx - (x0 + 1), relY2 = by - (y0 + 1);
 
         if (makeUp) {
             GameMap up = makeUpperFloorVariant(interiorW, interiorH, rng);
-            int tx = 1 + Math.max(0, Math.min(relX, up.w - 2));
-            int ty = 1 + Math.max(0, Math.min(relY, up.h - 2));
-            up.placeStair(tx, ty);
-            up.linkStairDown(tx, ty, m, bestX, bestY);
-            m.linkStairUp(bestX, bestY, up, tx, ty);
+
+            // Escoge una esquina interior válida del piso superior para la escalera doble
+            int[] upPair = pickCornerDoubleStair(up, 0, 0, up.w - 1, up.h - 1, rng);
+
+            // Fallback ultra-seguro (no debería ocurrir con tamaños actuales):
+            int uax, uay, ubx, uby;
+            if (upPair != null) {
+                uax = upPair[0];
+                uay = upPair[1];
+                ubx = upPair[2];
+                uby = upPair[3];
+            } else {
+                uax = 1;
+                uay = 1;          // (1,1)
+                ubx = Math.min(up.w - 2, 2);
+                uby = 1;  // (2,1)
+            }
+
+            // Coloca y enlaza
+            up.placeStair(uax, uay);
+            up.linkStairDown(uax, uay, m, ax, ay);
+            m.linkStairUp(ax, ay, up, uax, uay);
+
+            up.placeStair(ubx, uby);
+            up.linkStairDown(ubx, uby, m, bx, by);
+            m.linkStairUp(bx, by, up, ubx, uby);
         }
+
         if (makeDown) {
             GameMap down = makeBasement(interiorW, interiorH, rng);
-            int tx = 1 + Math.max(0, Math.min(relX, down.w - 2));
-            int ty = 1 + Math.max(0, Math.min(relY, down.h - 2));
-            down.placeStair(tx, ty);
-            down.linkStairUp(tx, ty, m, bestX, bestY);
-            m.linkStairDown(bestX, bestY, down, tx, ty);
+
+            int dx1 = 1 + clamp(relX1, 0, down.w - 3);
+            int dy1 = 1 + clamp(relY1, 0, down.h - 3);
+            int dx2 = 1 + clamp(relX2, 0, down.w - 3);
+            int dy2 = 1 + clamp(relY2, 0, down.h - 3);
+
+            // Evita solapado si el sótano es más pequeño
+            if (dx2 == dx1 && dy2 == dy1) {
+                if (dx2 + 1 <= down.w - 2) dx2++;
+                else if (dx2 - 1 >= 1) dx2--;
+                else if (dy2 + 1 <= down.h - 2) dy2++;
+                else if (dy2 - 1 >= 1) dy2--;
+                else {
+                    dx2 = -1;
+                    dy2 = -1;
+                }
+            }
+
+            down.placeStair(dx1, dy1);
+            down.linkStairUp(dx1, dy1, m, ax, ay);
+            m.linkStairDown(ax, ay, down, dx1, dy1);
+
+            if (dx2 >= 0) {
+                down.placeStair(dx2, dy2);
+                down.linkStairUp(dx2, dy2, m, bx, by);
+                m.linkStairDown(bx, by, down, dx2, dy2);
+            }
         }
+    }
+
+    private int[] pickCornerDoubleStair(GameMap m, int x0, int y0, int x1, int y1, Random rng) {
+        // c: {cx, cy, dx_h, dy_h, dx_v, dy_v}
+        // dx_h/dy_h: dirección horizontal preferida hacia el interior desde la esquina
+        // dx_v/dy_v: dirección vertical alternativa hacia el interior
+        int[][] corners = new int[][]{{x0 + 1, y0 + 1, +1, 0, 0, +1},  // top-left: → , luego ↓
+                {x1 - 1, y0 + 1, -1, 0, 0, +1},  // top-right: ← , luego ↓
+                {x1 - 1, y1 - 1, -1, 0, 0, -1},  // bottom-right: ← , luego ↑
+                {x0 + 1, y1 - 1, +1, 0, 0, -1}   // bottom-left: → , luego ↑
+        };
+        // Mezcla el orden de prueba de esquinas
+        for (int i = 0; i < corners.length; i++) {
+            int j = i + rng.nextInt(corners.length - i);
+            int[] t = corners[i];
+            corners[i] = corners[j];
+            corners[j] = t;
+        }
+
+        for (int[] c : corners) {
+            int cx = c[0], cy = c[1];
+            int dxh = c[2], dyh = c[3];
+            int dxv = c[4], dyv = c[5];
+
+            // Candidato horizontal (preferido)
+            int ax = cx, ay = cy, bx = cx + dxh, by = cy + dyh;
+            if (validStairCell(m, ax, ay) && validStairCell(m, bx, by)) return new int[]{ax, ay, bx, by};
+
+            // Candidato vertical (alternativo)
+            bx = cx + dxv;
+            by = cy + dyv;
+            if (validStairCell(m, ax, ay) && validStairCell(m, bx, by)) return new int[]{ax, ay, bx, by};
+        }
+        return null;
+    }
+
+    private boolean validStairCell(GameMap m, int x, int y) {
+        return inBounds(m, x, y) && m.indoor[y][x] && m.tiles[y][x] == '▓';
+    }
+
+    private int clamp(int v, int lo, int hi) {
+        return (v < lo) ? lo : (v > hi ? hi : v);
     }
 
     private static GameMap makeUpperFloorVariant(int baseInteriorW, int baseInteriorH, Random rng) {
@@ -475,8 +552,8 @@ public final class HouseBuilder {
     }
 
     private static GameMap makeBasement(int baseInteriorW, int baseInteriorH, Random rng) {
-        int addW = 2 + rng.nextInt(4);  // +2..+5
-        int addH = 1 + rng.nextInt(3);  // +1..+3
+        int addW = 3 + rng.nextInt(4);
+        int addH = 2 + rng.nextInt(3);
         int w = Math.max(4, baseInteriorW + addW);
         int h = Math.max(4, baseInteriorH + addH);
 
@@ -487,23 +564,7 @@ public final class HouseBuilder {
 
         // Caja grande con puerta exterior
         drawRectHouseShell(m, 0, 0, m.w - 1, m.h - 1);
-
-        // “Pilares” para ambientar (rocas como columnas)
-        int pillars = Math.max(2, (w * h) / 80);
-        for (int i = 0; i < pillars; i++) {
-            int x = 2 + rng.nextInt(Math.max(1, w - 2));
-            int y = 2 + rng.nextInt(Math.max(1, h - 2));
-            paintRock(m, x, y);
-        }
-
         return m;
-    }
-
-    // --- painter local para roca (porque GameMap.setRock es private) ---
-    private static void paintRock(GameMap m, int x, int y) {
-        m.tiles[y][x] = '█';
-        m.walk[y][x] = false;
-        m.transp[y][x] = false;
     }
 
     private record RectI(int x0, int y0, int x1, int y1) {

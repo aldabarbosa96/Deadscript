@@ -3,13 +3,14 @@ package game;
 import items.Equipment;
 import items.Item;
 import items.Items;
+import utils.SpawnUtil;
 import world.Entity;
 import world.GameMap;
 
 import java.util.*;
 
 public class GameState {
-    public GameMap map = GameMap.randomBalanced(800, 650);
+    public GameMap map = GameMap.randomBalanced(900, 750);
     public int px = map.w / 2, py = map.h / 2;
     public int lastDx = 0, lastDy = 0;
     public String ubicacion = "Goodsummer";
@@ -131,6 +132,13 @@ public class GameState {
         inventory.add(Items.create("blanket_01"));
         inventory.add(Items.create("gloves_01"));
 
+        int[] spawn = SpawnUtil.pickIndoorSpawn(this.map, this.rng);
+        this.px = spawn[0];
+        this.py = spawn[1];
+
+        this.lastDx = 0;
+        this.lastDy = 0;
+
         for (SkillGroup g : SkillGroup.values()) skills.put(g, new ArrayList<>());
 
         skills.get(SkillGroup.FISICO).add(new Skill("fitness", "Forma física", SkillGroup.FISICO, 2, 0.35));
@@ -169,9 +177,10 @@ public class GameState {
     }
 
     public void resetMap() {
-        map = GameMap.randomBalanced(240, 160);
-        px = map.w / 2;
-        py = map.h / 2;
+        map = GameMap.randomBalanced(650, 500);
+        int[] spawn = SpawnUtil.pickIndoorSpawn(this.map, this.rng);
+        px = spawn[0];
+        py = spawn[1];
         lastDx = lastDy = 0;
         escondido = false;
         hidePrevX = -1;
