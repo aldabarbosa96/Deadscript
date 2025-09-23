@@ -29,6 +29,8 @@ public class Renderer {
     private Terminal term;
     private int lastCols = -1, lastRows = -1;
     private Integer pendingAnchorSX = null, pendingAnchorSY = null;
+    private boolean wasWorldActionsOpen = false;
+    private boolean wasOverlayOpen = false;
 
     public void init(GameState s, Terminal term) {
         this.term = term;
@@ -64,6 +66,17 @@ public class Renderer {
     }
 
     public void renderAll(GameState s) {
+        boolean justClosedWorldActions = wasWorldActionsOpen && !s.worldActionsOpen;
+        wasWorldActionsOpen = s.worldActionsOpen;
+        boolean overlayOpen = s.inventoryOpen || s.equipmentOpen || s.statsOpen;
+        boolean justClosedOverlay = wasOverlayOpen && !overlayOpen;
+        wasOverlayOpen = overlayOpen;
+
+        if (mapView != null && (justClosedWorldActions || justClosedOverlay)) {
+            mapView.requestFullRepaint();
+        }
+
+
         String hora = LocalTime.now().format(TS_FMT);
         hud.renderHud(1, hora, "Soleado", s.temperaturaC, s.ubicacion, s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.px, s.py, rumboTexto(s.lastDx, s.lastDy));
 

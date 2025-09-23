@@ -482,4 +482,8 @@ public class MapView {
     public void setCenterSmallMaps(boolean v) {
         this.centerSmallMaps = v;
     }
+
+    public void requestFullRepaint() {
+        this.forceFullRepaint = true;
+    }
 }
