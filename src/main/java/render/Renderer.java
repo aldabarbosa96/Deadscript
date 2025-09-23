@@ -9,8 +9,11 @@ import ui.menu.player.PlayerHud;
 import ui.menu.player.PlayerStates;
 import utils.ANSI;
 import game.GameState;
+import world.Entity;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import static game.Constants.*;
 
@@ -31,6 +34,12 @@ public class Renderer {
     private Integer pendingAnchorSX = null, pendingAnchorSY = null;
     private boolean wasWorldActionsOpen = false;
     private boolean wasOverlayOpen = false;
+    private final HashMap<Long, Entity> overlay = new HashMap<>(256);
+    private final ArrayList<String> inspectLines = new ArrayList<>(32);
+    private String lastClockStr = "";
+    private int lastClockSec = -1;
+    private long lastSizeCheckNs = 0L;
+    private static final long SIZE_CHECK_INTERVAL_NS = 200_000_000L;
 
     public void init(GameState s, Terminal term) {
         this.term = term;
@@ -77,7 +86,14 @@ public class Renderer {
         }
 
 
-        String hora = LocalTime.now().format(TS_FMT);
+        LocalTime now = LocalTime.now();
+        int sec = now.getSecond();
+        if (sec != lastClockSec) {
+            lastClockSec = sec;
+            lastClockStr = now.format(TS_FMT);
+        }
+        String hora = lastClockStr;
+
         hud.renderHud(1, hora, "Soleado", s.temperaturaC, s.ubicacion, s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.px, s.py, rumboTexto(s.lastDx, s.lastDy));
 
         states.renderStates(s.salud, s.maxSalud, s.energia, s.maxEnergia, s.hambre, s.maxHambre, s.sed, s.maxSed, s.sueno, s.maxSueno, s.sangrado, s.infeccionPct, s.escondido);
@@ -97,13 +113,19 @@ public class Renderer {
         equip.render(arma, off, cabeza, pecho, manos, piernas, pies, mochila, 0, 0, peso, capacidad);
 
         if (!s.inventoryOpen && !s.equipmentOpen && !s.statsOpen) {
-            java.util.HashMap<Long, world.Entity> overlay = new java.util.HashMap<>();
+            overlay.clear();
+
+            final int camX = cameraX(s), camY = cameraY(s);
+            final int vw = mapView.getViewW(), vh = mapView.getViewH();
+            final int xMax = camX + vw, yMax = camY + vh;
+
             for (world.Entity e : s.entities) {
-                long k = (((long) e.x) << 32) ^ (e.y & 0xffffffffL);
-                overlay.put(k, e);
+                if (e.x >= camX && e.x < xMax && e.y >= camY && e.y < yMax) {
+                    long k = (((long) e.x) << 32) ^ (e.y & 0xffffffffL);
+                    overlay.put(k, e); // sigue el autoboxing, pero sobre muchas menos entidades
+                }
             }
             mapView.render(s.map, s.px, s.py, overlay);
-            // elimina la llamada separada a renderEntities(s);
         }
 
         if (s.inventoryOpen) {
@@ -157,11 +179,11 @@ public class Renderer {
 
     private void renderInspectPanel(GameState s) {
         if (inspect == null || inspectW < 18) return;
+        inspectLines.clear();
 
         String title = "OBJETIVO";
         char glyph = ' ';
         String kind = "—";
-        java.util.ArrayList<String> lines = new java.util.ArrayList<>();
 
         int tx, ty;
         world.Entity found = null;
@@ -189,8 +211,8 @@ public class Renderer {
                 ty = s.py + (hasDir ? dy : 0);
 
                 if (tx < 0 || ty < 0 || tx >= s.map.w || ty >= s.map.h) {
-                    lines.add("Fuera del mapa.");
-                    inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, lines);
+                    inspectLines.add("Fuera del mapa.");
+                    inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, inspectLines);
                     return;
                 }
 
@@ -208,8 +230,8 @@ public class Renderer {
 
         // Bordes por seguridad
         if (tx < 0 || ty < 0 || tx >= s.map.w || ty >= s.map.h) {
-            lines.add("Fuera del mapa.");
-            inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, lines);
+            inspectLines.add("Fuera del mapa.");
+            inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, inspectLines);
             return;
         }
 
@@ -229,31 +251,31 @@ public class Renderer {
 
             title = "OBJETIVO: " + name;
 
-            lines.add(String.format("Pos: (%d,%d)", tx, ty));
-            lines.add("Tipo: " + kind);
-            lines.add("Visible: " + (vis ? "Sí" : det ? "Detectado" : "No"));
-            lines.add("Terreno: " + utils.EntityUtil.tileName(s.map.tiles[ty][tx], s.map.indoor[ty][tx]));
-            lines.add("Transitable: " + (s.map.walk[ty][tx] ? "Sí" : "No"));
+            inspectLines.add(String.format("Pos: (%d,%d)", tx, ty));
+            inspectLines.add("Tipo: " + kind);
+            inspectLines.add("Visible: " + (vis ? "Sí" : det ? "Detectado" : "No"));
+            inspectLines.add("Terreno: " + utils.EntityUtil.tileName(s.map.tiles[ty][tx], s.map.indoor[ty][tx]));
+            inspectLines.add("Transitable: " + (s.map.walk[ty][tx] ? "Sí" : "No"));
 
             // Detalle extra cuando sea LOOT
             if (found.type == world.Entity.Type.LOOT && found.item != null) {
                 var it = found.item;
-                lines.add("Objeto: " + it.getNombre());
-                lines.add(String.format("Peso: %.3f kg  Condición: %d%%", it.getPesoKg(), it.getDurabilidadPct()));
+                inspectLines.add("Objeto: " + it.getNombre());
+                inspectLines.add(String.format("Peso: %.3f kg  Condición: %d%%", it.getPesoKg(), it.getDurabilidadPct()));
                 if (it.getWeapon() != null) {
-                    lines.add(String.format("Arma • Daño:%d  Manos:%d  Cadencia:%.2fs", it.getWeapon().danho(), it.getWeapon().manos(), it.getWeapon().cooldownSec()));
+                    inspectLines.add(String.format("Arma • Daño:%d  Manos:%d  Cadencia:%.2fs", it.getWeapon().danho(), it.getWeapon().manos(), it.getWeapon().cooldownSec()));
                 }
                 if (it.getArmor() != null) {
-                    lines.add(String.format("Armadura • Prot:%d  Abrigo:%d", it.getArmor().proteccion(), it.getArmor().abrigo()));
+                    inspectLines.add(String.format("Armadura • Prot:%d  Abrigo:%d", it.getArmor().proteccion(), it.getArmor().abrigo()));
                 }
                 if (it.getContainer() != null) {
-                    lines.add(String.format("Contenedor • Capacidad: %.2f kg", it.getContainer().capacidadKg()));
+                    inspectLines.add(String.format("Contenedor • Capacidad: %.2f kg", it.getContainer().capacidadKg()));
                 }
                 if (it.getWearableSlot() != null) {
-                    lines.add("Slot: " + it.getWearableSlot().name());
+                    inspectLines.add("Slot: " + it.getWearableSlot().name());
                 }
                 String desc = it.getDescripcion();
-                if (desc != null && !desc.isBlank()) lines.add(desc);
+                if (desc != null && !desc.isBlank()) inspectLines.add(desc);
             }
         } else {
             // Terreno
@@ -262,16 +284,16 @@ public class Renderer {
             kind = "Terreno";
             title = "OBJETIVO: " + utils.EntityUtil.tileName(t, s.map.indoor[ty][tx]);
 
-            lines.add(String.format("Pos: (%d,%d)", tx, ty));
-            lines.add("Visible: " + (vis ? "Sí" : det ? "Detectado" : "No"));
-            lines.add("Tipo: " + kind);
-            lines.add("Transitable: " + (s.map.walk[ty][tx] ? "Sí" : "No"));
+            inspectLines.add(String.format("Pos: (%d,%d)", tx, ty));
+            inspectLines.add("Visible: " + (vis ? "Sí" : det ? "Detectado" : "No"));
+            inspectLines.add("Tipo: " + kind);
+            inspectLines.add("Transitable: " + (s.map.walk[ty][tx] ? "Sí" : "No"));
 
             String extra = utils.EntityUtil.tileHint(t);
-            if (!extra.isEmpty()) lines.add(extra);
+            if (!extra.isEmpty()) inspectLines.add(extra);
         }
 
-        inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, lines);
+        inspect.render(inspectTop, inspectLeft, inspectW, inspectH, title, glyph, kind, inspectLines);
     }
 
     private world.Entity findNearbyLoot(GameState s) {
@@ -438,6 +460,13 @@ public class Renderer {
 
     public boolean ensureLayoutUpToDate(GameState s) {
         if (term == null) return false;
+
+        long now = System.nanoTime();
+        if (now - lastSizeCheckNs < SIZE_CHECK_INTERVAL_NS) {
+            return false;
+        }
+        lastSizeCheckNs = now;
+
         org.jline.terminal.Size sz = term.getSize();
         int cols = Math.max(1, sz.getColumns());
         int rows = Math.max(1, sz.getRows());
