@@ -3,25 +3,39 @@ package ui.menu;
 import utils.ANSI;
 import world.GameMap;
 
-import java.util.ArrayDeque;
-
 import static game.Constants.FOV_OUTER_EXTRA;
 import static utils.EntityUtil.isInterestingTile;
 
 public class MapView {
     private final int top, left, viewW, viewH;
     private final int fovRadius;
-    private final boolean[][] visible;
-    private final boolean[][] detected;
     private final double cellAspect;
     private static final char ROOF_CHAR = '#';
     private static final int ROOF_COLOR = 100000 + 16;
     private static final int WALL_DIM = 100000 + 240;
+
     private final boolean[][] roofSeen;
     private boolean centerSmallMaps = false;
-    private int lastCamX = 0, lastCamY = 0;
+
+    private int lastCamX = Integer.MIN_VALUE, lastCamY = Integer.MIN_VALUE;
     private boolean pendingAnchor = false;
     private int anchorCamX = 0, anchorCamY = 0;
+
+    private final int[][] visStamp;
+    private final int[][] detStamp;
+    private int frameId = 0;
+
+    private final char[][] prevGlyph;
+    private final int[][] prevColor;
+    private final char[][] curGlyph;
+    private final int[][] curColor;
+
+    private final world.Entity[][] ovCell;
+
+    private final int[][] roomStamp;
+    private int curRoomId = 1;
+
+    private boolean forceFullRepaint = false;
 
     public MapView(int top, int left, int viewW, int viewH, int fovRadius, GameMap map, double cellAspect) {
         this.top = Math.max(1, top);
@@ -30,9 +44,25 @@ public class MapView {
         this.viewH = Math.max(5, viewH);
         this.fovRadius = Math.max(1, fovRadius);
         this.cellAspect = cellAspect <= 0 ? 2.0 : cellAspect;
-        this.visible = new boolean[map.h][map.w];
-        this.detected = new boolean[map.h][map.w];
+
+        this.visStamp = new int[map.h][map.w];
+        this.detStamp = new int[map.h][map.w];
         this.roofSeen = new boolean[map.h][map.w];
+
+        this.prevGlyph = new char[viewH][viewW];
+        this.prevColor = new int[viewH][viewW];
+        this.curGlyph = new char[viewH][viewW];
+        this.curColor = new int[viewH][viewW];
+        this.ovCell = new world.Entity[viewH][viewW];
+
+        this.roomStamp = new int[map.h][map.w];
+
+        for (int y = 0; y < viewH; y++) {
+            for (int x = 0; x < viewW; x++) {
+                prevGlyph[y][x] = '\0';
+                prevColor[y][x] = Integer.MIN_VALUE;
+            }
+        }
     }
 
     public void prefill() {
@@ -47,23 +77,44 @@ public class MapView {
     public void render(GameMap map, int px, int py, java.util.Map<Long, world.Entity> overlay) {
         drawTitle();
         int base = top + 2;
+
         computeFovAndPeriphery(map, px, py);
-        boolean[][] inDisc = computeLightDisc(map, px, py);
-        boolean[][] exposedIndoor = computeExposedIndoor(map, visible, px, py);
 
         int camX, camY;
+        int cx = Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
+        int cy = Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
         if (centerSmallMaps) {
-            camX = (map.w <= viewW) ? 0 : Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
-            camY = (map.h <= viewH) ? 0 : Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
+            camX = (map.w <= viewW) ? 0 : cx;
+            camY = (map.h <= viewH) ? 0 : cy;
         } else {
-            camX = Math.max(0, Math.min(px - viewW / 2, map.w - viewW));
-            camY = Math.max(0, Math.min(py - viewH / 2, map.h - viewH));
+            camX = cx;
+            camY = cy;
         }
-
         if (pendingAnchor) {
             camX = anchorCamX;
             camY = anchorCamY;
             pendingAnchor = false;
+        }
+
+        if (camX != lastCamX || camY != lastCamY) {
+            for (int y = 0; y < viewH; y++) {
+                for (int x = 0; x < viewW; x++) {
+                    prevGlyph[y][x] = '\0';
+                    prevColor[y][x] = Integer.MIN_VALUE;
+                }
+            }
+            lastCamX = camX;
+            lastCamY = camY;
+        }
+
+        if (forceFullRepaint) {
+            for (int y = 0; y < viewH; y++) {
+                for (int x = 0; x < viewW; x++) {
+                    prevGlyph[y][x] = '\0';
+                    prevColor[y][x] = Integer.MIN_VALUE;
+                }
+            }
+            forceFullRepaint = false;
         }
 
         int ox = 0, oy = 0;
@@ -73,9 +124,31 @@ public class MapView {
         }
 
         for (int sy = 0; sy < viewH; sy++) {
-            ANSI.gotoRC(base + sy, left);
-            int currentColor = -1;
+            for (int sx = 0; sx < viewW; sx++) {
+                ovCell[sy][sx] = null;
+            }
+        }
+        if (overlay != null && !overlay.isEmpty()) {
+            for (world.Entity e : overlay.values()) {
+                int sx = e.x - camX + ox;
+                int sy = e.y - camY + oy;
+                if (sx >= 0 && sy >= 0 && sx < viewW && sy < viewH) {
+                    ovCell[sy][sx] = e;
+                }
+            }
+        }
 
+        boolean playerIndoor = (py >= 0 && py < map.h && px >= 0 && px < map.w) && map.indoor[py][px];
+        if (playerIndoor && roomStamp[py][px] != curRoomId) {
+            ++curRoomId;
+            if (curRoomId == Integer.MAX_VALUE) {
+                for (int y = 0; y < map.h; y++) java.util.Arrays.fill(roomStamp[y], 0);
+                curRoomId = 1;
+            }
+            floodRoom(map, px, py, curRoomId);
+        }
+
+        for (int sy = 0; sy < viewH; sy++) {
             for (int sx = 0; sx < viewW; sx++) {
                 int mx = (sx - ox) + camX;
                 int my = (sy - oy) + camY;
@@ -84,16 +157,13 @@ public class MapView {
                 int nextColor = 0;
 
                 if (mx >= 0 && my >= 0 && mx < map.w && my < map.h) {
-                    boolean vis = visible[my][mx];
-                    boolean det = detected[my][mx];
+                    boolean vis = visStamp[my][mx] == frameId;
+                    boolean det = detStamp[my][mx] == frameId;
                     boolean exp = map.explored[my][mx];
 
                     if (mx == px && my == py) {
-                        if (overlay != null) {
-                            long k = (((long) mx) << 32) ^ (my & 0xffffffffL);
-                            world.Entity eHere = overlay.get(k);
-                            if (eHere != null) eHere.revealed = true;
-                        }
+                        world.Entity eHere = ovCell[sy][sx];
+                        if (eHere != null) eHere.revealed = true;
                         ch = '@';
                         nextColor = 36;
                     } else {
@@ -101,20 +171,15 @@ public class MapView {
                         boolean indoor = map.indoor[my][mx];
                         boolean isIndoorFloor = (tile == '▓' && indoor);
 
-                        if (isIndoorFloor && inDisc[my][mx]) {
+                        if (isIndoorFloor && inDisc(mx, my, px, py)) {
                             roofSeen[my][mx] = true;
                         }
 
-                        boolean exposed = isIndoorFloor && exposedIndoor[my][mx];
-                        boolean roofNow = isIndoorFloor && !exposed && inDisc[my][mx];
-                        boolean roofDim = isIndoorFloor && !exposed && !inDisc[my][mx] && roofSeen[my][mx];
+                        boolean exposed = isIndoorFloor && ((playerIndoor && roomStamp[my][mx] == curRoomId) || vis);
+                        boolean roofNow = isIndoorFloor && !exposed && inDisc(mx, my, px, py);
+                        boolean roofDim = isIndoorFloor && !exposed && !inDisc(mx, my, px, py) && roofSeen[my][mx];
 
-                        world.Entity ent = null;
-                        if (overlay != null) {
-                            long k = (((long) mx) << 32) ^ (my & 0xffffffffL);
-                            ent = overlay.get(k);
-                        }
-
+                        world.Entity ent = ovCell[sy][sx];
                         boolean drewEntity = false;
                         if (ent != null) {
                             if (vis && !roofNow && !roofDim) {
@@ -144,10 +209,20 @@ public class MapView {
                         }
 
                         if (!drewEntity) {
+                            // --- VISIBILIDAD ESTRICTA PARA ROCAS '█' ---
+                            boolean strictVis = vis;
+                            if (strictVis && tile == '█') {
+                                // Cinturón y tirantes: reconfirma que está en disco y con LOS actual
+                                if (!inDisc(mx, my, px, py) || !los(map, px, py, mx, my)) {
+                                    strictVis = false;
+                                }
+                            }
+
                             if (roofNow || roofDim) {
                                 ch = ROOF_CHAR;
                                 nextColor = ROOF_COLOR;
-                            } else if (vis) {
+                            } else if (strictVis) {
+                                // Marcamos explorado solo si es visible de verdad
                                 map.explored[my][mx] = true;
                                 ch = tile;
                                 nextColor = switch (tile) {
@@ -199,14 +274,29 @@ public class MapView {
                     }
                 }
 
-                if (nextColor != currentColor) {
-                    applyColor(nextColor);
-                    currentColor = nextColor;
-                }
-                System.out.print(ch);
+                curGlyph[sy][sx] = ch;
+                curColor[sy][sx] = nextColor;
             }
-            ANSI.resetStyle();
         }
+
+        for (int sy = 0; sy < viewH; sy++) {
+            int x = 0;
+            while (x < viewW) {
+                while (x < viewW && curGlyph[sy][x] == prevGlyph[sy][x] && curColor[sy][x] == prevColor[sy][x]) x++;
+                if (x >= viewW) break;
+                int start = x;
+                int col = curColor[sy][x];
+                while (x < viewW && (curGlyph[sy][x] != prevGlyph[sy][x] || curColor[sy][x] != prevColor[sy][x]) && curColor[sy][x] == col) {
+                    x++;
+                }
+                ANSI.gotoRC(base + sy, left + start);
+                applyColor(col);
+                System.out.print(new String(curGlyph[sy], start, x - start));
+                System.arraycopy(curGlyph[sy], start, prevGlyph[sy], start, x - start);
+                System.arraycopy(curColor[sy], start, prevColor[sy], start, x - start);
+            }
+        }
+        ANSI.resetStyle();
     }
 
     private void drawTitle() {
@@ -226,12 +316,15 @@ public class MapView {
     }
 
     private void computeFovAndPeriphery(GameMap map, int px, int py) {
-        for (int y = 0; y < map.h; y++) {
-            java.util.Arrays.fill(visible[y], false);
-            java.util.Arrays.fill(detected[y], false);
+        frameId++;
+        if (frameId == Integer.MAX_VALUE) {
+            frameId = 1;
+            for (int y = 0; y < map.h; y++) {
+                java.util.Arrays.fill(visStamp[y], 0);
+                java.util.Arrays.fill(detStamp[y], 0);
+            }
         }
 
-        // FOV principal con LOS
         int r = fovRadius;
         int y0 = Math.max(0, py - r), y1 = Math.min(map.h - 1, py + r);
         int x0 = Math.max(0, px - r), x1 = Math.min(map.w - 1, px + r);
@@ -242,12 +335,11 @@ public class MapView {
                 int dx = x - px, dy = y - py;
                 double dyAdj = dy * cellAspect;
                 if (dx * dx + dyAdj * dyAdj <= r2 && los(map, px, py, x, y)) {
-                    visible[y][x] = true;
+                    visStamp[y][x] = frameId;
                 }
             }
         }
 
-        // Periferia detectada (sólo si no es visible)
         int extra = Math.max(1, FOV_OUTER_EXTRA);
         int rp = r + extra;
         int yp0 = Math.max(0, py - rp), yp1 = Math.min(map.h - 1, py + rp);
@@ -256,62 +348,68 @@ public class MapView {
 
         for (int y = yp0; y <= yp1; y++) {
             for (int x = xp0; x <= xp1; x++) {
-                if (visible[y][x]) continue;
+                if (visStamp[y][x] == frameId) continue;
                 int dx = x - px, dy = y - py;
                 double dyAdj = dy * cellAspect;
                 if (dx * dx + dyAdj * dyAdj <= rp2 && los(map, px, py, x, y)) {
-                    detected[y][x] = true;
+                    detStamp[y][x] = frameId;
                 }
             }
         }
     }
 
-    // Disco de luz (sin oclusión) para revelar el tejado
-    private boolean[][] computeLightDisc(GameMap map, int px, int py) {
-        boolean[][] inDisc = new boolean[map.h][map.w];
+    private boolean inDisc(int x, int y, int px, int py) {
         int r = fovRadius;
-        int y0 = Math.max(0, py - r), y1 = Math.min(map.h - 1, py + r);
-        int x0 = Math.max(0, px - r), x1 = Math.min(map.w - 1, px + r);
-        double r2 = r * (double) r;
-        for (int y = y0; y <= y1; y++) {
-            for (int x = x0; x <= x1; x++) {
-                int dx = x - px, dy = y - py;
-                double dyAdj = dy * cellAspect;
-                if (dx * dx + dyAdj * dyAdj <= r2) inDisc[y][x] = true;
-            }
-        }
-        return inDisc;
+        int dx = x - px, dy = y - py;
+        double dyAdj = dy * cellAspect;
+        return dx * dx + dyAdj * dyAdj <= r * (double) r;
     }
 
-    private static boolean[][] computeExposedIndoor(GameMap m, boolean[][] visible, int px, int py) {
-        boolean[][] exposed = new boolean[m.h][m.w];
+    private void floodRoom(GameMap m, int sx, int sy, int id) {
+        int w = m.w, h = m.h;
+        int max = w * h;
+        int[] qx = new int[max];
+        int[] qy = new int[max];
+        int head = 0, tail = 0;
+        if (!m.indoor[sy][sx]) return;
+        roomStamp[sy][sx] = id;
+        qx[tail] = sx;
+        qy[tail] = sy;
+        tail++;
+        while (head != tail) {
+            int x = qx[head], y = qy[head];
+            head++;
+            if (head == max) head = 0;
 
-        // 1) Si el jugador está dentro, expone su estancia (conectividad 4)
-        if (m.indoor[py][px]) {
-            ArrayDeque<int[]> q = new ArrayDeque<>();
-            exposed[py][px] = true;
-            q.add(new int[]{px, py});
-            int[][] d4 = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-            while (!q.isEmpty()) {
-                int[] p = q.pollFirst();
-                for (int[] d : d4) {
-                    int nx = p[0] + d[0], ny = p[1] + d[1];
-                    if (nx <= 0 || ny <= 0 || nx >= m.w - 1 || ny >= m.h - 1) continue;
-                    if (!m.indoor[ny][nx] || exposed[ny][nx]) continue;
-                    exposed[ny][nx] = true;
-                    q.add(new int[]{nx, ny});
-                }
+            if (x > 0 && m.indoor[y][x - 1] && roomStamp[y][x - 1] != id) {
+                roomStamp[y][x - 1] = id;
+                qx[tail] = x - 1;
+                qy[tail] = y;
+                tail++;
+                if (tail == max) tail = 0;
+            }
+            if (x + 1 < w && m.indoor[y][x + 1] && roomStamp[y][x + 1] != id) {
+                roomStamp[y][x + 1] = id;
+                qx[tail] = x + 1;
+                qy[tail] = y;
+                tail++;
+                if (tail == max) tail = 0;
+            }
+            if (y > 0 && m.indoor[y - 1][x] && roomStamp[y - 1][x] != id) {
+                roomStamp[y - 1][x] = id;
+                qx[tail] = x;
+                qy[tail] = y - 1;
+                tail++;
+                if (tail == max) tail = 0;
+            }
+            if (y + 1 < h && m.indoor[y + 1][x] && roomStamp[y + 1][x] != id) {
+                roomStamp[y + 1][x] = id;
+                qx[tail] = x;
+                qy[tail] = y + 1;
+                tail++;
+                if (tail == max) tail = 0;
             }
         }
-
-        // 2) Cualquier suelo interior con LOS real se expone (por ej. a través de una puerta)
-        for (int y = 0; y < m.h; y++) {
-            for (int x = 0; x < m.w; x++) {
-                if (m.indoor[y][x] && visible[y][x]) exposed[y][x] = true;
-            }
-        }
-
-        return exposed;
     }
 
     private boolean los(GameMap map, int x0, int y0, int x1, int y1) {
@@ -347,15 +445,15 @@ public class MapView {
     }
 
     public boolean wasVisibleLastRender(int x, int y) {
-        if (y < 0 || y >= visible.length) return false;
-        if (x < 0 || x >= visible[0].length) return false;
-        return visible[y][x];
+        if (y < 0 || y >= visStamp.length) return false;
+        if (x < 0 || x >= visStamp[0].length) return false;
+        return visStamp[y][x] == frameId;
     }
 
     public boolean wasDetectedLastRender(int x, int y) {
-        if (y < 0 || y >= detected.length) return false;
-        if (x < 0 || x >= detected[0].length) return false;
-        return detected[y][x];
+        if (y < 0 || y >= detStamp.length) return false;
+        if (x < 0 || x >= detStamp[0].length) return false;
+        return detStamp[y][x] == frameId;
     }
 
     private static void applyColor(int sentinel) {
@@ -372,13 +470,10 @@ public class MapView {
     public void anchorOnceKeepingPlayerAt(int sx, int sy, int px, int py, GameMap map) {
         int sxClamped = Math.max(0, Math.min(sx, viewW - 1));
         int syClamped = Math.max(0, Math.min(sy, viewH - 1));
-
         int camX = px - sxClamped;
         int camY = py - syClamped;
-
         camX = Math.max(0, Math.min(camX, Math.max(0, map.w - viewW)));
         camY = Math.max(0, Math.min(camY, Math.max(0, map.h - viewH)));
-
         this.anchorCamX = camX;
         this.anchorCamY = camY;
         this.pendingAnchor = true;
