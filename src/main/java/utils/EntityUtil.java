@@ -31,12 +31,14 @@ public final class EntityUtil {
     }
 
     public static String tileName(char t, boolean indoor) {
+        if (!indoor && (t=='-' || t=='¦' || t=='┌' || t=='┐' || t=='└' || t=='┘')) return "Camino";
         return switch (t) {
             case '#' -> "Árbol";
             case '~' -> "Agua";
             case '█' -> "Roca";
             case '+' -> "Puerta";
             case 'S' -> "Escalera";
+            case '-' -> "Camino";
             case '╔', '╗', '╚', '╝', '═', '║' -> indoor ? "Pared interior" : "Pared";
             case '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐', '└', '┘' -> "Tabique interior";
             case '▓' -> indoor ? "Suelo (interior)" : "Suelo";
@@ -51,6 +53,7 @@ public final class EntityUtil {
             case '~' -> "No transitable. Posible fuente de agua.";
             case '#' -> "Obstáculo. Cubre visión y paso.";
             case '█' -> "Cobertura dura. No transitable.";
+            case '-', '¦', '┌', '┐', '└', '┘' -> "Vía asfaltada.";
             default -> "";
         };
     }
@@ -58,7 +61,7 @@ public final class EntityUtil {
     public static boolean isInterestingTile(char t) {
         return switch (t) {
             case '#', '█', '~', '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐', '└', '┘',
-                 '+', 'S' -> true;
+                 '+', 'S' ,'-', '¦' -> true;
             default -> false;
         };
     }

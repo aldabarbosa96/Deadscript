@@ -12,7 +12,9 @@ public class MapView {
     private final double cellAspect;
     private static final char ROOF_CHAR = '#';
     private static final int ROOF_COLOR = 100000 + 16;
-    private static final int WALL_DIM = 100000 + 240;
+    private static final int ROAD_VIS = 100000 + 240;
+    private static final int ROAD_DET = 100000 + 239;
+    private static final int ROAD_EXP = 100000 + 238;
 
     private final boolean[][] roofSeen;
     private boolean centerSmallMaps = false;
@@ -213,20 +215,17 @@ public class MapView {
                         }
 
                         if (!drewEntity) {
-                            // --- VISIBILIDAD ESTRICTA PARA ROCAS '█' ---
-                            // Usamos strictVis solo para dibujar con colores de "visible",
-                            // pero la marca de 'explored' la hacemos con 'vis' normal para no
-                            // quedarnos eternamente en '?' en la periferia.
                             boolean strictVis = vis;
                             if (tile == '█') {
                                 strictVis = vis;
                             }
 
-                            // Marcar explorado si realmente está en vis este frame (independiente de strictVis)
                             if (vis) {
                                 map.explored[my][mx] = true;
-                                exp = true; // usamos el estado actualizado en este mismo frame
+                                exp = true;
                             }
+
+                            boolean isRoad = map.road[my][mx];
 
                             if (roofNow || roofDim) {
                                 ch = ROOF_CHAR;
@@ -234,52 +233,67 @@ public class MapView {
 
                             } else if (strictVis) {
                                 ch = tile;
-                                nextColor = switch (tile) {
-                                    case '#' -> 92;
-                                    case '~' -> 100000 + 45;
-                                    case '█' -> 97;
-                                    case '▓' -> (indoor ? 97 : 100000 + 252);
-                                    case '╔', '╗', '╚', '╝', '═', '║',
-                                         '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐', '└', '┘' -> 100000 + 94;
-                                    case '+' -> 93;
-                                    default -> 100000 + 58;
-                                };
+                                if (isRoad) {
+                                    nextColor = ROAD_VIS;
+                                } else {
+                                    nextColor = switch (tile) {
+                                        case '#' -> 92;
+                                        case '~' -> 100000 + 45;
+                                        case '█' -> 97;
+                                        case '▓' -> (indoor ? 97 : 100000 + 252);
+                                        case '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐',
+                                             '└', '┘' -> 100000 + 94;
+                                        case '+' -> 93;
+                                        case '-','¦' -> ROAD_VIS;
+                                        default -> 100000 + 58;
+                                    };
+                                }
 
                             } else if (det) {
                                 if (isInterestingTile(tile)) {
                                     if (exp) {
                                         ch = tile;
-                                        nextColor = switch (tile) {
-                                            case '#' -> 100000 + 22;
-                                            case '~' -> 100000 + 24;
-                                            case '█' -> 97;
-                                            case '▓' -> (indoor ? 90 : 100000 + 248);
-                                            case '╔', '╗', '╚', '╝', '═', '║',
-                                                 '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐', '└', '┘' -> 100000 + 94;
-                                            case '+' -> 90;
-                                            default -> 100000 + 137;
-                                        };
+                                        if (isRoad) {
+                                            nextColor = ROAD_DET;
+                                        } else {
+                                            nextColor = switch (tile) {
+                                                case '#' -> 100000 + 22;
+                                                case '~' -> 100000 + 24;
+                                                case '█' -> 97;
+                                                case '▓' -> (indoor ? 90 : 100000 + 248);
+                                                case '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴',
+                                                     '┌', '┐', '└', '┘' -> 100000 + 94;
+                                                case '+' -> 90;
+                                                case '-','¦' -> ROAD_DET;
+                                                default -> 100000 + 137;
+                                            };
+                                        }
                                     } else {
                                         ch = '?';
                                         nextColor = 90;
                                     }
                                 } else {
                                     ch = '▓';
-                                    nextColor = indoor ? 90 : 100000 + 248; // todo --> valorar 254 para FOV exterior visible
+                                    nextColor = indoor ? 90 : 100000 + 248;
                                 }
 
                             } else if (exp) {
                                 ch = tile;
-                                nextColor = switch (tile) {
-                                    case '#' -> 100000 + 22;
-                                    case '~' -> 100000 + 24;
-                                    case '█' -> 100000 + 250;
-                                    case '▓' -> (indoor ? 90 : 100000 + 246);
-                                    case '╔', '╗', '╚', '╝', '═', '║',
-                                         '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐', '└', '┘' -> 100000 + 94;
-                                    case '+' -> 90;
-                                    default -> 100000 + 137;
-                                };
+                                if (isRoad) {
+                                    nextColor = ROAD_EXP;
+                                } else {
+                                    nextColor = switch (tile) {
+                                        case '#' -> 100000 + 22;
+                                        case '~' -> 100000 + 24;
+                                        case '█' -> 100000 + 250;
+                                        case '▓' -> (indoor ? 90 : 100000 + 246);
+                                        case '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐',
+                                             '└', '┘' -> 100000 + 94;
+                                        case '+' -> 90;
+                                        case '-','¦' -> ROAD_EXP;
+                                        default -> 100000 + 137;
+                                    };
+                                }
 
                             } else {
                                 ch = ' ';
@@ -501,6 +515,7 @@ public class MapView {
     public void requestFullRepaint() {
         this.forceFullRepaint = true;
     }
+
     public void setExtraOffset(int ex, int ey) {
         this.extraOffX = ex;
         this.extraOffY = ey;

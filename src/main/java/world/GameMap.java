@@ -15,6 +15,7 @@ public class GameMap {
     public final boolean[][] transp;
     public final boolean[][] explored;
     public final boolean[][] indoor;
+    public final boolean[][] road;
 
     public GameMap(int w, int h) {
         this.w = w;
@@ -24,6 +25,7 @@ public class GameMap {
         this.transp = new boolean[h][w];
         this.explored = new boolean[h][w];
         this.indoor = new boolean[h][w];
+        this.road = new boolean[h][w];
     }
 
     public static GameMap randomBalanced(int w, int h) {
@@ -69,7 +71,7 @@ public class GameMap {
         new RiverBuilder().build(m, rng, cx, cy, safeRadius);
         new HouseBuilder().build(m, rng, groups, singles, safeRadius);
         new RocksBuilder().build(m, rng, Math.max(8, (w * h) / 270), Math.max(12, (w * h) / 200), 1, 7, safeRadius);
-
+        new world.builders.RoadBuilder().build(m, rng);
 
         return m;
     }

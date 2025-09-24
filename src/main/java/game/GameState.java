@@ -29,32 +29,25 @@ public class GameState {
     public double suenoAcc = sueno;
     public double energiaAcc = energia;
     public long lastPlayerStepNs = 0L;
-
     public final List<Entity> entities = new ArrayList<>();
     public final Random rng = new Random();
     public double spawnTimer = 0.0;
     public int nextGroupId = 1;
-
     public boolean inventoryOpen = false;
     public boolean equipmentOpen = false;
     public int invSel = 0;
     public int eqSel = 0;
-
     public final List<Item> inventory = new ArrayList<>();
     public final Equipment equipment = new Equipment();
-
     public boolean invActionsOpen = false;
     public int invActionSel = 0;
     public List<String> invActions = Collections.emptyList();
-
     public boolean eqActionsOpen = false;
     public int eqActionSel = 0;
     public List<String> eqActions = Collections.emptyList();
-
     public boolean eqSelectOpen = false;
     public int eqSelectSel = 0;
     public List<Item> eqSelectItems = Collections.emptyList();
-
     public boolean worldActionsOpen = false;
     public int worldActionSel = 0;
     public List<String> worldActions = Collections.emptyList();
@@ -63,7 +56,6 @@ public class GameState {
     public int hidePrevX = -1, hidePrevY = -1;
     public long lastPlayerAttackNs = 0L;
     public final Map<String, Integer> worldSpawnedByItem = new HashMap<>();
-
     public boolean statsOpen = false;
     public int frio = 12;
     public int miedo = 0;
