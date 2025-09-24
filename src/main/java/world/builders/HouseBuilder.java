@@ -5,6 +5,7 @@ import world.GameMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.function.BiConsumer;
 
 public final class HouseBuilder {
 
@@ -15,14 +16,12 @@ public final class HouseBuilder {
     }
 
     public static void drawRectHouseShell(GameMap m, int x0, int y0, int x1, int y1) {
-        // Interior
         for (int y = y0 + 1; y <= y1 - 1; y++) {
             for (int x = x0 + 1; x <= x1 - 1; x++) {
                 paintFloor(m, x, y);
                 m.indoor[y][x] = true;
             }
         }
-        // Paredes
         paintWall(m, x0, y0, '╔');
         paintWall(m, x1, y0, '╗');
         paintWall(m, x0, y1, '╚');
@@ -51,17 +50,13 @@ public final class HouseBuilder {
 
             int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
             if (dist2(cx, cy, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) continue;
-
-            // Requisito: sin agua en un halo 1-tile alrededor
             if (!areaClearOfWater(m, x0 - 1, y0 - 1, x1 + 1, y1 + 1)) continue;
 
-            buildCabin(m, x0, y0, x1, y1);
-            // Escaleras (subsuelo/altillo) con la API pública del GameMap
+            buildCabin(m, rng, x0, y0, x1, y1);
             maybePlaceStairsInHouse(m, rng, x0, y0, x1, y1);
             placed++;
         }
 
-        // Fallback determinista: si no se colocó ninguna, forzamos 1
         if (placed == 0) {
             outer:
             for (int hCab = 7; hCab <= 14; hCab++) {
@@ -73,7 +68,7 @@ public final class HouseBuilder {
                             if (dist2(cx, cy, m.w / 2, m.h / 2) <= (safeRadius + 3) * (safeRadius + 3)) continue;
                             if (!areaClearOfWater(m, x0 - 1, y0 - 1, x1 + 1, y1 + 1)) continue;
 
-                            buildCabin(m, x0, y0, x1, y1);
+                            buildCabin(m, rng, x0, y0, x1, y1);
                             maybePlaceStairsInHouse(m, rng, x0, y0, x1, y1);
                             break outer;
                         }
@@ -102,6 +97,7 @@ public final class HouseBuilder {
 
             ArrayList<RectI> rooms = new ArrayList<>();
             drawCabinShell(m, x0, y0, x1, y1);
+            addInteriorPartitions(m, rng, x0, y0, x1, y1);
             RectI first = new RectI(x0, y0, x1, y1);
             rooms.add(first);
 
@@ -140,8 +136,8 @@ public final class HouseBuilder {
     private boolean tryAttachModule(GameMap m, Random rng, List<RectI> rooms, int safeRadius) {
         RectI base = rooms.get(rng.nextInt(rooms.size()));
 
-        int wCab = 10 + rng.nextInt(11);  // 8..16
-        int hCab = 7 + rng.nextInt(10);  // 5..12
+        int wCab = 10 + rng.nextInt(11);
+        int hCab = 7 + rng.nextInt(10);
 
         int side = rng.nextInt(4);
         int minOverlap = 3;
@@ -149,7 +145,7 @@ public final class HouseBuilder {
         for (int tries = 0; tries < 12; tries++) {
             int x0, y0, x1, y1;
 
-            if (side == 0) { // derecha (comparte x0 con base.x1)
+            if (side == 0) {
                 x0 = base.x1;
                 x1 = x0 + wCab - 1;
                 int yTop = Math.max(2, base.y0 - hCab + minOverlap);
@@ -171,7 +167,7 @@ public final class HouseBuilder {
                     continue;
                 }
 
-            } else if (side == 1) { // izquierda (comparte x1 con base.x0)
+            } else if (side == 1) {
                 x1 = base.x0;
                 x0 = x1 - wCab + 1;
                 int yTop = Math.max(2, base.y0 - hCab + minOverlap);
@@ -193,7 +189,7 @@ public final class HouseBuilder {
                     continue;
                 }
 
-            } else if (side == 2) { // abajo (comparte y0 con base.y1)
+            } else if (side == 2) {
                 y0 = base.y1;
                 y1 = y0 + hCab - 1;
                 int xLeft = Math.max(2, base.x0 - wCab + minOverlap);
@@ -215,7 +211,7 @@ public final class HouseBuilder {
                     continue;
                 }
 
-            } else { // arriba (comparte y1 con base.y0)
+            } else {
                 y1 = base.y0;
                 y0 = y1 - hCab + 1;
                 int xLeft = Math.max(2, base.x0 - wCab + minOverlap);
@@ -239,6 +235,7 @@ public final class HouseBuilder {
             }
 
             drawCabinShell(m, x0, y0, x1, y1);
+            addInteriorPartitions(m, rng, x0, y0, x1, y1);
             RectI neo = new RectI(x0, y0, x1, y1);
             rooms.add(neo);
             openSharedDoor(m, base, neo, rng);
@@ -248,7 +245,6 @@ public final class HouseBuilder {
     }
 
     private void openSharedDoor(GameMap m, RectI a, RectI b, Random rng) {
-        // vertical compartida
         if (a.x1 == b.x0 || b.x1 == a.x0) {
             int x = (a.x1 == b.x0) ? a.x1 : b.x1;
             int yStart = Math.max(a.y0 + 1, b.y0 + 1);
@@ -266,7 +262,7 @@ public final class HouseBuilder {
                 }
             }
         }
-        // horizontal compartida
+
         if (a.y1 == b.y0 || b.y1 == a.y0) {
             int y = (a.y1 == b.y0) ? a.y1 : b.y1;
             int xStart = Math.max(a.x0 + 1, b.x0 + 1);
@@ -290,7 +286,7 @@ public final class HouseBuilder {
         RectI bb = boundsOf(rooms);
         int doors = 1 + rng.nextInt(2);
         for (int d = 0; d < doors; d++) {
-            int side = rng.nextInt(4); // 0 top,1 right,2 bottom,3 left
+            int side = rng.nextInt(4);
             switch (side) {
                 case 0 -> {
                     if (bb.w() >= 4) {
@@ -340,14 +336,15 @@ public final class HouseBuilder {
         }
     }
 
-    private void buildCabin(GameMap m, int x0, int y0, int x1, int y1) {
+    private void buildCabin(GameMap m, Random rng, int x0, int y0, int x1, int y1) {
         drawCabinShell(m, x0, y0, x1, y1);
         if ((x1 - x0 + 1) >= (y1 - y0 + 1)) paintDoor(m, (x0 + x1) / 2, y1);
         else paintDoor(m, x1, (y0 + y1) / 2);
+        addInteriorPartitions(m, rng, x0, y0, x1, y1);
+        clearDoorVestibules(m, x0, y0, x1, y1);
     }
 
     private void punchDoorsBetweenTouchingInteriors(GameMap m, Random rng) {
-        // Segmentos verticales (pared '║'): interiores a izquierda y derecha
         for (int x = 1; x < m.w - 1; x++) {
             int y = 1;
             while (y < m.h - 1) {
@@ -362,7 +359,7 @@ public final class HouseBuilder {
                 }
             }
         }
-        // Segmentos horizontales (pared '═'): interiores arriba y abajo
+
         for (int y = 1; y < m.h - 1; y++) {
             int x = 1;
             while (x < m.w - 1) {
@@ -382,39 +379,32 @@ public final class HouseBuilder {
     private void maybePlaceStairsInHouse(GameMap m, Random rng, int x0, int y0, int x1, int y1) {
         if (rng == null) return;
         if (rng.nextDouble() > 0.35) return;
-
-        // Elegir par de celdas en una esquina del INTERIOR
         int[] pair = pickCornerDoubleStair(m, x0, y0, x1, y1, rng);
         if (pair == null) return;
 
         int ax = pair[0], ay = pair[1];
         int bx = pair[2], by = pair[3];
 
-        // Coloca las DOS celdas de escalera en la planta actual
         m.placeStair(ax, ay);
         m.placeStair(bx, by);
 
-        boolean makeUp = rng.nextBoolean();          // ~50% segunda planta
-        boolean makeDown = rng.nextDouble() < 0.45;  // ~45% sótano
-        if (!makeUp && !makeDown) {                  // garantiza al menos una
+        boolean makeUp = rng.nextBoolean();
+        boolean makeDown = rng.nextDouble() < 0.45;
+        if (!makeUp && !makeDown) {
             makeDown = rng.nextBoolean();
             makeUp = !makeDown;
         }
 
         int interiorW = x1 - x0 - 1;
         int interiorH = y1 - y0 - 1;
-
-        // offsets relativos al interior [0..interiorW-1/0..interiorH-1]
         int relX1 = ax - (x0 + 1), relY1 = ay - (y0 + 1);
         int relX2 = bx - (x0 + 1), relY2 = by - (y0 + 1);
 
         if (makeUp) {
             GameMap up = makeUpperFloorVariant(interiorW, interiorH, rng);
 
-            // Escoge una esquina interior válida del piso superior para la escalera doble
             int[] upPair = pickCornerDoubleStair(up, 0, 0, up.w - 1, up.h - 1, rng);
 
-            // Fallback ultra-seguro (no debería ocurrir con tamaños actuales):
             int uax, uay, ubx, uby;
             if (upPair != null) {
                 uax = upPair[0];
@@ -423,12 +413,11 @@ public final class HouseBuilder {
                 uby = upPair[3];
             } else {
                 uax = 1;
-                uay = 1;          // (1,1)
+                uay = 1;
                 ubx = Math.min(up.w - 2, 2);
-                uby = 1;  // (2,1)
+                uby = 1;
             }
 
-            // Coloca y enlaza
             up.placeStair(uax, uay);
             up.linkStairDown(uax, uay, m, ax, ay);
             m.linkStairUp(ax, ay, up, uax, uay);
@@ -446,7 +435,6 @@ public final class HouseBuilder {
             int dx2 = 1 + clamp(relX2, 0, down.w - 3);
             int dy2 = 1 + clamp(relY2, 0, down.h - 3);
 
-            // Evita solapado si el sótano es más pequeño
             if (dx2 == dx1 && dy2 == dy1) {
                 if (dx2 + 1 <= down.w - 2) dx2++;
                 else if (dx2 - 1 >= 1) dx2--;
@@ -471,15 +459,8 @@ public final class HouseBuilder {
     }
 
     private int[] pickCornerDoubleStair(GameMap m, int x0, int y0, int x1, int y1, Random rng) {
-        // c: {cx, cy, dx_h, dy_h, dx_v, dy_v}
-        // dx_h/dy_h: dirección horizontal preferida hacia el interior desde la esquina
-        // dx_v/dy_v: dirección vertical alternativa hacia el interior
-        int[][] corners = new int[][]{{x0 + 1, y0 + 1, +1, 0, 0, +1},  // top-left: → , luego ↓
-                {x1 - 1, y0 + 1, -1, 0, 0, +1},  // top-right: ← , luego ↓
-                {x1 - 1, y1 - 1, -1, 0, 0, -1},  // bottom-right: ← , luego ↑
-                {x0 + 1, y1 - 1, +1, 0, 0, -1}   // bottom-left: → , luego ↑
-        };
-        // Mezcla el orden de prueba de esquinas
+        int[][] corners = new int[][]{{x0 + 1, y0 + 1, +1, 0, 0, +1}, {x1 - 1, y0 + 1, -1, 0, 0, +1}, {x1 - 1, y1 - 1, -1, 0, 0, -1}, {x0 + 1, y1 - 1, +1, 0, 0, -1}};
+
         for (int i = 0; i < corners.length; i++) {
             int j = i + rng.nextInt(corners.length - i);
             int[] t = corners[i];
@@ -491,12 +472,9 @@ public final class HouseBuilder {
             int cx = c[0], cy = c[1];
             int dxh = c[2], dyh = c[3];
             int dxv = c[4], dyv = c[5];
-
-            // Candidato horizontal (preferido)
             int ax = cx, ay = cy, bx = cx + dxh, by = cy + dyh;
             if (validStairCell(m, ax, ay) && validStairCell(m, bx, by)) return new int[]{ax, ay, bx, by};
 
-            // Candidato vertical (alternativo)
             bx = cx + dxv;
             by = cy + dyv;
             if (validStairCell(m, ax, ay) && validStairCell(m, bx, by)) return new int[]{ax, ay, bx, by};
@@ -520,33 +498,30 @@ public final class HouseBuilder {
 
         GameMap m = new GameMap(w + 2, h + 2);
 
-        // Base suelo
         for (int y = 0; y < m.h; y++)
             for (int x = 0; x < m.w; x++)
                 paintFloor(m, x, y);
 
-        // Envolvente + interior SIN puerta exterior
         drawCabinShell(m, 0, 0, m.w - 1, m.h - 1);
 
-        // Tabique vertical con hueco (sin puerta)
         if (w >= 6) {
             int vx = 1 + w / 2 + (rng.nextBoolean() ? -1 : 1) * (rng.nextInt(Math.max(1, w / 4)));
             vx = Math.max(2, Math.min(m.w - 3, vx));
-            for (int y = 1; y <= h; y++) paintWall(m, vx, y, '║');
+            for (int y = 1; y <= h; y++) putPartitionIfFloor(m, vx, y, '│');
             int dy = 1 + rng.nextInt(Math.max(1, h));
             paintFloor(m, vx, dy);
             m.indoor[dy][vx] = true;
         }
 
-        // Tabique horizontal opcional con hueco (sin puerta)
         if (h >= 5 && rng.nextBoolean()) {
             int hy = 1 + h / 2 + (rng.nextBoolean() ? -1 : 1) * (rng.nextInt(Math.max(1, h / 4)));
             hy = Math.max(2, Math.min(m.h - 3, hy));
-            for (int x = 1; x <= w; x++) paintWall(m, x, hy, '═');
+            for (int x = 1; x <= w; x++) putPartitionIfFloor(m, x, hy, '─');
             int dx = 1 + rng.nextInt(Math.max(1, w));
             paintFloor(m, dx, hy);
             m.indoor[hy][dx] = true;
         }
+        ensureInteriorConnectivity(m, rng, 0, 0, m.w - 1, m.h - 1);
 
         return m;
     }
@@ -562,7 +537,6 @@ public final class HouseBuilder {
             for (int x = 0; x < m.w; x++)
                 paintFloor(m, x, y);
 
-        // Caja grande con puerta exterior
         drawRectHouseShell(m, 0, 0, m.w - 1, m.h - 1);
         return m;
     }
@@ -576,6 +550,33 @@ public final class HouseBuilder {
             return y1 - y0 + 1;
         }
     }
+
+    private static void addInteriorPartitions(GameMap m, Random rng, int x0, int y0, int x1, int y1) {
+        int ix0 = x0 + 1, iy0 = y0 + 1, ix1 = x1 - 1, iy1 = y1 - 1;
+        int w = ix1 - ix0 + 1;
+        int h = iy1 - iy0 + 1;
+        if (w < 6 || h < 5) return;
+
+        if (w >= 6) {
+            int vx = ix0 + (w / 2) + (rng.nextBoolean() ? -1 : 1) * rng.nextInt(Math.max(1, w / 4));
+            vx = Math.max(ix0 + 1, Math.min(ix1 - 1, vx));
+            for (int y = iy0; y <= iy1; y++) putPartitionIfFloor(m, vx, y, '│');
+            int gy = iy0 + rng.nextInt(Math.max(1, h));
+            paintFloor(m, vx, gy);
+            m.indoor[gy][vx] = true;
+        }
+
+        if (h >= 5 && rng.nextBoolean()) {
+            int hy = iy0 + (h / 2) + (rng.nextBoolean() ? -1 : 1) * rng.nextInt(Math.max(1, h / 4));
+            hy = Math.max(iy0 + 1, Math.min(iy1 - 1, hy));
+            for (int x = ix0; x <= ix1; x++) putPartitionIfFloor(m, x, hy, '─');
+            int gx = ix0 + rng.nextInt(Math.max(1, w));
+            paintFloor(m, gx, hy);
+            m.indoor[hy][gx] = true;
+        }
+        ensureInteriorConnectivity(m, rng, x0, y0, x1, y1);
+    }
+
 
     private RectI boundsOf(List<RectI> rs) {
         int x0 = Integer.MAX_VALUE, y0 = Integer.MAX_VALUE, x1 = Integer.MIN_VALUE, y1 = Integer.MIN_VALUE;
@@ -606,21 +607,17 @@ public final class HouseBuilder {
                 if (!inBounds(m, x, y)) return false;
 
                 char t = m.tiles[y][x];
-                if (t == '~' || t == '█') return false; // nunca sobre agua/roca
+                if (t == '~' || t == '█') return false;
 
                 boolean inRect = (x >= x0 && x <= x1 && y >= y0 && y <= y1);
 
-                boolean sharedHalo = (side == 0 && x == x0 - 1) ||   // derecha → halo a la izquierda del nuevo
-                        (side == 1 && x == x1 + 1) ||   // izquierda → halo a la derecha del nuevo
-                        (side == 2 && y == y0 - 1) ||   // abajo → halo arriba del nuevo
-                        (side == 3 && y == y1 + 1);     // arriba → halo abajo del nuevo
+                boolean sharedHalo = (side == 0 && x == x0 - 1) || (side == 1 && x == x1 + 1) || (side == 2 && y == y0 - 1) || (side == 3 && y == y1 + 1);
                 if (!inRect && sharedHalo) continue;
 
                 boolean wallish = (t == '╔' || t == '╗' || t == '╚' || t == '╝' || t == '═' || t == '║' || t == '+');
 
-                if (inRect && wallish) return false;                       // dentro, no pisar paredes/puertas
-                if (!inRect && (wallish || m.indoor[y][x]))
-                    return false;  // en halo no compartido, no tocar interiores/paredes
+                if (inRect && wallish) return false;
+                if (!inRect && (wallish || m.indoor[y][x])) return false;
             }
         }
         return true;
@@ -635,6 +632,14 @@ public final class HouseBuilder {
         return true;
     }
 
+    private static boolean isPartitionChar(char t) {
+        return t == '│' || t == '─' || t == '┼' || t == '├' || t == '┤' || t == '┬' || t == '┴' || t == '┌' || t == '┐' || t == '└' || t == '┘';
+    }
+
+    private static boolean isInteriorPassable(GameMap m, int x, int y) {
+        return m.indoor[y][x] && m.walk[y][x];
+    }
+
     private static void paintFloor(GameMap m, int x, int y) {
         m.tiles[y][x] = '▓';
         m.walk[y][x] = true;
@@ -646,6 +651,25 @@ public final class HouseBuilder {
         m.walk[y][x] = true;
         m.transp[y][x] = true;
     }
+
+    private static void paintPartition(GameMap m, int x, int y, char ch) {
+        char prev = m.tiles[y][x];
+        char next = ch;
+
+        if ((prev == '│' && ch == '─') || (prev == '─' && ch == '│') || prev == '┼') {
+            next = '┼';
+        }
+
+        m.tiles[y][x] = next;
+        m.walk[y][x] = false;
+        m.transp[y][x] = false;
+    }
+
+    private static void putPartitionIfFloor(GameMap m, int x, int y, char ch) {
+        if (x < 0 || y < 0 || x >= m.w || y >= m.h) return;
+        if (m.tiles[y][x] == '▓') paintPartition(m, x, y, ch);
+    }
+
 
     private static void paintWall(GameMap m, int x, int y, char ch) {
         m.tiles[y][x] = ch;
@@ -660,5 +684,179 @@ public final class HouseBuilder {
     private int dist2(int x1, int y1, int x2, int y2) {
         int dx = x1 - x2, dy = y1 - y2;
         return dx * dx + dy * dy;
+    }
+
+    private static void ensureInteriorConnectivity(GameMap m, Random rng, int x0, int y0, int x1, int y1) {
+        int ix0 = x0 + 1, iy0 = y0 + 1, ix1 = x1 - 1, iy1 = y1 - 1;
+        if (ix0 > ix1 || iy0 > iy1) return;
+        int w = ix1 - ix0 + 1, h = iy1 - iy0 + 1;
+        int max = Math.max(1, w * h);
+        int[] qx = new int[max];
+        int[] qy = new int[max];
+        boolean[][] vis = new boolean[h][w];
+
+        int sx = -1, sy = -1;
+        outer:
+        for (int y = iy0; y <= iy1; y++) {
+            for (int x = ix0; x <= ix1; x++) {
+                if (isInteriorPassable(m, x, y)) {
+                    sx = x;
+                    sy = y;
+                    break outer;
+                }
+            }
+        }
+        if (sx < 0) return;
+
+        BiConsumer<Integer, Integer> bfs = (startX, startY) -> {
+            for (int yy = 0; yy < h; yy++) java.util.Arrays.fill(vis[yy], false);
+            int head = 0, tail = 0;
+            vis[startY - iy0][startX - ix0] = true;
+            qx[tail] = startX;
+            qy[tail] = startY;
+            tail++;
+            while (head != tail) {
+                int cx = qx[head], cy = qy[head];
+                head++;
+                if (head == max) head = 0;
+                int nx, ny;
+                // left
+                nx = cx - 1;
+                ny = cy;
+                if (nx >= ix0 && isInteriorPassable(m, nx, ny) && !vis[ny - iy0][nx - ix0]) {
+                    vis[ny - iy0][nx - ix0] = true;
+                    qx[tail] = nx;
+                    qy[tail] = ny;
+                    tail++;
+                    if (tail == max) tail = 0;
+                }
+                // right
+                nx = cx + 1;
+                ny = cy;
+                if (nx <= ix1 && isInteriorPassable(m, nx, ny) && !vis[ny - iy0][nx - ix0]) {
+                    vis[ny - iy0][nx - ix0] = true;
+                    qx[tail] = nx;
+                    qy[tail] = ny;
+                    tail++;
+                    if (tail == max) tail = 0;
+                }
+                // up
+                nx = cx;
+                ny = cy - 1;
+                if (ny >= iy0 && isInteriorPassable(m, nx, ny) && !vis[ny - iy0][nx - ix0]) {
+                    vis[ny - iy0][nx - ix0] = true;
+                    qx[tail] = nx;
+                    qy[tail] = ny;
+                    tail++;
+                    if (tail == max) tail = 0;
+                }
+                // down
+                nx = cx;
+                ny = cy + 1;
+                if (ny <= iy1 && isInteriorPassable(m, nx, ny) && !vis[ny - iy0][nx - ix0]) {
+                    vis[ny - iy0][nx - ix0] = true;
+                    qx[tail] = nx;
+                    qy[tail] = ny;
+                    tail++;
+                    if (tail == max) tail = 0;
+                }
+            }
+        };
+
+        for (int iter = 0; iter < max; iter++) {
+            bfs.accept(sx, sy);
+
+            boolean allOk = true;
+            for (int y = iy0; y <= iy1 && allOk; y++) {
+                for (int x = ix0; x <= ix1; x++) {
+                    if (isInteriorPassable(m, x, y) && !vis[y - iy0][x - ix0]) {
+                        allOk = false;
+                        break;
+                    }
+                }
+            }
+            if (allOk) return;
+            ArrayList<int[]> bridges = new ArrayList<>(16);
+
+            for (int y = iy0; y <= iy1; y++) {
+                for (int x = ix0; x <= ix1; x++) {
+                    if (!isPartitionChar(m.tiles[y][x])) continue;
+
+                    if (x - 1 >= ix0 && x + 1 <= ix1) {
+                        boolean Lp = isInteriorPassable(m, x - 1, y);
+                        boolean Rp = isInteriorPassable(m, x + 1, y);
+                        if (Lp && Rp) {
+                            boolean Lv = vis[y - iy0][(x - 1) - ix0];
+                            boolean Rv = vis[y - iy0][(x + 1) - ix0];
+                            if (Lv ^ Rv) bridges.add(new int[]{x, y});
+                        }
+                    }
+                    if (y - 1 >= iy0 && y + 1 <= iy1) {
+                        boolean Up = isInteriorPassable(m, x, y - 1);
+                        boolean Dp = isInteriorPassable(m, x, y + 1);
+                        if (Up && Dp) {
+                            boolean Uv = vis[(y - 1) - iy0][x - ix0];
+                            boolean Dv = vis[(y + 1) - iy0][x - ix0];
+                            if (Uv ^ Dv) bridges.add(new int[]{x, y});
+                        }
+                    }
+                }
+            }
+
+            if (bridges.isEmpty()) {
+                boolean opened = false;
+                outer:
+                for (int y = iy0; y <= iy1; y++) {
+                    for (int x = ix0; x <= ix1; x++) {
+                        if (isPartitionChar(m.tiles[y][x])) {
+                            paintDoor(m, x, y);
+                            if (!isInteriorPassable(m, sx, sy)) {
+                                sx = x;
+                                sy = y;
+                            }
+                            opened = true;
+                            break outer;
+                        }
+                    }
+                }
+                if (!opened) return;
+                continue;
+            }
+
+            int[] pick = bridges.get(rng.nextInt(bridges.size()));
+            paintDoor(m, pick[0], pick[1]);
+
+            if (!isInteriorPassable(m, sx, sy)) {
+                sx = pick[0];
+                sy = pick[1];
+            }
+        }
+    }
+
+    private static void clearDoorVestibules(GameMap m, int x0, int y0, int x1, int y1) {
+        for (int x = x0 + 1; x <= x1 - 1; x++) {
+            if (m.tiles[y0][x] == '+' && y0 + 1 <= y1 - 1) {
+                paintFloor(m, x, y0 + 1);
+                m.indoor[y0 + 1][x] = true;
+            }
+        }
+        for (int x = x0 + 1; x <= x1 - 1; x++) {
+            if (m.tiles[y1][x] == '+' && y1 - 1 >= y0 + 1) {
+                paintFloor(m, x, y1 - 1);
+                m.indoor[y1 - 1][x] = true;
+            }
+        }
+        for (int y = y0 + 1; y <= y1 - 1; y++) {
+            if (m.tiles[y][x0] == '+' && x0 + 1 <= x1 - 1) {
+                paintFloor(m, x0 + 1, y);
+                m.indoor[y][x0 + 1] = true;
+            }
+        }
+        for (int y = y0 + 1; y <= y1 - 1; y++) {
+            if (m.tiles[y][x1] == '+' && x1 - 1 >= x0 + 1) {
+                paintFloor(m, x1 - 1, y);
+                m.indoor[y][x1 - 1] = true;
+            }
+        }
     }
 }

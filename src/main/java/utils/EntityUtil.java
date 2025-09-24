@@ -38,6 +38,7 @@ public final class EntityUtil {
             case '+' -> "Puerta";
             case 'S' -> "Escalera";
             case '╔', '╗', '╚', '╝', '═', '║' -> indoor ? "Pared interior" : "Pared";
+            case '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐', '└', '┘' -> "Tabique interior";
             case '▓' -> indoor ? "Suelo (interior)" : "Suelo";
             default -> "Terreno";
         };
@@ -56,7 +57,8 @@ public final class EntityUtil {
 
     public static boolean isInterestingTile(char t) {
         return switch (t) {
-            case '#', '█', '~', '╔', '╗', '╚', '╝', '═', '║', '+', 'S' -> true;
+            case '#', '█', '~', '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐', '└', '┘',
+                 '+', 'S' -> true;
             default -> false;
         };
     }
