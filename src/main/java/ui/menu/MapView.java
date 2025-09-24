@@ -36,6 +36,7 @@ public class MapView {
     private int curRoomId = 1;
 
     private boolean forceFullRepaint = false;
+    private int extraOffX = 0, extraOffY = 0;
 
     public MapView(int top, int left, int viewW, int viewH, int fovRadius, GameMap map, double cellAspect) {
         this.top = Math.max(1, top);
@@ -122,6 +123,9 @@ public class MapView {
             if (map.w < viewW) ox = (viewW - map.w) / 2;
             if (map.h < viewH) oy = (viewH - map.h) / 2;
         }
+
+        ox += extraOffX;
+        oy += extraOffY;
 
         for (int sy = 0; sy < viewH; sy++) {
             for (int sx = 0; sx < viewW; sx++) {
@@ -493,5 +497,9 @@ public class MapView {
 
     public void requestFullRepaint() {
         this.forceFullRepaint = true;
+    }
+    public void setExtraOffset(int ex, int ey) {
+        this.extraOffX = ex;
+        this.extraOffY = ey;
     }
 }

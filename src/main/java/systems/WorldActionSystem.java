@@ -224,20 +224,24 @@ public final class WorldActionSystem {
                 }
 
                 if (isGroundLike(s.map) && !UPPER_OVERLAY_ACTIVE) {
-                    // Planta 0 → planta 1 con overlay (mantener mundo visible)
-                    r.requestAnchorAtPlayer(s);
+                    s.px = tx;
+                    s.py = ty;
+                    s.lastDx = 0;
+                    s.lastDy = 0;
+
                     activateUpperOverlay(s, r, st.up.map, tx, ty, st.up.x, st.up.y);
                     return true;
                 } else {
-                    // No estamos en exterior: usa el comportamiento clásico (cambio de mapa)
-                    return goThroughStairs(s, r, st.up, /*goingUp=*/true);
+                    return goThroughStairs(s, r, st.up,true);
                 }
             }
 
             case "bajar" -> {
-                // Si estamos en overlay de planta superior, “Bajar” revierte overlay
                 if (UPPER_OVERLAY_ACTIVE) {
-                    r.requestAnchorAtPlayer(s);
+                    s.px = tx;
+                    s.py = ty;
+                    s.lastDx = 0;
+                    s.lastDy = 0;
                     deactivateUpperOverlay(s, r);
                     return true;
                 }
@@ -247,7 +251,6 @@ public final class WorldActionSystem {
                     r.log("Estas escaleras no llevan a ningún sótano.");
                     return false;
                 }
-                // Sótano: mantener comportamiento actual (mapa separado)
                 return goThroughStairs(s, r, st.down, /*goingUp=*/false);
             }
 

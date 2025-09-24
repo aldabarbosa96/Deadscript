@@ -10,6 +10,7 @@ import ui.menu.player.PlayerStates;
 import utils.ANSI;
 import game.GameState;
 import world.Entity;
+
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,15 +62,46 @@ public class Renderer {
     }
 
     public void onMapChanged(GameState s) {
-        ANSI.resetScrollRegion();
-        ANSI.clearScreenAndHome();
-        recomputeLayout(s);
+        if (mapView == null) {
+            recomputeLayout(s);
+            return;
+        }
 
-        // Si hay un anclaje pendiente (ver paso 3), aplícalo:
+        final int top = MAP_TOP;
+        final int left = mapView.getLeft();
+        final int w = mapView.getViewW();
+        final int h = mapView.getViewH();
+
+        mapView = new MapView(top, left, w, h, 18, s.map, 2.0);
+        mapView.setCenterSmallMaps(true);
+        mapView.prefill();
+
         if (pendingAnchorSX != null && pendingAnchorSY != null) {
-            mapView.anchorOnceKeepingPlayerAt(pendingAnchorSX, pendingAnchorSY, s.px, s.py, s.map);
+            int viewW = mapView.getViewW(), viewH = mapView.getViewH();
+            boolean smallX = (s.map.w <= viewW);
+            boolean smallY = (s.map.h <= viewH);
+
+            int centerOx = smallX ? (viewW - s.map.w) / 2 : 0;
+            int centerOy = smallY ? (viewH - s.map.h) / 2 : 0;
+
+            int desiredSX = pendingAnchorSX;
+            int desiredSY = pendingAnchorSY;
+
+            int extraOx = smallX ? (desiredSX - (s.px + centerOx)) : 0;
+            int extraOy = smallY ? (desiredSY - (s.py + centerOy)) : 0;
+
+            int centerSX = mapView.getViewW() / 2;
+            int centerSY = mapView.getViewH() / 2;
+            int useSX = smallX ? desiredSX : centerSX;
+            int useSY = smallY ? desiredSY : centerSY;
+
+            mapView.anchorOnceKeepingPlayerAt(useSX, useSY, s.px, s.py, s.map);
+            mapView.setExtraOffset(extraOx, extraOy);
+
             pendingAnchorSX = null;
             pendingAnchorSY = null;
+        } else {
+            mapView.setExtraOffset(0, 0);
         }
     }
 
@@ -506,7 +538,6 @@ public class Renderer {
 
         int ox = 0, oy = 0;
         if (mapView != null) {
-            // Si el mapa actual es más pequeño que la vista, está centrado: añade ese offset real de pantalla
             ox = Math.max(0, (mapView.getViewW() - s.map.w) / 2);
             oy = Math.max(0, (mapView.getViewH() - s.map.h) / 2);
         }

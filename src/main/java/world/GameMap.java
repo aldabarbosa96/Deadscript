@@ -119,7 +119,7 @@ public class GameMap {
         for (int y = y0; y <= y1; y++) for (int x = x0; x <= x1; x++) if (dist2(x, y, cx, cy) <= r2) setFloor(m, x, y);
     }
 
-    private final java.util.Map<Long, Stair> stairs = new java.util.HashMap<>();
+    private final Map<Long, Stair> stairs = new HashMap<>();
 
     private static long stairKey(int x, int y) {
         return (((long) y) << 32) ^ (x & 0xffffffffL);
