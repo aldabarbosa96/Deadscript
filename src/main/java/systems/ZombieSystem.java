@@ -14,7 +14,6 @@ public final class ZombieSystem {
     private ZombieSystem() {
     }
 
-    // --- Estado de rugidos por-zombi (se limpia solo al GC si mueren/desaparecen) ---
     private static final WeakHashMap<Entity, RoarState> ROARS = new WeakHashMap<>();
 
     private static final class RoarState {

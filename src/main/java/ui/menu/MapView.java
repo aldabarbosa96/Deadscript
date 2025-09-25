@@ -225,7 +225,11 @@ public class MapView {
                                 exp = true;
                             }
 
-                            boolean isRoad = map.road[my][mx];
+                            boolean roadFlag = map.road[my][mx] && !map.indoor[my][mx];
+
+                            boolean isRoadOnFloor = roadFlag && tile == '▓';
+
+                            boolean isRoadGlyph = roadFlag && (tile == '-' || tile == '¦' || tile == '┌' || tile == '┐' || tile == '└' || tile == '┘');
 
                             if (roofNow || roofDim) {
                                 ch = ROOF_CHAR;
@@ -233,7 +237,7 @@ public class MapView {
 
                             } else if (strictVis) {
                                 ch = tile;
-                                if (isRoad) {
+                                if (isRoadOnFloor || isRoadGlyph) {
                                     nextColor = ROAD_VIS;
                                 } else {
                                     nextColor = switch (tile) {
@@ -244,7 +248,6 @@ public class MapView {
                                         case '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐',
                                              '└', '┘' -> 100000 + 94;
                                         case '+' -> 93;
-                                        case '-','¦' -> ROAD_VIS;
                                         default -> 100000 + 58;
                                     };
                                 }
@@ -253,7 +256,7 @@ public class MapView {
                                 if (isInterestingTile(tile)) {
                                     if (exp) {
                                         ch = tile;
-                                        if (isRoad) {
+                                        if (isRoadOnFloor || isRoadGlyph) {
                                             nextColor = ROAD_DET;
                                         } else {
                                             nextColor = switch (tile) {
@@ -264,7 +267,6 @@ public class MapView {
                                                 case '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴',
                                                      '┌', '┐', '└', '┘' -> 100000 + 94;
                                                 case '+' -> 90;
-                                                case '-','¦' -> ROAD_DET;
                                                 default -> 100000 + 137;
                                             };
                                         }
@@ -279,7 +281,7 @@ public class MapView {
 
                             } else if (exp) {
                                 ch = tile;
-                                if (isRoad) {
+                                if (isRoadOnFloor || isRoadGlyph) {
                                     nextColor = ROAD_EXP;
                                 } else {
                                     nextColor = switch (tile) {
@@ -290,7 +292,6 @@ public class MapView {
                                         case '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐',
                                              '└', '┘' -> 100000 + 94;
                                         case '+' -> 90;
-                                        case '-','¦' -> ROAD_EXP;
                                         default -> 100000 + 137;
                                     };
                                 }

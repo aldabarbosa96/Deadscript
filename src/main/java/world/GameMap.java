@@ -7,7 +7,6 @@ import world.builders.RocksBuilder;
 
 import java.util.*;
 
-// TODO --> refactorizar clase completa pronto
 public class GameMap {
     public final int w, h;
     public final char[][] tiles;
@@ -73,6 +72,7 @@ public class GameMap {
         new RocksBuilder().build(m, rng, Math.max(8, (w * h) / 270), Math.max(12, (w * h) / 200), 1, 7, safeRadius);
         new world.builders.RoadBuilder().build(m, rng);
 
+        m.clearRoadInsideIndoor();
         return m;
     }
 
@@ -150,5 +150,13 @@ public class GameMap {
     public void linkStairDown(int x, int y, GameMap target, int tx, int ty) {
         Stair s = getStairAt(x, y);
         if (s != null) s.down = new Stair.Link(target, tx, ty);
+    }
+
+    public void clearRoadInsideIndoor() {
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (indoor[y][x]) road[y][x] = false;
+            }
+        }
     }
 }
