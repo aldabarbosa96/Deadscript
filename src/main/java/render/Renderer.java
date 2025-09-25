@@ -40,6 +40,10 @@ public class Renderer {
     private int lastClockSec = -1;
     private long lastSizeCheckNs = 0L;
     private static final long SIZE_CHECK_INTERVAL_NS = 200_000_000L;
+    private final ArrayList<Entity> viewEntities = new ArrayList<>(256);
+    private int lastViewCamX = Integer.MIN_VALUE, lastViewCamY = Integer.MIN_VALUE;
+    private long lastViewBuildNs = 0L;
+    private static final long VIEW_REBUILD_INTERVAL_NS = 120_000_000L; //
 
     public void init(GameState s, Terminal term) {
         this.term = term;
@@ -103,6 +107,7 @@ public class Renderer {
         } else {
             mapView.setExtraOffset(0, 0);
         }
+        resetViewCache();
     }
 
     public void renderAll(GameState s) {
@@ -150,10 +155,12 @@ public class Renderer {
             final int vw = mapView.getViewW(), vh = mapView.getViewH();
             final int xMax = camX + vw, yMax = camY + vh;
 
-            for (world.Entity e : s.entities) {
+            rebuildViewEntitiesIfNeeded(s);
+
+            for (world.Entity e : viewEntities) {
                 if (e.x >= camX && e.x < xMax && e.y >= camY && e.y < yMax) {
                     long k = (((long) e.x) << 32) ^ (e.y & 0xffffffffL);
-                    overlay.put(k, e); // sigue el autoboxing, pero sobre muchas menos entidades
+                    overlay.put(k, e);
                 }
             }
             mapView.render(s.map, s.px, s.py, overlay);
@@ -462,6 +469,7 @@ public class Renderer {
         else actionBar.updateGeometry(menuTop, MAP_LEFT, headerWidth);
 
         ANSI.setScrollRegion(mapTop + 2, mapTop + 2 + viewH - 1);
+        resetViewCache();
     }
 
     public boolean wasVisibleLastRender(int x, int y) {
@@ -546,4 +554,34 @@ public class Renderer {
         pendingAnchorSY = sy + oy;
     }
 
+    private void rebuildViewEntitiesIfNeeded(GameState s) {
+        final int camX = cameraX(s), camY = cameraY(s);
+        final long now = System.nanoTime();
+
+        final boolean camChanged = (camX != lastViewCamX) || (camY != lastViewCamY);
+        final boolean timeElapsed = (now - lastViewBuildNs) >= VIEW_REBUILD_INTERVAL_NS;
+
+        if (camChanged || timeElapsed || viewEntities.isEmpty()) {
+            viewEntities.clear();
+
+            final int xMax = camX + mapView.getViewW();
+            final int yMax = camY + mapView.getViewH();
+
+            // Escaneo completo SOLO cuando toca (cámara nueva o timeout)
+            for (world.Entity e : s.entities) {
+                if (e.x >= camX && e.x < xMax && e.y >= camY && e.y < yMax) {
+                    viewEntities.add(e);
+                }
+            }
+            lastViewCamX = camX;
+            lastViewCamY = camY;
+            lastViewBuildNs = now;
+        }
+    }
+    private void resetViewCache() {
+        viewEntities.clear();
+        lastViewCamX = Integer.MIN_VALUE;
+        lastViewCamY = Integer.MIN_VALUE;
+        lastViewBuildNs = 0L;
+    }
 }
