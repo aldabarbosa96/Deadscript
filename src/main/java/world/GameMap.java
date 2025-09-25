@@ -69,6 +69,7 @@ public class GameMap {
         new RocksBuilder().build(m, rng, Math.max(8, (w * h) / 270), Math.max(12, (w * h) / 200), 1, 7, safeRadius);
         new world.builders.RoadBuilder().build(m, rng);
         m.clearRoadInsideIndoor();
+        new BushBuilder().build(m, rng);
         new WellBuilder().build(m, rng, 50);
 
         return m;

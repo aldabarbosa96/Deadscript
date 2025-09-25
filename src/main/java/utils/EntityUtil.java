@@ -31,7 +31,7 @@ public final class EntityUtil {
     }
 
     public static String tileName(char t, boolean indoor) {
-        if (!indoor && (t=='-' || t=='¦' || t=='┌' || t=='┐' || t=='└' || t=='┘')) return "Camino";
+        if (!indoor && (t == '-' || t == '¦' || t == '┌' || t == '┐' || t == '└' || t == '┘')) return "Camino";
         return switch (t) {
             case '#' -> "Árbol";
             case '~' -> "Agua";
@@ -42,6 +42,7 @@ public final class EntityUtil {
             case '╔', '╗', '╚', '╝', '═', '║' -> indoor ? "Pared interior" : "Pared";
             case '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐', '└', '┘' -> "Tabique interior";
             case '▓' -> indoor ? "Suelo (interior)" : "Suelo";
+            case '░' -> "Césped/arbusto bajo";
             case 'Û' -> "Pozo.";
             default -> "Terreno";
         };
@@ -55,6 +56,7 @@ public final class EntityUtil {
             case '#' -> "Obstáculo. Cubre visión y paso.";
             case '█' -> "Cobertura dura. No transitable.";
             case '-', '¦', '┌', '┐', '└', '┘' -> "Vía asfaltada.";
+            case '░' -> "Terreno blando y transitable.";
             case 'Û' -> "Pozo de agua dulce. Posible fuente de agua.";
             default -> "";
         };
@@ -63,7 +65,7 @@ public final class EntityUtil {
     public static boolean isInterestingTile(char t) {
         return switch (t) {
             case '#', '█', '~', '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐', '└', '┘',
-                 '+', 'S' ,'-', '¦', 'Û' -> true;
+                 '+', 'S', '-', '¦', 'Û', '░' -> true;
             default -> false;
         };
     }
