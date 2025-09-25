@@ -1,9 +1,6 @@
 package world;
 
-import world.builders.ForestBuilder;
-import world.builders.HouseBuilder;
-import world.builders.RiverBuilder;
-import world.builders.RocksBuilder;
+import world.builders.*;
 
 import java.util.*;
 
@@ -71,8 +68,9 @@ public class GameMap {
         new HouseBuilder().build(m, rng, groups, singles, safeRadius);
         new RocksBuilder().build(m, rng, Math.max(8, (w * h) / 270), Math.max(12, (w * h) / 200), 1, 7, safeRadius);
         new world.builders.RoadBuilder().build(m, rng);
-
         m.clearRoadInsideIndoor();
+        new WellBuilder().build(m, rng, 50);
+
         return m;
     }
 
@@ -87,9 +85,8 @@ public class GameMap {
         }
 
         public static final class Link {
-            public final GameMap map; // mapa destino
-            public final int x, y;    // posición destino
-
+            public final GameMap map;
+            public final int x, y;
             public Link(GameMap map, int x, int y) {
                 this.map = map;
                 this.x = x;
