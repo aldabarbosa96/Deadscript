@@ -177,13 +177,13 @@ public class MapView {
                         boolean indoor = map.indoor[my][mx];
                         boolean isIndoorFloor = (tile == '▓' && indoor);
 
-                        if (isIndoorFloor && inDisc(mx, my, px, py)) {
+                        if (isIndoorFloor && (vis || det)) {
                             roofSeen[my][mx] = true;
                         }
 
                         boolean exposed = isIndoorFloor && ((playerIndoor && roomStamp[my][mx] == curRoomId) || vis);
-                        boolean roofNow = isIndoorFloor && !exposed && inDisc(mx, my, px, py);
-                        boolean roofDim = isIndoorFloor && !exposed && !inDisc(mx, my, px, py) && roofSeen[my][mx];
+                        boolean roofNow = isIndoorFloor && !exposed && det;
+                        boolean roofDim = isIndoorFloor && !exposed && !det && roofSeen[my][mx];
 
                         world.Entity ent = ovCell[sy][sx];
                         boolean drewEntity = false;
@@ -250,6 +250,7 @@ public class MapView {
                                         case '+' -> 93;
                                         case '░' -> 100000 + 34;
                                         case 'Û' -> 100000 + 228;
+                                        case 'S' -> 100000 + 226;
                                         default -> 100000 + 58;
                                     };
                                 }
@@ -271,6 +272,7 @@ public class MapView {
                                                 case '+' -> 90;
                                                 case '░' -> 100000 + 34;
                                                 case 'Û' -> 100000 + 228;
+                                                case 'S' -> 100000 + 142;
                                                 default -> 100000 + 137;
                                             };
                                         }
@@ -298,6 +300,7 @@ public class MapView {
                                         case '+' -> 90;
                                         case '░' -> 100000 + 114;
                                         case 'Û' -> 100000 + 19;
+                                        case 'S' -> 100000 + 136;
                                         default -> 100000 + 137;
                                     };
                                 }

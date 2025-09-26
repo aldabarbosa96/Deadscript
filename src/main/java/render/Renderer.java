@@ -43,7 +43,8 @@ public class Renderer {
     private final ArrayList<Entity> viewEntities = new ArrayList<>(256);
     private int lastViewCamX = Integer.MIN_VALUE, lastViewCamY = Integer.MIN_VALUE;
     private long lastViewBuildNs = 0L;
-    private static final long VIEW_REBUILD_INTERVAL_NS = 120_000_000L; //
+    private static final long VIEW_REBUILD_INTERVAL_NS = 120_000_000L;
+    private int mapTop;
 
     public void init(GameState s, Terminal term) {
         this.term = term;
@@ -71,7 +72,7 @@ public class Renderer {
             return;
         }
 
-        final int top = MAP_TOP;
+        final int top = mapTop;
         final int left = mapView.getLeft();
         final int w = mapView.getViewW();
         final int h = mapView.getViewH();
@@ -110,6 +111,7 @@ public class Renderer {
         resetViewCache();
     }
 
+
     public void renderAll(GameState s) {
         boolean justClosedWorldActions = wasWorldActionsOpen && !s.worldActionsOpen;
         wasWorldActionsOpen = s.worldActionsOpen;
@@ -120,7 +122,6 @@ public class Renderer {
         if (mapView != null && (justClosedWorldActions || justClosedOverlay)) {
             mapView.requestFullRepaint();
         }
-
 
         LocalTime now = LocalTime.now();
         int sec = now.getSecond();
@@ -167,32 +168,32 @@ public class Renderer {
         }
 
         if (s.inventoryOpen) {
-            int top = MAP_TOP + 2;
+            int top = mapTop;
             int left = mapView.getLeft();
             int w = mapView.getViewW();
-            int h = mapView.getViewH();
+            int h = mapView.getViewH() + 2;
             invOverlay.render(top, left, w, h, s.inventory, s.invSel);
             if (s.invActionsOpen && s.invActions != null && !s.invActions.isEmpty()) {
-                invOverlay.renderActionMenu(top, left, w, h, s.invActions, s.invActionSel);
+                invOverlay.renderActionMenu(mapTop + 2, left, mapView.getViewW(), mapView.getViewH(), s.invActions, s.invActionSel);
             }
         }
 
         if (s.equipmentOpen) {
-            int top = MAP_TOP + 2;
+            int top = mapTop;
             int left = mapView.getLeft();
             int w = mapView.getViewW();
-            int h = mapView.getViewH();
+            int h = mapView.getViewH() + 2;
             equipOverlay.render(top, left, w, h, s.equipment, s.inventory, s.eqSel);
             if (s.eqActionsOpen && s.eqActions != null && !s.eqActions.isEmpty()) {
-                equipOverlay.renderActionMenu(top, left, w, h, s.eqActions, s.eqActionSel);
+                equipOverlay.renderActionMenu(mapTop + 2, left, mapView.getViewW(), mapView.getViewH(), s.eqActions, s.eqActionSel);
             }
             if (s.eqSelectOpen) {
-                equipOverlay.renderSelectMenu(top, left, w, h, s.eqSelectItems, s.eqSelectSel, "EQUIPAR", s.eqSelectItems == null || s.eqSelectItems.isEmpty());
+                equipOverlay.renderSelectMenu(mapTop + 2, left, mapView.getViewW(), mapView.getViewH(), s.eqSelectItems, s.eqSelectSel, "EQUIPAR", s.eqSelectItems == null || s.eqSelectItems.isEmpty());
             }
         }
 
         if (s.worldActionsOpen && s.worldActions != null && !s.worldActions.isEmpty()) {
-            int top = MAP_TOP + 2;
+            int top = mapTop + 2;
             int left = mapView.getLeft();
             int w = mapView.getViewW();
             int h = mapView.getViewH();
@@ -200,10 +201,10 @@ public class Renderer {
         }
 
         if (s.statsOpen) {
-            int top = MAP_TOP + 2;
+            int top = mapTop;
             int left = mapView.getLeft();
             int w = mapView.getViewW();
-            int h = mapView.getViewH();
+            int h = mapView.getViewH() + 2;
             statsOverlay.render(top, left, w, h, s);
         }
 
@@ -214,6 +215,7 @@ public class Renderer {
         ANSI.gotoRC(1, 1);
         ANSI.flush();
     }
+
 
     private void renderInspectPanel(GameState s) {
         if (inspect == null || inspectW < 18) return;
@@ -387,47 +389,43 @@ public class Renderer {
         final int minStats = 36;
         final int minStates = 24;
         final int minEquip = 18;
-        int availTop = Math.max(0, headerWidth - 2 * gap);
-        int wStats = (int) Math.round(availTop * 0.42);
-        int wStates = (int) Math.round(availTop * 0.26);
-        int wEquip = availTop - wStats - wStates;
-        if (wStats < minStats || wStates < minStates || wEquip < minEquip) {
-            wStats = Math.max(minStats, wStats);
-            wStates = Math.max(minStates, wStates);
-            wEquip = Math.max(minEquip, wEquip);
-            int used = wStats + wStates + wEquip;
-            if (used > availTop) {
-                int overflow = used - availTop;
-                while (overflow > 0) {
-                    if (wStats >= wStates && wStats >= wEquip && wStats > minStats) {
-                        wStats--;
-                        overflow--;
-                        continue;
-                    }
-                    if (wStates >= wStats && wStates >= wEquip && wStates > minStates) {
-                        wStates--;
-                        overflow--;
-                        continue;
-                    }
-                    if (wEquip > minEquip) {
-                        wEquip--;
-                        overflow--;
-                        continue;
-                    }
-                    break;
-                }
-            }
+        final int statsMax = 56;
+
+        int targetStates = Math.max(minStates, Math.min(40, headerWidth / 4));
+        int sideMin = Math.max(minStats, minEquip);
+        int wStatesMax = Math.max(minStates, headerWidth - 2 * gap - 2 * sideMin);
+        int wStates = Math.min(targetStates, wStatesMax);
+        int totalSide = headerWidth - 2 * gap - wStates;
+        if (totalSide < 0) {
+            wStates = Math.max(minStates, headerWidth - 2 * gap);
+            totalSide = Math.max(0, headerWidth - 2 * gap - wStates);
         }
+
+        int sideWidth = totalSide / 2;
+        if (sideWidth < sideMin) {
+            sideWidth = sideMin;
+            wStates = Math.max(minStates, headerWidth - 2 * gap - 2 * sideWidth);
+        }
+        if (sideWidth > statsMax) {
+            sideWidth = statsMax;
+            wStates = Math.max(minStates, headerWidth - 2 * gap - 2 * sideWidth);
+        }
+
+        int wStats = sideWidth;
+        int wEquip = sideWidth;
+
         int statsLeft = HUD_LEFT;
         int statesLeft = statsLeft + wStats + gap;
         int equipLeft = statesLeft + wStates + gap;
 
         hud = new PlayerHud(1, statsLeft, headerWidth, wStats);
         states = new PlayerStates(3, statesLeft, wStates);
-        int equipRows = Math.min(EQUIP_ROWS, Math.max(6, MAP_TOP - 4));
+        int equipRows = Math.min(EQUIP_ROWS, Math.max(6, MAP_TOP));
         equip = new EquipmentPanel(3, equipLeft, wEquip, equipRows);
 
-        final int mapTop = MAP_TOP;
+        int topBlockBottom = 3 + equipRows - 1;
+        mapTop = topBlockBottom + 1;
+
         final int mapFrame = 2;
         final int gapMapLog = 1;
         final int actionBarH = 3;
@@ -471,6 +469,7 @@ public class Renderer {
         ANSI.setScrollRegion(mapTop + 2, mapTop + 2 + viewH - 1);
         resetViewCache();
     }
+
 
     public boolean wasVisibleLastRender(int x, int y) {
         return mapView.wasVisibleLastRender(x, y);
@@ -578,6 +577,7 @@ public class Renderer {
             lastViewBuildNs = now;
         }
     }
+
     private void resetViewCache() {
         viewEntities.clear();
         lastViewCamX = Integer.MIN_VALUE;
