@@ -1,6 +1,7 @@
 package world.builders.map;
 
 import world.GameMap;
+import world.builders.forniture.BedBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -474,35 +475,25 @@ public final class HouseBuilder {
             // Si pair==null, no ponemos escaleras, pero seguimos para colocar la cama.
         }
 
-        // ── SIEMPRE colocar 1 cama por casa ───────────────────────────────────────
+
         final int MIN_DIST_STAIRS = 3;
-        boolean bedPlaced = false;
 
-        // 1) Si hay planta superior, la cama va arriba sí o sí
+        boolean placedBasement = false;
+        if (down != null) {
+            placedBasement = BedBuilder.placeOneBedPreferCorners(down, rng, 0, 0, down.w - 1, down.h - 1, MIN_DIST_STAIRS) || BedBuilder.placeOneBedPreferCorners(down, rng, 0, 0, down.w - 1, down.h - 1, Math.max(1, MIN_DIST_STAIRS - 1));
+            world.builders.forniture.ComputerBuilder.placeComputersNearBeds(down, rng, 0, 0, down.w - 1, down.h - 1);
+        }
+
+        boolean placedUp = false;
         if (up != null) {
-            bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(up, rng, 0, 0, up.w - 1, up.h - 1, MIN_DIST_STAIRS);
+            placedUp = BedBuilder.placeOneBedPreferCorners(up, rng, 0, 0, up.w - 1, up.h - 1, MIN_DIST_STAIRS) || BedBuilder.placeOneBedPreferCorners(up, rng, 0, 0, up.w - 1, up.h - 1, Math.max(1, MIN_DIST_STAIRS - 1));
+            world.builders.forniture.ComputerBuilder.placeComputersNearBeds(up, rng, 0, 0, up.w - 1, up.h - 1);
         }
 
-        // 2) Si no hay superior, planta 0 o sótano (si existe), indistintamente
-        if (!bedPlaced) {
-            boolean tryBasementFirst = (down != null) && rng.nextBoolean();
-            if (tryBasementFirst) {
-                bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(down, rng, 0, 0, down.w - 1, down.h - 1, MIN_DIST_STAIRS);
-                if (!bedPlaced) {
-                    bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(m, rng, x0, y0, x1, y1, MIN_DIST_STAIRS);
-                }
-            } else {
-                bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(m, rng, x0, y0, x1, y1, MIN_DIST_STAIRS);
-                if (!bedPlaced && down != null) {
-                    bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(down, rng, 0, 0, down.w - 1, down.h - 1, MIN_DIST_STAIRS);
-                }
-            }
+        if (!placedBasement && !placedUp) {
+            boolean placedGround = BedBuilder.placeOneBedPreferCorners(m, rng, x0, y0, x1, y1, MIN_DIST_STAIRS) || BedBuilder.placeOneBedPreferCorners(m, rng, x0, y0, x1, y1, Math.max(1, MIN_DIST_STAIRS - 1));
         }
-
-        // 3) Ultra-fallback: relaja distancia a escaleras si aún no cupo
-        if (!bedPlaced) {
-            world.builders.forniture.BedBuilder.placeOneBedPreferCorners(m, rng, x0, y0, x1, y1, Math.max(1, MIN_DIST_STAIRS - 1));
-        }
+        world.builders.forniture.ComputerBuilder.placeComputersNearBeds(m, rng, x0, y0, x1, y1);
     }
 
 

@@ -26,22 +26,17 @@ public final class BedBuilder {
                 boolean extU = isExteriorWallFacing(m, x, y - 1, x, y, x, y - 2);
                 boolean extD = isExteriorWallFacing(m, x, y + 1, x, y, x, y + 2);
 
-                // Esquinas de EXTERIOR
                 if (extL && extU) {
-                    pushIfValid(m, candidates, x, y, x + 1, y, stairs, minDistFromStairs); // =>
-                    pushIfValid(m, candidates, x, y, x, y + 1, stairs, minDistFromStairs); // v
+                    pushIfValidH(m, candidates, x, y, x + 1, y, stairs, minDistFromStairs); // =>
                 }
                 if (extR && extU) {
-                    pushIfValid(m, candidates, x, y, x - 1, y, stairs, minDistFromStairs); // <=
-                    pushIfValid(m, candidates, x, y, x, y + 1, stairs, minDistFromStairs); // v
+                    pushIfValidH(m, candidates, x, y, x - 1, y, stairs, minDistFromStairs); // <=
                 }
                 if (extL && extD) {
-                    pushIfValid(m, candidates, x, y, x + 1, y, stairs, minDistFromStairs); // =>
-                    pushIfValid(m, candidates, x, y, x, y - 1, stairs, minDistFromStairs); // ^
+                    pushIfValidH(m, candidates, x, y, x + 1, y, stairs, minDistFromStairs); // =>
                 }
                 if (extR && extD) {
-                    pushIfValid(m, candidates, x, y, x - 1, y, stairs, minDistFromStairs); // <=
-                    pushIfValid(m, candidates, x, y, x, y - 1, stairs, minDistFromStairs); // ^
+                    pushIfValidH(m, candidates, x, y, x - 1, y, stairs, minDistFromStairs); // <=
                 }
             }
         }
@@ -51,23 +46,20 @@ public final class BedBuilder {
                 for (int x = Math.max(x0 + 1, 1); x <= Math.min(x1 - 1, m.w - 2); x++) {
                     if (!(m.indoor[y][x] && m.tiles[y][x] == '▓')) continue;
 
+                    // pared a la izquierda -> cama hacia la derecha
                     if (isExteriorWallFacing(m, x - 1, y, x, y, x - 2, y) && isFreeFloor(m, x + 1, y)) {
-                        pushIfValid(m, candidates, x, y, x + 1, y, stairs, minDistFromStairs); // =>
+                        pushIfValidH(m, candidates, x, y, x + 1, y, stairs, minDistFromStairs);
                     }
+                    // pared a la derecha -> cama hacia la izquierda
                     if (isExteriorWallFacing(m, x + 1, y, x, y, x + 2, y) && isFreeFloor(m, x - 1, y)) {
-                        pushIfValid(m, candidates, x, y, x - 1, y, stairs, minDistFromStairs); // <=
-                    }
-                    if (isExteriorWallFacing(m, x, y - 1, x, y, x, y - 2) && isFreeFloor(m, x, y + 1)) {
-                        pushIfValid(m, candidates, x, y, x, y + 1, stairs, minDistFromStairs); // v
-                    }
-                    if (isExteriorWallFacing(m, x, y + 1, x, y, x, y + 2) && isFreeFloor(m, x, y - 1)) {
-                        pushIfValid(m, candidates, x, y, x, y - 1, stairs, minDistFromStairs); // ^
+                        pushIfValidH(m, candidates, x, y, x - 1, y, stairs, minDistFromStairs);
                     }
                 }
             }
         }
 
         if (candidates.isEmpty()) return false;
+
         candidates.sort((a, b) -> {
             int da = minDistToAny(stairs, a[0][0], a[0][1], a[1][0], a[1][1]);
             int db = minDistToAny(stairs, b[0][0], b[0][1], b[1][0], b[1][1]);
@@ -82,7 +74,8 @@ public final class BedBuilder {
         return true;
     }
 
-    private static void pushIfValid(GameMap m, List<int[][]> out, int x1, int y1, int x2, int y2, List<int[]> stairs, int minDistFromStairs) {
+    private static void pushIfValidH(GameMap m, List<int[][]> out, int x1, int y1, int x2, int y2, List<int[]> stairs, int minDistFromStairs) {
+        if (y2 != y1 || Math.abs(x2 - x1) != 1) return; // fuerza horizontal
         if (!inBounds(m, x2, y2)) return;
         if (!isFreeFloor(m, x1, y1) || !isFreeFloor(m, x2, y2)) return;
         if (nearDoor(m, x1, y1) || nearDoor(m, x2, y2)) return;
@@ -114,21 +107,19 @@ public final class BedBuilder {
     private static boolean isExteriorWallFacing(GameMap m, int wx, int wy, int inx, int iny, int outx, int outy) {
         if (!inBounds(m, wx, wy)) return false;
         char t = m.tiles[wy][wx];
-        if (!(t == '╔' || t == '╗' || t == '╚' || t == '╝' || t == '═' || t == '║')) return false; // solo pared “gorda”
+        if (!(t == '╔' || t == '╗' || t == '╚' || t == '╝' || t == '═' || t == '║')) return false;
         if (!inBounds(m, inx, iny)) return false;
 
         boolean inIndoor = m.indoor[iny][inx];
-        boolean outIndoor = inBounds(m, outx, outy) ? m.indoor[outy][outx] : false; // OOB cuenta como exterior
+        boolean outIndoor = inBounds(m, outx, outy) && m.indoor[outy][outx];
         return inIndoor && !outIndoor;
     }
 
     private static List<int[]> collectStairs(GameMap m) {
         ArrayList<int[]> out = new ArrayList<>();
-        for (int y = 0; y < m.h; y++) {
-            for (int x = 0; x < m.w; x++) {
+        for (int y = 0; y < m.h; y++)
+            for (int x = 0; x < m.w; x++)
                 if (m.tiles[y][x] == 'S') out.add(new int[]{x, y});
-            }
-        }
         return out;
     }
 

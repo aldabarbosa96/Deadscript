@@ -176,14 +176,22 @@ public class MapView {
                         char tile = map.tiles[my][mx];
                         boolean indoor = map.indoor[my][mx];
                         boolean isIndoorFloor = (tile == '▓' && indoor);
+                        boolean insideSameRoom = playerIndoor && indoor && roomStamp[my][mx] == curRoomId;
 
-                        if (isIndoorFloor && (vis || det)) {
+                        if (indoor && (vis || det)) {
                             roofSeen[my][mx] = true;
                         }
 
-                        boolean exposed = isIndoorFloor && ((playerIndoor && roomStamp[my][mx] == curRoomId) || vis);
-                        boolean roofNow = isIndoorFloor && !exposed && det;
-                        boolean roofDim = isIndoorFloor && !exposed && !det && roofSeen[my][mx];
+                        char drawTile = tile;
+                        boolean canShowFurniture = insideSameRoom || vis;
+                        if (isFurniture(tile) && !canShowFurniture) {
+                            drawTile = '▓';
+                        }
+
+                        boolean isIndoorDrawFloor = (drawTile == '▓' && indoor);
+                        boolean exposed = isIndoorDrawFloor && ((playerIndoor && roomStamp[my][mx] == curRoomId) || vis);
+                        boolean roofNow = isIndoorDrawFloor && !exposed && det;
+                        boolean roofDim = isIndoorDrawFloor && !exposed && !det && roofSeen[my][mx];
 
                         world.Entity ent = ovCell[sy][sx];
                         boolean drewEntity = false;
@@ -226,9 +234,7 @@ public class MapView {
                             }
 
                             boolean roadFlag = map.road[my][mx] && !map.indoor[my][mx];
-
                             boolean isRoadOnFloor = roadFlag && tile == '▓';
-
                             boolean isRoadGlyph = roadFlag && (tile == '-' || tile == '¦' || tile == '┌' || tile == '┐' || tile == '└' || tile == '┘');
 
                             if (roofNow || roofDim) {
@@ -236,47 +242,47 @@ public class MapView {
                                 nextColor = ROOF_COLOR;
 
                             } else if (strictVis) {
-                                ch = tile;
+                                ch = drawTile;
                                 if (isRoadOnFloor || isRoadGlyph) {
                                     nextColor = ROAD_VIS;
                                 } else {
-                                    nextColor = switch (tile) {
+                                    nextColor = switch (drawTile) {
                                         case '#' -> 92;
                                         case '~' -> 100000 + 45;
                                         case '█' -> 97;
                                         case '▓' -> (indoor ? 97 : 100000 + 252);
-                                        case '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐',
-                                             '└', '┘' -> 100000 + 94;
+                                        case '╔','╗','╚','╝','═','║','│','─','┼','├','┤','┬','┴','┌','┐','└','┘' -> 100000 + 94;
                                         case '+' -> 93;
                                         case '"' -> 100000 + 117;
                                         case '░' -> 100000 + 34;
                                         case 'Û' -> 100000 + 228;
                                         case 'S' -> 100000 + 226;
                                         case 'b' -> 100000 + 180;
+                                        case '©' -> 100000 + 15;
                                         default -> 100000 + 58;
                                     };
                                 }
 
                             } else if (det) {
-                                if (isInterestingTile(tile)) {
+                                if (isInterestingTile(drawTile)) {
                                     if (exp) {
-                                        ch = tile;
+                                        ch = drawTile;
                                         if (isRoadOnFloor || isRoadGlyph) {
                                             nextColor = ROAD_DET;
                                         } else {
-                                            nextColor = switch (tile) {
+                                            nextColor = switch (drawTile) {
                                                 case '#' -> 100000 + 22;
                                                 case '~' -> 100000 + 24;
                                                 case '█' -> 97;
                                                 case '▓' -> (indoor ? 90 : 100000 + 248);
-                                                case '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴',
-                                                     '┌', '┐', '└', '┘' -> 100000 + 94;
+                                                case '╔','╗','╚','╝','═','║','│','─','┼','├','┤','┬','┴','┌','┐','└','┘' -> 100000 + 94;
                                                 case '+' -> 90;
                                                 case '"' -> 100000 + 109;
                                                 case '░' -> 100000 + 34;
                                                 case 'Û' -> 100000 + 228;
                                                 case 'S' -> 100000 + 142;
                                                 case 'b' -> 100000 + 102;
+                                                case '©' -> 100000 + 7;
                                                 default -> 100000 + 137;
                                             };
                                         }
@@ -290,23 +296,23 @@ public class MapView {
                                 }
 
                             } else if (exp) {
-                                ch = tile;
+                                ch = drawTile;
                                 if (isRoadOnFloor || isRoadGlyph) {
                                     nextColor = ROAD_EXP;
                                 } else {
-                                    nextColor = switch (tile) {
+                                    nextColor = switch (drawTile) {
                                         case '#' -> 100000 + 22;
                                         case '~' -> 100000 + 24;
                                         case '█' -> 100000 + 250;
                                         case '▓' -> (indoor ? 90 : 100000 + 246);
-                                        case '╔', '╗', '╚', '╝', '═', '║', '│', '─', '┼', '├', '┤', '┬', '┴', '┌', '┐',
-                                             '└', '┘' -> 100000 + 94;
+                                        case '╔','╗','╚','╝','═','║','│','─','┼','├','┤','┬','┴','┌','┐','└','┘' -> 100000 + 94;
                                         case '+' -> 90;
                                         case '"' -> 100000 + 110;
                                         case '░' -> 100000 + 114;
                                         case 'Û' -> 100000 + 19;
                                         case 'S' -> 100000 + 136;
                                         case 'b' -> 100000 + 95;
+                                        case '©' -> 100000 + 8;
                                         default -> 100000 + 137;
                                     };
                                 }
@@ -401,13 +407,6 @@ public class MapView {
                 }
             }
         }
-    }
-
-    private boolean inDisc(int x, int y, int px, int py) {
-        int r = fovRadius;
-        int dx = x - px, dy = y - py;
-        double dyAdj = dy * cellAspect;
-        return dx * dx + dyAdj * dyAdj <= r * (double) r;
     }
 
     private void floodRoom(GameMap m, int sx, int sy, int id) {
@@ -535,5 +534,8 @@ public class MapView {
     public void setExtraOffset(int ex, int ey) {
         this.extraOffX = ex;
         this.extraOffY = ey;
+    }
+    private static boolean isFurniture(char t) {
+        return t == 'b' || t == '©';
     }
 }
