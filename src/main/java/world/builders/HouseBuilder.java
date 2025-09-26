@@ -107,6 +107,7 @@ public final class HouseBuilder {
 
             addExteriorDoorsOnBounding(m, rooms, rng);
             RectI bb = boundsOf(rooms);
+            world.builders.WindowBuilder.placeWindowsOnExteriorWallsInArea(m, rng, bb.x0, bb.y0, bb.x1, bb.y1, 1, 3);
             maybePlaceStairsInHouse(m, rng, bb.x0, bb.y0, bb.x1, bb.y1);
             placed++;
         }
@@ -342,6 +343,7 @@ public final class HouseBuilder {
         else paintDoor(m, x1, (y0 + y1) / 2);
         addInteriorPartitions(m, rng, x0, y0, x1, y1);
         clearDoorVestibules(m, x0, y0, x1, y1);
+        world.builders.WindowBuilder.placeWindowsOnExteriorWallsInArea(m, rng, x0, y0, x1, y1, 1, 3);
     }
 
     private void punchDoorsBetweenTouchingInteriors(GameMap m, Random rng) {
@@ -402,6 +404,7 @@ public final class HouseBuilder {
 
         if (makeUp) {
             GameMap up = makeUpperFloorVariant(interiorW, interiorH, rng);
+            world.builders.WindowBuilder.placeWindowsOnExteriorWallsInArea(up, rng, 0, 0, up.w - 1, up.h - 1, 1, 3);
 
             int[] upPair = pickCornerDoubleStair(up, 0, 0, up.w - 1, up.h - 1, rng);
 

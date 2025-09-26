@@ -427,11 +427,12 @@ public class Renderer {
         mapTop = topBlockBottom + 1;
 
         final int mapFrame = 2;
-        final int gapMapLog = 1;
+        final int gapMapLog = 0;
         final int actionBarH = 3;
         final int minMapH = 8;
         final int minLogH = 5;
         int desiredLogH = Math.min(LOG_ROWS, Math.max(minLogH, rows / 6));
+        desiredLogH += 1;
         int viewH = rows - (mapTop + mapFrame + gapMapLog + desiredLogH + actionBarH);
         if (viewH < minMapH) {
             desiredLogH = minLogH;
@@ -462,7 +463,7 @@ public class Renderer {
         inspectW = finalInspect;
         inspectH = desiredLogH;
 
-        int menuTop = logTop + desiredLogH + 1;
+        int menuTop = logTop + desiredLogH;
         if (actionBar == null) actionBar = new ActionBar(menuTop, MAP_LEFT, headerWidth);
         else actionBar.updateGeometry(menuTop, MAP_LEFT, headerWidth);
 
