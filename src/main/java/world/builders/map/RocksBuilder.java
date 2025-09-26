@@ -1,4 +1,4 @@
-package world.builders;
+package world.builders.map;
 
 import world.GameMap;
 import java.util.ArrayDeque;

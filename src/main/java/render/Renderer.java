@@ -10,7 +10,6 @@ import ui.menu.player.PlayerStates;
 import utils.ANSI;
 import game.GameState;
 import world.Entity;
-
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -470,7 +469,6 @@ public class Renderer {
         ANSI.setScrollRegion(mapTop + 2, mapTop + 2 + viewH - 1);
         resetViewCache();
     }
-
 
     public boolean wasVisibleLastRender(int x, int y) {
         return mapView.wasVisibleLastRender(x, y);

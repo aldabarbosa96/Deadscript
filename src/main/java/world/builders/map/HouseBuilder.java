@@ -1,4 +1,4 @@
-package world.builders;
+package world.builders.map;
 
 import world.GameMap;
 
@@ -107,7 +107,7 @@ public final class HouseBuilder {
 
             addExteriorDoorsOnBounding(m, rooms, rng);
             RectI bb = boundsOf(rooms);
-            world.builders.WindowBuilder.placeWindowsOnExteriorWallsInArea(m, rng, bb.x0, bb.y0, bb.x1, bb.y1, 1, 3);
+            WindowBuilder.placeWindowsOnExteriorWallsInArea(m, rng, bb.x0, bb.y0, bb.x1, bb.y1, 1, 3);
             maybePlaceStairsInHouse(m, rng, bb.x0, bb.y0, bb.x1, bb.y1);
             placed++;
         }
@@ -343,7 +343,7 @@ public final class HouseBuilder {
         else paintDoor(m, x1, (y0 + y1) / 2);
         addInteriorPartitions(m, rng, x0, y0, x1, y1);
         clearDoorVestibules(m, x0, y0, x1, y1);
-        world.builders.WindowBuilder.placeWindowsOnExteriorWallsInArea(m, rng, x0, y0, x1, y1, 1, 3);
+        WindowBuilder.placeWindowsOnExteriorWallsInArea(m, rng, x0, y0, x1, y1, 1, 3);
     }
 
     private void punchDoorsBetweenTouchingInteriors(GameMap m, Random rng) {
@@ -380,86 +380,131 @@ public final class HouseBuilder {
 
     private void maybePlaceStairsInHouse(GameMap m, Random rng, int x0, int y0, int x1, int y1) {
         if (rng == null) return;
-        if (rng.nextDouble() > 0.35) return;
-        int[] pair = pickCornerDoubleStair(m, x0, y0, x1, y1, rng);
-        if (pair == null) return;
 
-        int ax = pair[0], ay = pair[1];
-        int bx = pair[2], by = pair[3];
+        // ── NUEVO: preparar referencias para cama y evitar returns tempranos ──
+        GameMap up = null;
+        GameMap down = null;
 
-        m.placeStair(ax, ay);
-        m.placeStair(bx, by);
+        // Intentar escaleras con la misma probabilidad de antes
+        boolean tryStairs = rng.nextDouble() <= 0.35;
 
-        boolean makeUp = rng.nextBoolean();
-        boolean makeDown = rng.nextDouble() < 0.45;
-        if (!makeUp && !makeDown) {
-            makeDown = rng.nextBoolean();
-            makeUp = !makeDown;
-        }
+        int ax = -1, ay = -1, bx = -1, by = -1;
 
-        int interiorW = x1 - x0 - 1;
-        int interiorH = y1 - y0 - 1;
-        int relX1 = ax - (x0 + 1), relY1 = ay - (y0 + 1);
-        int relX2 = bx - (x0 + 1), relY2 = by - (y0 + 1);
+        if (tryStairs) {
+            int[] pair = pickCornerDoubleStair(m, x0, y0, x1, y1, rng);
 
-        if (makeUp) {
-            GameMap up = makeUpperFloorVariant(interiorW, interiorH, rng);
-            world.builders.WindowBuilder.placeWindowsOnExteriorWallsInArea(up, rng, 0, 0, up.w - 1, up.h - 1, 1, 3);
+            if (pair != null) {
+                ax = pair[0];
+                ay = pair[1];
+                bx = pair[2];
+                by = pair[3];
 
-            int[] upPair = pickCornerDoubleStair(up, 0, 0, up.w - 1, up.h - 1, rng);
+                m.placeStair(ax, ay);
+                m.placeStair(bx, by);
 
-            int uax, uay, ubx, uby;
-            if (upPair != null) {
-                uax = upPair[0];
-                uay = upPair[1];
-                ubx = upPair[2];
-                uby = upPair[3];
-            } else {
-                uax = 1;
-                uay = 1;
-                ubx = Math.min(up.w - 2, 2);
-                uby = 1;
-            }
+                boolean makeUp = rng.nextBoolean();
+                boolean makeDown = rng.nextDouble() < 0.45;
+                if (!makeUp && !makeDown) {
+                    makeDown = rng.nextBoolean();
+                    makeUp = !makeDown;
+                }
 
-            up.placeStair(uax, uay);
-            up.linkStairDown(uax, uay, m, ax, ay);
-            m.linkStairUp(ax, ay, up, uax, uay);
+                int interiorW = x1 - x0 - 1;
+                int interiorH = y1 - y0 - 1;
+                int relX1 = ax - (x0 + 1), relY1 = ay - (y0 + 1);
+                int relX2 = bx - (x0 + 1), relY2 = by - (y0 + 1);
 
-            up.placeStair(ubx, uby);
-            up.linkStairDown(ubx, uby, m, bx, by);
-            m.linkStairUp(bx, by, up, ubx, uby);
-        }
+                if (makeUp) {
+                    up = makeUpperFloorVariant(interiorW, interiorH, rng);
 
-        if (makeDown) {
-            GameMap down = makeBasement(interiorW, interiorH, rng);
+                    int[] upPair = pickCornerDoubleStair(up, 0, 0, up.w - 1, up.h - 1, rng);
 
-            int dx1 = 1 + clamp(relX1, 0, down.w - 3);
-            int dy1 = 1 + clamp(relY1, 0, down.h - 3);
-            int dx2 = 1 + clamp(relX2, 0, down.w - 3);
-            int dy2 = 1 + clamp(relY2, 0, down.h - 3);
+                    int uax, uay, ubx, uby;
+                    if (upPair != null) {
+                        uax = upPair[0];
+                        uay = upPair[1];
+                        ubx = upPair[2];
+                        uby = upPair[3];
+                    } else {
+                        uax = 1;
+                        uay = 1;
+                        ubx = Math.min(up.w - 2, 2);
+                        uby = 1;
+                    }
 
-            if (dx2 == dx1 && dy2 == dy1) {
-                if (dx2 + 1 <= down.w - 2) dx2++;
-                else if (dx2 - 1 >= 1) dx2--;
-                else if (dy2 + 1 <= down.h - 2) dy2++;
-                else if (dy2 - 1 >= 1) dy2--;
-                else {
-                    dx2 = -1;
-                    dy2 = -1;
+                    up.placeStair(uax, uay);
+                    up.linkStairDown(uax, uay, m, ax, ay);
+                    m.linkStairUp(ax, ay, up, uax, uay);
+
+                    up.placeStair(ubx, uby);
+                    up.linkStairDown(ubx, uby, m, bx, by);
+                    m.linkStairUp(bx, by, up, ubx, uby);
+                }
+
+                if (makeDown) {
+                    down = makeBasement(interiorW, interiorH, rng);
+
+                    int dx1 = 1 + clamp(relX1, 0, down.w - 3);
+                    int dy1 = 1 + clamp(relY1, 0, down.h - 3);
+                    int dx2 = 1 + clamp(relX2, 0, down.w - 3);
+                    int dy2 = 1 + clamp(relY2, 0, down.h - 3);
+
+                    if (dx2 == dx1 && dy2 == dy1) {
+                        if (dx2 + 1 <= down.w - 2) dx2++;
+                        else if (dx2 - 1 >= 1) dx2--;
+                        else if (dy2 + 1 <= down.h - 2) dy2++;
+                        else if (dy2 - 1 >= 1) dy2--;
+                        else {
+                            dx2 = -1;
+                            dy2 = -1;
+                        }
+                    }
+
+                    down.placeStair(dx1, dy1);
+                    down.linkStairUp(dx1, dy1, m, ax, ay);
+                    m.linkStairDown(ax, ay, down, dx1, dy1);
+
+                    if (dx2 >= 0) {
+                        down.placeStair(dx2, dy2);
+                        down.linkStairUp(dx2, dy2, m, bx, by);
+                        m.linkStairDown(bx, by, down, dx2, dy2);
+                    }
                 }
             }
+            // Si pair==null, no ponemos escaleras, pero seguimos para colocar la cama.
+        }
 
-            down.placeStair(dx1, dy1);
-            down.linkStairUp(dx1, dy1, m, ax, ay);
-            m.linkStairDown(ax, ay, down, dx1, dy1);
+        // ── SIEMPRE colocar 1 cama por casa ───────────────────────────────────────
+        final int MIN_DIST_STAIRS = 3;
+        boolean bedPlaced = false;
 
-            if (dx2 >= 0) {
-                down.placeStair(dx2, dy2);
-                down.linkStairUp(dx2, dy2, m, bx, by);
-                m.linkStairDown(bx, by, down, dx2, dy2);
+        // 1) Si hay planta superior, la cama va arriba sí o sí
+        if (up != null) {
+            bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(up, rng, 0, 0, up.w - 1, up.h - 1, MIN_DIST_STAIRS);
+        }
+
+        // 2) Si no hay superior, planta 0 o sótano (si existe), indistintamente
+        if (!bedPlaced) {
+            boolean tryBasementFirst = (down != null) && rng.nextBoolean();
+            if (tryBasementFirst) {
+                bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(down, rng, 0, 0, down.w - 1, down.h - 1, MIN_DIST_STAIRS);
+                if (!bedPlaced) {
+                    bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(m, rng, x0, y0, x1, y1, MIN_DIST_STAIRS);
+                }
+            } else {
+                bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(m, rng, x0, y0, x1, y1, MIN_DIST_STAIRS);
+                if (!bedPlaced && down != null) {
+                    bedPlaced = world.builders.forniture.BedBuilder.placeOneBedPreferCorners(down, rng, 0, 0, down.w - 1, down.h - 1, MIN_DIST_STAIRS);
+                }
             }
         }
+
+        // 3) Ultra-fallback: relaja distancia a escaleras si aún no cupo
+        if (!bedPlaced) {
+            world.builders.forniture.BedBuilder.placeOneBedPreferCorners(m, rng, x0, y0, x1, y1, Math.max(1, MIN_DIST_STAIRS - 1));
+        }
     }
+
 
     private int[] pickCornerDoubleStair(GameMap m, int x0, int y0, int x1, int y1, Random rng) {
         int[][] corners = new int[][]{{x0 + 1, y0 + 1, +1, 0, 0, +1}, {x1 - 1, y0 + 1, -1, 0, 0, +1}, {x1 - 1, y1 - 1, -1, 0, 0, -1}, {x0 + 1, y1 - 1, +1, 0, 0, -1}};

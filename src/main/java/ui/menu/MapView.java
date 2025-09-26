@@ -252,6 +252,7 @@ public class MapView {
                                         case '░' -> 100000 + 34;
                                         case 'Û' -> 100000 + 228;
                                         case 'S' -> 100000 + 226;
+                                        case 'b' -> 100000 + 180;
                                         default -> 100000 + 58;
                                     };
                                 }
@@ -275,6 +276,7 @@ public class MapView {
                                                 case '░' -> 100000 + 34;
                                                 case 'Û' -> 100000 + 228;
                                                 case 'S' -> 100000 + 142;
+                                                case 'b' -> 100000 + 102;
                                                 default -> 100000 + 137;
                                             };
                                         }
@@ -304,6 +306,7 @@ public class MapView {
                                         case '░' -> 100000 + 114;
                                         case 'Û' -> 100000 + 19;
                                         case 'S' -> 100000 + 136;
+                                        case 'b' -> 100000 + 95;
                                         default -> 100000 + 137;
                                     };
                                 }
