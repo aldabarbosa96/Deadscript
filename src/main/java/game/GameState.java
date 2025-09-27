@@ -72,7 +72,9 @@ public class GameState {
     public boolean computerBootJustEnded = false;
     public final ArrayList<String> computerConsole = new ArrayList<>();
     public final StringBuilder computerLine = new StringBuilder();
-    public String computerCwd = "C:\\User\\Username";
+    public String computerCwd = "/home/guest";
+    public final Set<String> computerDirs = new HashSet<>();
+    public final Map<String, String> computerFiles = new HashMap<>();
 
     public enum SkillGroup {FISICO, COMBATE, CRAFTEO, SUPERVIVENCIA}
 
@@ -173,7 +175,21 @@ public class GameState {
         // testing injuries todo--> borrar en producción
         injuries.get(BodyPart.BRAZO_IZQ).add(new Injury("Corte superficial", 18));
 
+        initComputerVfsIfEmpty();
+
     }
+
+    public void initComputerVfsIfEmpty() {
+        if (!computerDirs.isEmpty() || !computerFiles.isEmpty()) return;
+        computerDirs.add("/");
+        computerDirs.add("/home");
+        computerDirs.add("/home/guest");
+        computerDirs.add("/bin");
+        computerFiles.put("/home/guest/readme.txt", "Bienvenido.\nComandos útiles: help, ls, cd, echo, cat, rm, mv, cp, clear, exit.");
+        computerFiles.put("/bin/notes.txt", "No hay binarios reales. Es una demo del VFS.");
+        computerCwd = "/home/guest";
+    }
+
 
     public void resetMap() {
         map = GameMap.randomBalanced(650, 500);
