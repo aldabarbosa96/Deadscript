@@ -66,6 +66,13 @@ public class GameState {
     public int statsCol = 0;
     public int statsSelBasic = 0;
     public int statsSelSkill = 0;
+    public boolean computerOpen = false;
+    public boolean computerBootDone = false;
+    public long computerBootStartNs = 0L;
+    public boolean computerBootJustEnded = false;
+    public final ArrayList<String> computerConsole = new ArrayList<>();
+    public final StringBuilder computerLine = new StringBuilder();
+    public String computerCwd = "C:\\User\\Username";
 
     public enum SkillGroup {FISICO, COMBATE, CRAFTEO, SUPERVIVENCIA}
 

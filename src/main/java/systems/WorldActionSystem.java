@@ -40,11 +40,10 @@ public final class WorldActionSystem {
             }
         }
 
-        // --- NUEVO: no sobrescribir si estamos mirando a una escalera
         char baseTile = s.map.tiles[ty][tx];
         boolean baseIsStair = (baseTile == 'S' && s.map.hasStairAt(tx, ty));
+        boolean baseIsComputer = (baseTile == '©');
 
-        // Auto-selección de loot cercano sólo si no estamos sobre/escalera delante
         if (!baseIsStair && (targetEnt == null || targetEnt.type != Entity.Type.LOOT)) {
             Entity nearLoot = pickLootNearPlayer(s);
             if (nearLoot != null) {
@@ -52,7 +51,6 @@ public final class WorldActionSystem {
                 tx = nearLoot.x;
                 ty = nearLoot.y;
             } else {
-                // --- NUEVO: imán a ESCALERA cercana (8-neighborhood)
                 int[] stair = pickStairNearPlayer(s);
                 if (stair != null) {
                     tx = stair[0];
@@ -119,13 +117,16 @@ public final class WorldActionSystem {
                 case 'S' -> {
                     world.GameMap.Stair st = s.map.getStairAt(tx, ty);
                     if (st != null) {
-                        if (UPPER_OVERLAY_ACTIVE) {
+                        if (overlayActiveAt(tx, ty)) {
                             out.add("Bajar");
                         } else {
                             if (st.up != null) out.add("Subir");
                             if (st.down != null) out.add("Bajar");
                         }
                     }
+                }
+                case '©' -> {
+                    out.add("Iniciar ordenador");
                 }
                 default -> {
                 }
@@ -232,12 +233,12 @@ public final class WorldActionSystem {
                     activateUpperOverlay(s, r, st.up.map, tx, ty, st.up.x, st.up.y);
                     return true;
                 } else {
-                    return goThroughStairs(s, r, st.up,true);
+                    return goThroughStairs(s, r, st.up, true);
                 }
             }
 
             case "bajar" -> {
-                if (UPPER_OVERLAY_ACTIVE) {
+                if (overlayActiveAt(tx, ty)) {
                     s.px = tx;
                     s.py = ty;
                     s.lastDx = 0;
@@ -245,13 +246,33 @@ public final class WorldActionSystem {
                     deactivateUpperOverlay(s, r);
                     return true;
                 }
-
                 world.GameMap.Stair st = s.map.getStairAt(tx, ty);
                 if (st == null || st.down == null) {
                     r.log("Estas escaleras no llevan a ningún sótano.");
                     return false;
                 }
                 return goThroughStairs(s, r, st.down, /*goingUp=*/false);
+            }
+
+            case "iniciar ordenador" -> {
+                if (tile != '©') {
+                    r.log("Aquí no hay un ordenador.");
+                    return false;
+                }
+
+                s.worldActionsOpen = false;
+                s.computerOpen = true;
+                s.computerBootStartNs = System.nanoTime();
+                s.computerBootDone = false;
+                s.computerBootJustEnded = false;
+
+                r.log("Encendiendo ordenador...");
+                try {
+                    AudioManager.playUi("/audio/pcBeep1.wav");
+                    AudioManager.playUi("/audio/pcBeep2.wav");
+                } catch (Throwable ignored) {
+                }
+                return true;
             }
 
             default -> {
@@ -396,21 +417,29 @@ public final class WorldActionSystem {
     }
 
     private static void deactivateUpperOverlay(game.GameState s, render.Renderer r) {
-        if (!UPPER_OVERLAY_ACTIVE || SNAP == null) return;
-        int x0 = SNAP.x0, y0 = SNAP.y0;
+        if (!UPPER_OVERLAY_ACTIVE) return;
 
-        for (int gy = y0; gy < y0 + SNAP.h; gy++) {
-            for (int gx = x0; gx < x0 + SNAP.w; gx++) {
-                int ly = gy - y0, lx = gx - x0;
-                s.map.tiles[gy][gx] = SNAP.tiles[ly][lx];
-                s.map.walk[gy][gx] = SNAP.walk[ly][lx];
-                s.map.transp[gy][gx] = SNAP.transp[ly][lx];
-                s.map.indoor[gy][gx] = SNAP.indoor[ly][lx];
+        if (SNAP != null) {
+            int x0 = SNAP.x0, y0 = SNAP.y0;
+            for (int gy = y0; gy < y0 + SNAP.h; gy++) {
+                for (int gx = x0; gx < x0 + SNAP.w; gx++) {
+                    int ly = gy - y0, lx = gx - x0;
+                    s.map.tiles[gy][gx] = SNAP.tiles[ly][lx];
+                    s.map.walk[gy][gx] = SNAP.walk[ly][lx];
+                    s.map.transp[gy][gx] = SNAP.transp[ly][lx];
+                    s.map.indoor[gy][gx] = SNAP.indoor[ly][lx];
+                }
             }
+            SNAP = null;
         }
 
-        SNAP = null;
         UPPER_OVERLAY_ACTIVE = false;
         r.log("Bajas a la planta 0.");
     }
+
+
+    private static boolean overlayActiveAt(int gx, int gy) {
+        return UPPER_OVERLAY_ACTIVE && SNAP != null && gx >= SNAP.x0 && gx < SNAP.x0 + SNAP.w && gy >= SNAP.y0 && gy < SNAP.y0 + SNAP.h;
+    }
+
 }

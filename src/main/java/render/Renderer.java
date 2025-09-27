@@ -10,6 +10,7 @@ import ui.menu.player.PlayerStates;
 import utils.ANSI;
 import game.GameState;
 import world.Entity;
+
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ public class Renderer {
     private MessageLog msgLog;
     private ActionBar actionBar;
     private InspectView inspect;
+    private final PCView pcOverlay = new PCView();
     private int inspectTop, inspectLeft, inspectW, inspectH;
     private final InventoryView invOverlay = new InventoryView();
     private final EquipmentView equipOverlay = new EquipmentView();
@@ -114,7 +116,7 @@ public class Renderer {
     public void renderAll(GameState s) {
         boolean justClosedWorldActions = wasWorldActionsOpen && !s.worldActionsOpen;
         wasWorldActionsOpen = s.worldActionsOpen;
-        boolean overlayOpen = s.inventoryOpen || s.equipmentOpen || s.statsOpen;
+        boolean overlayOpen = s.inventoryOpen || s.equipmentOpen || s.statsOpen || s.computerOpen;
         boolean justClosedOverlay = wasOverlayOpen && !overlayOpen;
         wasOverlayOpen = overlayOpen;
 
@@ -148,7 +150,7 @@ public class Renderer {
 
         equip.render(arma, off, cabeza, pecho, manos, piernas, pies, mochila, 0, 0, peso, capacidad);
 
-        if (!s.inventoryOpen && !s.equipmentOpen && !s.statsOpen) {
+        if (!s.inventoryOpen && !s.equipmentOpen && !s.statsOpen && !s.computerOpen) {
             overlay.clear();
 
             final int camX = cameraX(s), camY = cameraY(s);
@@ -205,6 +207,14 @@ public class Renderer {
             int w = mapView.getViewW();
             int h = mapView.getViewH() + 2;
             statsOverlay.render(top, left, w, h, s);
+        }
+
+        if (s.computerOpen) {
+            int top = mapTop;
+            int left = mapView.getLeft();
+            int w = mapView.getViewW();
+            int h = mapView.getViewH() + 2;
+            pcOverlay.render(top, left, w, h, s);
         }
 
         msgLog.render();

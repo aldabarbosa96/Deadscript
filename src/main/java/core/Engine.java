@@ -13,7 +13,6 @@ public class Engine {
     private final GameState state = new GameState();
     private final Renderer renderer = new Renderer();
     private final Clock clock = new Clock();
-    private AudioManager ambient;
     private boolean running = true;
     private boolean dirty = true;
     private final StickyMove sticky = new StickyMove();
@@ -22,10 +21,15 @@ public class Engine {
     private final EquipmentController eqCtrl = new EquipmentController();
     private final WorldActionController worldCtrl = new WorldActionController();
     private final StatsController statsCtrl = new StatsController();
+    private final PCController pcCtrl = new PCController();
+    private boolean wasComputerOpen = false;
+    private boolean dropFirstCommandAfterPc = false;
+    private static final long PC_BOOT_NS = 4_500_000_000L;
 
     public Engine(InputHandler input) {
         this.input = input;
         renderer.init(state, input.getTerminal());
+        input.setTypingEnabledSupplier(() -> state.computerOpen && state.computerBootDone);
 
         try {
             systems.LootSystem.scatterInitialLoot(state, renderer);
@@ -47,9 +51,22 @@ public class Engine {
 
     public void run() {
         while (running) {
+
+            if (state.computerOpen && !state.computerBootDone) {
+                if (System.nanoTime() - state.computerBootStartNs >= PC_BOOT_NS) {
+                    state.computerBootDone = true;
+                    state.computerBootJustEnded = true;
+                    input.flushQueues();
+                    dirty = true;
+                }
+            }
             // 1) INPUT
             InputHandler.Command c;
             while ((c = input.poll(0)) != InputHandler.Command.NONE) {
+                if (dropFirstCommandAfterPc) {
+                    dropFirstCommandAfterPc = false;
+                    if (c == InputHandler.Command.OPTIONS) continue;
+                }
                 if (state.inventoryOpen) {
                     Effect e = invCtrl.handle(c, state, renderer, sticky);
                     if (e == Effect.QUIT) {
@@ -82,6 +99,14 @@ public class Engine {
                     }
                     if (e == Effect.CHANGED) dirty = true;
 
+                } else if (state.computerOpen) {
+                    Effect e = pcCtrl.handle(c, state, renderer);
+                    if (e == Effect.QUIT) {
+                        running = false;
+                        break;
+                    }
+                    if (e == Effect.CHANGED) dirty = true;
+                    continue;
                 } else {
                     if (isArrow(c)) {
                         boolean moved = sticky.onArrow(c, state, renderer);
@@ -98,10 +123,33 @@ public class Engine {
             }
             if (!running) break;
 
-            boolean uiOpen = state.inventoryOpen || state.equipmentOpen || state.worldActionsOpen || state.statsOpen;
+            if (state.computerOpen && state.computerBootDone) {
+                int ch;
+                while ((ch = input.pollChar()) != -1) {
+                    Effect e = pcCtrl.onChar(ch, state, renderer);
+                    if (e == Effect.CHANGED) dirty = true;
+                    if (e == Effect.QUIT) {
+                        running = false;
+                        break;
+                    }
+                }
+                if (!running) break;
+            }
+
+            if (wasComputerOpen && !state.computerOpen) {
+                input.flushQueues();
+                dropFirstCommandAfterPc = true;
+            }
+            wasComputerOpen = state.computerOpen;
+
+            boolean uiOpen = state.inventoryOpen || state.equipmentOpen || state.worldActionsOpen || state.statsOpen || state.computerOpen;
 
             if (renderer.ensureLayoutUpToDate(state)) {
                 dirty = true;
+            }
+            if (state.computerOpen && state.computerBootJustEnded) {
+                dirty = true;
+                state.computerBootJustEnded = false;
             }
 
             // 2) AUTO-MOVE (mientras haya sticky activo y no hay UI encima)
@@ -110,6 +158,9 @@ public class Engine {
                 if (v.dx != 0 || v.dy != 0) {
                     if (PlayerSystem.tryMoveThrottled(state, v.dx, v.dy, renderer, false)) dirty = true;
                 }
+            }
+            if (state.computerOpen && !state.computerBootDone) {
+                dirty = true;
             }
 
             // 3) SIMULACIÓN (fixed steps)
@@ -129,7 +180,8 @@ public class Engine {
                     dirty = false;
                 }
             } else {
-                if (dirty) {
+                boolean animPc = state.computerOpen && !state.computerBootDone;
+                if (clock.shouldRender(dirty || animPc)) {
                     renderer.renderAll(state);
                     clock.onRendered();
                     dirty = false;

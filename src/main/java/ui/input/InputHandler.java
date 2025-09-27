@@ -5,16 +5,18 @@ import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.NonBlockingReader;
 
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 public class InputHandler implements AutoCloseable {
 
     public enum Command {
-        UP, DOWN, LEFT, RIGHT, REGENERATE, INVENTORY, EQUIPMENT, STATS, ACTION, OPTIONS, QUIT, NONE
+        UP, DOWN, LEFT, RIGHT, REGENERATE, INVENTORY, EQUIPMENT, STATS, ACTION, OPTIONS, QUIT, NONE, BACK, CANCEL, ENTER_KEY, BACKSPACE_KEY
     }
 
     private final BlockingQueue<Command> queue = new LinkedBlockingQueue<>();
@@ -24,6 +26,9 @@ public class InputHandler implements AutoCloseable {
     private final BindingReader reader;
     private final KeyMap<Command> keyMap;
     private final Attributes prevAttrs;
+    private final BlockingQueue<Integer> charQueue = new LinkedBlockingQueue<>();
+    private volatile BooleanSupplier typingEnabled = () -> false;
+
 
     public InputHandler() {
         try {
@@ -52,11 +57,45 @@ public class InputHandler implements AutoCloseable {
     }
 
     private void loop() {
+        final int POLL_MS = 50; // pequeño timeout para re-chequear typingEnabled
         try {
             while (running) {
-                Command c = reader.readBinding(keyMap);
-                if (!running) break;
-                if (c != null) queue.offer(c);
+                boolean typing = typingEnabled.getAsBoolean();
+
+                if (typing) {
+                    // MODO TERMINAL (escritura libre)
+                    int ch = reader.readCharacter(); // bloquea, pero aquí queremos escribir
+                    if (!running) break;
+
+                    if (ch == 13 || ch == 10) {
+                        queue.offer(Command.ENTER_KEY);
+                    } else if (ch == 127 || ch == 8) {
+                        queue.offer(Command.BACKSPACE_KEY);
+                    } else if (ch >= 32 && ch < 127) {
+                        charQueue.offer(ch);
+                    } else {
+                        // ignora otros controles
+                    }
+                } else {
+                    // MODO MENÚ (no escritura): no bloquees indefinidamente
+                    int peek = reader.peekCharacter(POLL_MS);
+                    if (!running) break;
+
+                    // Si ha expirado el timeout, reevalúa modo y sigue
+                    if (peek == NonBlockingReader.READ_EXPIRED) {
+                        continue;
+                    }
+
+                    // Si durante la espera cambiamos a typing, vuelve al inicio
+                    if (typingEnabled.getAsBoolean()) {
+                        continue;
+                    }
+
+                    // Hay input disponible: ahora sí, parsea con el KeyMap
+                    Command c = reader.readBinding(keyMap);
+                    if (!running) break;
+                    if (c != null) queue.offer(c);
+                }
             }
         } catch (Throwable ignore) {
         }
@@ -82,6 +121,11 @@ public class InputHandler implements AutoCloseable {
         km.bind(Command.EQUIPMENT, "e", "E");
         km.bind(Command.STATS, "s", "S");
         km.bind(Command.OPTIONS, "o", "O");
+
+        km.bind(Command.BACK, "z", "Z");
+
+        km.bind(Command.ENTER_KEY, "\r", "\n");
+        km.bind(Command.BACKSPACE_KEY, "\u007F", "\b");
 
         return km;
     }
@@ -115,5 +159,19 @@ public class InputHandler implements AutoCloseable {
 
     public Terminal getTerminal() {
         return terminal;
+    }
+
+    public void setTypingEnabledSupplier(BooleanSupplier supplier) {
+        this.typingEnabled = (supplier != null) ? supplier : () -> false;
+    }
+
+    public int pollChar() {
+        Integer v = charQueue.poll();
+        return v == null ? -1 : v;
+    }
+
+    public void flushQueues() {
+        queue.clear();
+        charQueue.clear();
     }
 }
