@@ -57,41 +57,45 @@ public class InputHandler implements AutoCloseable {
     }
 
     private void loop() {
-        final int POLL_MS = 50; // pequeño timeout para re-chequear typingEnabled
+        final int POLL_MS = 50;
         try {
             while (running) {
                 boolean typing = typingEnabled.getAsBoolean();
-
                 if (typing) {
-                    // MODO TERMINAL (escritura libre)
-                    int ch = reader.readCharacter(); // bloquea, pero aquí queremos escribir
+                    int ch = reader.readCharacter();
                     if (!running) break;
-
                     if (ch == 13 || ch == 10) {
                         queue.offer(Command.ENTER_KEY);
                     } else if (ch == 127 || ch == 8) {
                         queue.offer(Command.BACKSPACE_KEY);
+                    } else if (ch == 27) {
+                        int p1 = reader.peekCharacter(1);
+                        if (p1 == 'O' || p1 == '[') {
+                            p1 = reader.readCharacter();
+                            int p2 = reader.peekCharacter(1);
+                            if (p2 == 'A' || p2 == 'B' || p2 == 'C' || p2 == 'D') {
+                                p2 = reader.readCharacter();
+                                reader.runMacro("\u001B" + (char) p1 + (char) p2);
+                            } else {
+                                reader.runMacro("\u001B" + (char) p1);
+                            }
+                        } else {
+                            reader.runMacro("\u001B");
+                        }
+                        continue;
                     } else if (ch >= 32 && ch < 127) {
                         charQueue.offer(ch);
                     } else {
-                        // ignora otros controles
                     }
                 } else {
-                    // MODO MENÚ (no escritura): no bloquees indefinidamente
                     int peek = reader.peekCharacter(POLL_MS);
                     if (!running) break;
-
-                    // Si ha expirado el timeout, reevalúa modo y sigue
                     if (peek == NonBlockingReader.READ_EXPIRED) {
                         continue;
                     }
-
-                    // Si durante la espera cambiamos a typing, vuelve al inicio
                     if (typingEnabled.getAsBoolean()) {
                         continue;
                     }
-
-                    // Hay input disponible: ahora sí, parsea con el KeyMap
                     Command c = reader.readBinding(keyMap);
                     if (!running) break;
                     if (c != null) queue.offer(c);
@@ -100,6 +104,7 @@ public class InputHandler implements AutoCloseable {
         } catch (Throwable ignore) {
         }
     }
+
 
     private KeyMap<Command> buildKeyMap() {
         KeyMap<Command> km = new KeyMap<>();
